@@ -261,7 +261,11 @@ export class DeepSeekWithTools {
     // Skip if this looks like conversation history or already processed content
     if (textContent.includes('🔄 Iteration') || 
         textContent.includes('📦 Found') || 
-        textContent.includes('🔧 Executing')) {
+        textContent.includes('🔧 Executing') ||
+        textContent.includes('✦') ||
+        textContent.includes('🤔') ||
+        textContent.includes('```thinking') ||
+        textContent.includes('**Thinking Process:**')) {
       return textContent;
     }
     
@@ -278,13 +282,11 @@ export class DeepSeekWithTools {
    * Format thinking blocks with bullet points
    */
   private formatThinkingBlocks(content: string): string {
-    // Add a unique marker to prevent double processing
-    const FORMATTED_MARKER = '<!-- DEEPSEEK_FORMATTED -->';
-    
-    // Skip if already formatted (check for our unique marker)
-    if (content.includes(FORMATTED_MARKER) ||
-        content.includes('✦ 🤔 **Thinking Process:**') || 
-        content.includes('```thinking')) {
+    // Comprehensive check for any already formatted content
+    if (content.includes('✦') ||
+        content.includes('🤔') ||
+        content.includes('```thinking') ||
+        content.includes('**Thinking Process:**')) {
       return content;
     }
     
@@ -317,7 +319,6 @@ export class DeepSeekWithTools {
       });
       
       const formattedThinking = [
-        FORMATTED_MARKER,
         '\n✦ 🤔 **Thinking Process:**',
         '```thinking',
         ...formattedLines,
