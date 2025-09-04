@@ -282,22 +282,24 @@ export class DeepSeekWithTools {
    * Format thinking blocks with bullet points
    */
   private formatThinkingBlocks(content: string): string {
-    // Comprehensive check for any already formatted content
-    if (content.includes('✦') ||
-        content.includes('🤔') ||
-        content.includes('```thinking') ||
-        content.includes('**Thinking Process:**')) {
-      return content;
-    }
+    // AGGRESSIVE CLEANUP: Remove any existing formatting first
+    let cleanContent = content;
     
+    // Remove existing formatted thinking blocks entirely
+    cleanContent = cleanContent.replace(/✦.*?```\s*\n/gs, '');
+    cleanContent = cleanContent.replace(/```thinking[\s\S]*?```/g, '');
+    cleanContent = cleanContent.replace(/🤔.*?Thinking Process.*?\n/g, '');
+    
+    // Now look for raw <think> tags in the cleaned content
     const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
-    const matches = [...content.matchAll(thinkRegex)];
+    const matches = [...cleanContent.matchAll(thinkRegex)];
     
     if (matches.length === 0) {
-      return content;
+      return content; // Return original if no <think> tags found
     }
 
-    let formattedContent = content;
+    // Work with cleaned content but replace in original
+    let formattedContent = cleanContent;
     
     for (const match of matches) {
       const thinkContent = match[1].trim();
