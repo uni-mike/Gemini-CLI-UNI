@@ -290,8 +290,8 @@ export class DeepSeekWithTools {
       // Format lines, removing existing numbering if present
       const formattedLines = lines.map((line: string, index: number) => {
         const trimmed = line.trim();
-        // Remove existing numbering patterns like "1." or "1)" at the start
-        const cleanedLine = trimmed.replace(/^\d+[\.\)]\s*/, '');
+        // Remove existing numbering patterns like "1.", "1)", or just "1" at the start
+        const cleanedLine = trimmed.replace(/^\d+[\.\):]?\s+/, '');
         return `${index + 1}. ${cleanedLine}`;
       });
       
