@@ -252,6 +252,42 @@ export class DeepSeekWithTools {
   }
 
   /**
+   * Format thinking process for better user understanding
+   */
+  private formatThinkingProcess(content: string | any): string {
+    // Handle objects that might have content property
+    let textContent = typeof content === 'string' ? content : (content?.content || String(content));
+    
+    const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
+    const matches = [...textContent.matchAll(thinkRegex)];
+    
+    if (matches.length === 0) {
+      return textContent;
+    }
+
+    let formattedContent = textContent;
+    
+    for (const match of matches) {
+      const thinkContent = match[1].trim();
+      if (!thinkContent) continue;
+      
+      // Split thinking into lines and format as bullet points
+      const lines = thinkContent.split('\n').filter((line: string) => line.trim());
+      
+      const formattedThinking = [
+        '\n🤔 **Thinking Process:**',
+        '```',
+        ...lines.map((line: string) => `• ${line.trim()}`),
+        '```\n'
+      ].join('\n');
+      
+      formattedContent = formattedContent.replace(match[0], formattedThinking);
+    }
+    
+    return formattedContent;
+  }
+
+  /**
    * Send a message with tool support - Enhanced for complex sequences
    */
   async sendMessageWithTools(message: string, maxIterations: number = 5): Promise<string> {
@@ -495,8 +531,8 @@ IMPORTANT:
         const finalData = await finalApiResponse.json();
         let finalMessage = finalData.choices?.[0]?.message?.content || '';
         
-        // Remove <think> tags and their content from the response
-        finalMessage = finalMessage.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        // Format thinking process for better readability
+        finalMessage = this.formatThinkingProcess(finalMessage);
         
         this.conversation.push({ role: 'assistant', content: finalMessage });
         
@@ -548,8 +584,8 @@ IMPORTANT:
         const finalData = await finalApiResponse.json();
         let finalMessage = finalData.choices?.[0]?.message?.content || '';
         
-        // Remove <think> tags and their content from the response
-        finalMessage = finalMessage.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        // Format thinking process for better readability
+        finalMessage = this.formatThinkingProcess(finalMessage);
         
         this.conversation.push({ role: 'assistant', content: finalMessage });
         return finalMessage;
@@ -561,8 +597,8 @@ IMPORTANT:
       // Check if response needs continuation
       let msgContent = responseMessage.content || '';
       
-      // Remove <think> tags and their content from the response
-      msgContent = msgContent.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      // Format thinking process for better readability
+      msgContent = this.formatThinkingProcess(msgContent);
       
       if (msgContent.includes('<needs_continuation/>')) {
         console.log('📝 Response indicates continuation needed...');
