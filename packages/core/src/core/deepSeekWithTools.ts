@@ -278,10 +278,9 @@ export class DeepSeekWithTools {
    * Format thinking blocks with bullet points
    */
   private formatThinkingBlocks(content: string): string {
-    // Skip if already formatted (check for multiple indicators)
+    // Skip if already formatted (check for specific formatted thinking indicators only)
     if (content.includes('✦ 🤔 **Thinking Process:**') || 
-        content.includes('```thinking') || 
-        content.match(/^\s*\d+\.\s+/m)) {
+        content.includes('```thinking')) {
       return content;
     }
     
