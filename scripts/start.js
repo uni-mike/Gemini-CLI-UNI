@@ -34,15 +34,16 @@ execSync('node ./scripts/check-build-status.js', {
 
 const nodeArgs = [];
 let sandboxCommand = undefined;
-try {
-  sandboxCommand = execSync('node scripts/sandbox_command.js', {
-    cwd: root,
-  })
-    .toString()
-    .trim();
-} catch {
-  // ignore
-}
+// Sandbox mode disabled - we removed sandbox_command.js during cleanup
+// try {
+//   sandboxCommand = execSync('node scripts/sandbox_command.js', {
+//     cwd: root,
+//   })
+//     .toString()
+//     .trim();
+// } catch {
+//   // ignore
+// }
 // if debugging is enabled and sandboxing is disabled, use --inspect-brk flag
 // note with sandboxing this flag is passed to the binary inside the sandbox
 // inside sandbox SANDBOX should be set and sandbox_command.js should fail
