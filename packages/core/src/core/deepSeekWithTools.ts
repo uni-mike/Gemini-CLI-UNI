@@ -258,6 +258,13 @@ export class DeepSeekWithTools {
     // Handle objects that might have content property
     let textContent = typeof content === 'string' ? content : (content?.content || String(content));
     
+    // Skip if this looks like conversation history or already processed content
+    if (textContent.includes('🔄 Iteration') || 
+        textContent.includes('📦 Found') || 
+        textContent.includes('🔧 Executing')) {
+      return textContent;
+    }
+    
     // First, format thinking blocks
     textContent = this.formatThinkingBlocks(textContent);
     
@@ -271,8 +278,10 @@ export class DeepSeekWithTools {
    * Format thinking blocks with bullet points
    */
   private formatThinkingBlocks(content: string): string {
-    // Skip if already formatted
-    if (content.includes('✦ 🤔 **Thinking Process:**')) {
+    // Skip if already formatted (check for multiple indicators)
+    if (content.includes('✦ 🤔 **Thinking Process:**') || 
+        content.includes('```thinking') || 
+        content.match(/^\s*\d+\.\s+/m)) {
       return content;
     }
     
