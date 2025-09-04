@@ -271,6 +271,11 @@ export class DeepSeekWithTools {
    * Format thinking blocks with bullet points
    */
   private formatThinkingBlocks(content: string): string {
+    // Skip if already formatted
+    if (content.includes('✦ 🤔 **Thinking Process:**')) {
+      return content;
+    }
+    
     const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
     const matches = [...content.matchAll(thinkRegex)];
     
@@ -289,10 +294,14 @@ export class DeepSeekWithTools {
       
       // Format lines, removing existing numbering if present
       const formattedLines = lines.map((line: string, index: number) => {
-        const trimmed = line.trim();
-        // Remove existing numbering patterns like "1.", "1)", or just "1" at the start
-        const cleanedLine = trimmed.replace(/^\d+[\.\):]?\s+/, '');
-        return `${index + 1}. ${cleanedLine}`;
+        let trimmed = line.trim();
+        
+        // More aggressive removal of numbering patterns
+        // Handles: "1.", "1)", "1:", "1", "1. ", "Step 1:", etc.
+        trimmed = trimmed.replace(/^(step\s+)?\d+[\.\):\s]*\s*/i, '');
+        
+        // If line is already clean or starts with a number that's part of content, keep it
+        return `${index + 1}. ${trimmed}`;
       });
       
       const formattedThinking = [
