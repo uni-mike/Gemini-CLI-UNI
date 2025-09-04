@@ -34,22 +34,27 @@ if (!existsSync(join(root, 'node_modules'))) {
 execSync('npm run generate', { stdio: 'inherit', cwd: root });
 execSync('npm run build --workspaces', { stdio: 'inherit', cwd: root });
 
+// Sandbox mode disabled - we removed sandbox_command.js during cleanup
 // also build container image if sandboxing is enabled
 // skip (-s) npm install + build since we did that above
+/*
 try {
   execSync('node scripts/sandbox_command.js -q', {
     stdio: 'inherit',
     cwd: root,
   });
-  if (
+*/
+  if (false && (
     process.env.BUILD_SANDBOX === '1' ||
-    process.env.BUILD_SANDBOX === 'true'
+    process.env.BUILD_SANDBOX === 'true')
   ) {
     execSync('node scripts/build_sandbox.js -s', {
       stdio: 'inherit',
       cwd: root,
     });
   }
+/*
 } catch {
   // ignore
 }
+*/
