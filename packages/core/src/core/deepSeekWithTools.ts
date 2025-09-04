@@ -252,20 +252,33 @@ export class DeepSeekWithTools {
   }
 
   /**
-   * Format thinking process for better user understanding
+   * Format the entire response for beautiful presentation
    */
   private formatThinkingProcess(content: string | any): string {
     // Handle objects that might have content property
     let textContent = typeof content === 'string' ? content : (content?.content || String(content));
     
+    // First, format thinking blocks
+    textContent = this.formatThinkingBlocks(textContent);
+    
+    // Then format the main response content
+    textContent = this.formatResponseContent(textContent);
+    
+    return textContent;
+  }
+
+  /**
+   * Format thinking blocks with bullet points
+   */
+  private formatThinkingBlocks(content: string): string {
     const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
-    const matches = [...textContent.matchAll(thinkRegex)];
+    const matches = [...content.matchAll(thinkRegex)];
     
     if (matches.length === 0) {
-      return textContent;
+      return content;
     }
 
-    let formattedContent = textContent;
+    let formattedContent = content;
     
     for (const match of matches) {
       const thinkContent = match[1].trim();
@@ -275,9 +288,9 @@ export class DeepSeekWithTools {
       const lines = thinkContent.split('\n').filter((line: string) => line.trim());
       
       const formattedThinking = [
-        '\n🤔 **Thinking Process:**',
-        '```',
-        ...lines.map((line: string) => `• ${line.trim()}`),
+        '\n✦ 🤔 **Thinking Process:**',
+        '```thinking',
+        ...lines.map((line: string, index: number) => `${index + 1}. ${line.trim()}`),
         '```\n'
       ].join('\n');
       
@@ -285,6 +298,114 @@ export class DeepSeekWithTools {
     }
     
     return formattedContent;
+  }
+
+  /**
+   * Format the main response content for better readability
+   */
+  private formatResponseContent(content: string): string {
+    // Skip if content contains tool_use tags (those are handled separately)
+    if (content.includes('<tool_use>')) {
+      return content;
+    }
+
+    // Split into sections for processing
+    let lines = content.split('\n');
+    let formattedLines: string[] = [];
+    let inCodeBlock = false;
+    let inNumberedList = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmedLine = line.trim();
+      
+      // Handle code blocks
+      if (trimmedLine.startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        formattedLines.push(line);
+        continue;
+      }
+      
+      if (inCodeBlock) {
+        formattedLines.push(line);
+        continue;
+      }
+
+      // Detect headers (lines ending with ':' that aren't part of JSON)
+      if (trimmedLine.endsWith(':') && !trimmedLine.includes('{') && trimmedLine.length > 2) {
+        // Check if it's a section header
+        const headerText = trimmedLine.slice(0, -1);
+        if (!headerText.includes('**') && headerText.split(' ').length <= 6) {
+          formattedLines.push(`\n📌 **${headerText}:**`);
+          continue;
+        }
+      }
+
+      // Handle numbered lists (1., 2., etc.)
+      const numberedMatch = trimmedLine.match(/^(\d+)\.\s+(.*)$/);
+      if (numberedMatch) {
+        const num = numberedMatch[1];
+        const text = numberedMatch[2];
+        
+        if (!inNumberedList) {
+          formattedLines.push(''); // Add spacing before list
+          inNumberedList = true;
+        }
+        
+        // Format numbered items with better structure
+        if (text.includes('**') && text.includes(':')) {
+          // Item with bold header
+          formattedLines.push(`  ${num}. ${text}`);
+        } else {
+          formattedLines.push(`  ${num}. **${text.split(':')[0]}**${text.includes(':') ? ':' + text.split(':').slice(1).join(':') : ''}`);
+        }
+        continue;
+      }
+
+      // Handle sub-bullets (lines starting with -)
+      if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
+        const bulletContent = trimmedLine.substring(1).trim();
+        formattedLines.push(`     • ${bulletContent}`);
+        continue;
+      }
+
+      // Handle "Step X:" or "Part X:" patterns
+      const stepMatch = trimmedLine.match(/^(Step|Part|Phase)\s+(\d+):?\s*(.*)$/i);
+      if (stepMatch) {
+        const [, type, num, rest] = stepMatch;
+        formattedLines.push(`\n🔹 **${type} ${num}:** ${rest}`);
+        inNumberedList = false;
+        continue;
+      }
+
+      // Check for section headers (short lines with bold text)
+      if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**') && trimmedLine.length < 50) {
+        formattedLines.push(`\n📍 ${line}`);
+        inNumberedList = false;
+        continue;
+      }
+
+      // Handle "Final Answer" or similar conclusion markers
+      if (trimmedLine.match(/^(Final Answer|Conclusion|Result|Summary):?$/i)) {
+        formattedLines.push(`\n✅ **${trimmedLine}**`);
+        inNumberedList = false;
+        continue;
+      }
+
+      // Regular lines
+      if (trimmedLine.length > 0) {
+        inNumberedList = false;
+        formattedLines.push(line);
+      } else {
+        formattedLines.push('');
+      }
+    }
+
+    // Join and clean up extra blank lines
+    let result = formattedLines.join('\n');
+    result = result.replace(/\n{3,}/g, '\n\n'); // Replace 3+ newlines with 2
+    
+    return result;
   }
 
   /**
