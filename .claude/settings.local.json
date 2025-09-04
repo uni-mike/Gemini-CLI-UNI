@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(node:*)",
+      "Bash(npm run build:*)",
+      "Bash(echo:*)",
+      "Bash(export GEMINI_DEFAULT_AUTH_TYPE=azure-openai)",
+      "Bash(npm run start:*)",
+      "Bash(chmod:*)",
+      "Bash(find:*)",
+      "Bash(export AZURE_ENDPOINT_URL=https://mike-mazsz1c6-eastus2.openai.azure.com/)",
+      "Bash(export AZURE_DEPLOYMENT=gpt-5)",
+      "Bash(export AZURE_MODEL=gpt-5)",
+      "Bash(export AZURE_OPENAI_API_VERSION=2024-12-01-preview)",
+      "Read(//Users/mike.admon/**)",
+      "Bash(grep:*)",
+      "Bash(git checkout:*)",
+      "Bash(./start-azure-gemini-cli.sh:*)",
+      "Bash(export GEMINI_CLI_DISABLE_NEXT_SPEAKER_CHECK=true)",
+      "Bash(./start-mini.sh:*)",
+      "Bash(tree:*)",
+      "Bash(cat:*)",
+      "Bash(npm run lint:*)",
+      "Bash(./start-deepseek.sh:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

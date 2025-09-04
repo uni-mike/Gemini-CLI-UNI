@@ -1,0 +1,64 @@
+# API keys and secrets
+.env
+.env~
+
+# gemini-cli settings
+.gemini/
+!gemini/config.yaml
+
+# Note: .gemini-clipboard/ is NOT in gitignore so Gemini can access pasted images
+
+# Dependency directory
+node_modules
+bower_components
+
+# Editors
+.idea
+*.iml
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# TypeScript build info files
+*.tsbuildinfo
+
+# Ignore built ts files
+dist
+
+# Docker folder to help skip auth refreshes
+.docker
+
+bundle
+
+# Test report files
+junit.xml
+packages/*/coverage/
+
+# Generated files
+packages/cli/src/generated/
+packages/core/src/generated/
+.integration-tests/
+packages/vscode-ide-companion/*.vsix
+
+# GHA credentials
+gha-creds-*.json
+
+# Test files and temporary files
+test.txt
+test_*.txt
+test-project/
+api-project/
+todo-app-test/
+TESTING_AI/
+*.log
+*.tmp
+*.temp
+
+# Environment files for different models
+.env.*
+!.env.example
+
+# Startup scripts are included (they're useful)
+# But ignore any output from them
+start-*.sh.out
