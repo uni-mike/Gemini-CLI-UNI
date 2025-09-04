@@ -255,191 +255,29 @@ export class DeepSeekWithTools {
    * Format the entire response for beautiful presentation
    */
   private formatThinkingProcess(content: string | any): string {
-    // Handle objects that might have content property
     let textContent = typeof content === 'string' ? content : (content?.content || String(content));
     
-    // Skip if this looks like conversation history or already processed content
-    if (textContent.includes('🔄 Iteration') || 
-        textContent.includes('📦 Found') || 
-        textContent.includes('🔧 Executing') ||
-        textContent.includes('✦') ||
-        textContent.includes('🤔') ||
-        textContent.includes('```thinking') ||
-        textContent.includes('**Thinking Process:**')) {
+    // SINGLE SIMPLE CHECK: Only process raw <think> tags, skip everything else
+    if (!textContent.includes('<think>') || textContent.includes('```thinking')) {
       return textContent;
     }
     
-    // First, format thinking blocks
-    textContent = this.formatThinkingBlocks(textContent);
+    // Replace <think>...</think> with beautiful format
+    const formatted = textContent.replace(
+      /<think>([\s\S]*?)<\/think>/g, 
+      (match: string, content: string) => {
+        const lines = content.trim().split('\n')
+          .map((line: string) => line.trim())
+          .filter((line: string) => line.length > 0)
+          .map((line: string, i: number) => `${i + 1}. ${line}`);
+        
+        return '\n✦ 🤔 **Thinking Process:**\n```thinking\n' + lines.join('\n') + '\n```\n';
+      }
+    );
     
-    // Then format the main response content
-    textContent = this.formatResponseContent(textContent);
-    
-    return textContent;
+    return formatted;
   }
 
-  /**
-   * Format thinking blocks with bullet points
-   */
-  private formatThinkingBlocks(content: string): string {
-    // AGGRESSIVE CLEANUP: Remove any existing formatting first
-    let cleanContent = content;
-    
-    // Remove existing formatted thinking blocks entirely
-    cleanContent = cleanContent.replace(/✦.*?```\s*\n/gs, '');
-    cleanContent = cleanContent.replace(/```thinking[\s\S]*?```/g, '');
-    cleanContent = cleanContent.replace(/🤔.*?Thinking Process.*?\n/g, '');
-    
-    // Now look for raw <think> tags in the cleaned content
-    const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
-    const matches = [...cleanContent.matchAll(thinkRegex)];
-    
-    if (matches.length === 0) {
-      return content; // Return original if no <think> tags found
-    }
-
-    // Work with cleaned content but replace in original
-    let formattedContent = cleanContent;
-    
-    for (const match of matches) {
-      const thinkContent = match[1].trim();
-      if (!thinkContent) continue;
-      
-      // Split thinking into lines and format as bullet points
-      const lines = thinkContent.split('\n').filter((line: string) => line.trim());
-      
-      // Format lines, removing existing numbering if present
-      const formattedLines = lines.map((line: string, index: number) => {
-        let trimmed = line.trim();
-        
-        // More aggressive removal of numbering patterns
-        // Handles: "1.", "1)", "1:", "1", "1. ", "Step 1:", etc.
-        trimmed = trimmed.replace(/^(step\s+)?\d+[\.\):\s]*\s*/i, '');
-        
-        // If line is already clean or starts with a number that's part of content, keep it
-        return `${index + 1}. ${trimmed}`;
-      });
-      
-      const formattedThinking = [
-        '\n✦ 🤔 **Thinking Process:**',
-        '```thinking',
-        ...formattedLines,
-        '```\n'
-      ].join('\n');
-      
-      formattedContent = formattedContent.replace(match[0], formattedThinking);
-    }
-    
-    return formattedContent;
-  }
-
-  /**
-   * Format the main response content for better readability
-   */
-  private formatResponseContent(content: string): string {
-    // Skip if content contains tool_use tags (those are handled separately)
-    if (content.includes('<tool_use>')) {
-      return content;
-    }
-
-    // Split into sections for processing
-    let lines = content.split('\n');
-    let formattedLines: string[] = [];
-    let inCodeBlock = false;
-    let inNumberedList = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmedLine = line.trim();
-      
-      // Handle code blocks
-      if (trimmedLine.startsWith('```')) {
-        inCodeBlock = !inCodeBlock;
-        formattedLines.push(line);
-        continue;
-      }
-      
-      if (inCodeBlock) {
-        formattedLines.push(line);
-        continue;
-      }
-
-      // Detect headers (lines ending with ':' that aren't part of JSON)
-      if (trimmedLine.endsWith(':') && !trimmedLine.includes('{') && trimmedLine.length > 2) {
-        // Check if it's a section header
-        const headerText = trimmedLine.slice(0, -1);
-        if (!headerText.includes('**') && headerText.split(' ').length <= 6) {
-          formattedLines.push(`\n📌 **${headerText}:**`);
-          continue;
-        }
-      }
-
-      // Handle numbered lists (1., 2., etc.)
-      const numberedMatch = trimmedLine.match(/^(\d+)\.\s+(.*)$/);
-      if (numberedMatch) {
-        const num = numberedMatch[1];
-        const text = numberedMatch[2];
-        
-        if (!inNumberedList) {
-          formattedLines.push(''); // Add spacing before list
-          inNumberedList = true;
-        }
-        
-        // Format numbered items with better structure
-        if (text.includes('**') && text.includes(':')) {
-          // Item with bold header
-          formattedLines.push(`  ${num}. ${text}`);
-        } else {
-          formattedLines.push(`  ${num}. **${text.split(':')[0]}**${text.includes(':') ? ':' + text.split(':').slice(1).join(':') : ''}`);
-        }
-        continue;
-      }
-
-      // Handle sub-bullets (lines starting with -)
-      if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
-        const bulletContent = trimmedLine.substring(1).trim();
-        formattedLines.push(`     • ${bulletContent}`);
-        continue;
-      }
-
-      // Handle "Step X:" or "Part X:" patterns
-      const stepMatch = trimmedLine.match(/^(Step|Part|Phase)\s+(\d+):?\s*(.*)$/i);
-      if (stepMatch) {
-        const [, type, num, rest] = stepMatch;
-        formattedLines.push(`\n🔹 **${type} ${num}:** ${rest}`);
-        inNumberedList = false;
-        continue;
-      }
-
-      // Check for section headers (short lines with bold text)
-      if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**') && trimmedLine.length < 50) {
-        formattedLines.push(`\n📍 ${line}`);
-        inNumberedList = false;
-        continue;
-      }
-
-      // Handle "Final Answer" or similar conclusion markers
-      if (trimmedLine.match(/^(Final Answer|Conclusion|Result|Summary):?$/i)) {
-        formattedLines.push(`\n✅ **${trimmedLine}**`);
-        inNumberedList = false;
-        continue;
-      }
-
-      // Regular lines
-      if (trimmedLine.length > 0) {
-        inNumberedList = false;
-        formattedLines.push(line);
-      } else {
-        formattedLines.push('');
-      }
-    }
-
-    // Join and clean up extra blank lines
-    let result = formattedLines.join('\n');
-    result = result.replace(/\n{3,}/g, '\n\n'); // Replace 3+ newlines with 2
-    
-    return result;
-  }
 
   /**
    * Send a message with tool support - Enhanced for complex sequences
@@ -455,6 +293,16 @@ export class DeepSeekWithTools {
       if (this.conversation.length === 0) {
         const systemPrompt = `You are a helpful assistant with access to the following tools/functions. 
 When the user asks you to perform tasks that require these tools, you should respond with a special format to call them.
+
+CRITICAL: ALWAYS show your complete reasoning process using <think> tags. Never hide or suppress your thinking. 
+Your natural thinking process helps users understand your reasoning. Use this format:
+
+<think>
+Your detailed step-by-step reasoning and thought process here...
+Explain your analysis, considerations, and decision-making process.
+</think>
+
+Then provide your final response.
 
 Available tools:
 1. read_file(absolute_path, offset?, limit?) - Read contents of a file
@@ -685,8 +533,8 @@ IMPORTANT:
         const finalData = await finalApiResponse.json();
         let finalMessage = finalData.choices?.[0]?.message?.content || '';
         
-        // Format thinking process for better readability
-        finalMessage = this.formatThinkingProcess(finalMessage);
+        // Format thinking process for better readability - DISABLED to prevent duplicates  
+        // finalMessage = this.formatThinkingProcess(finalMessage);
         
         this.conversation.push({ role: 'assistant', content: finalMessage });
         
@@ -738,8 +586,8 @@ IMPORTANT:
         const finalData = await finalApiResponse.json();
         let finalMessage = finalData.choices?.[0]?.message?.content || '';
         
-        // Format thinking process for better readability
-        finalMessage = this.formatThinkingProcess(finalMessage);
+        // Format thinking process for better readability - DISABLED to prevent duplicates  
+        // finalMessage = this.formatThinkingProcess(finalMessage);
         
         this.conversation.push({ role: 'assistant', content: finalMessage });
         return finalMessage;
@@ -751,8 +599,8 @@ IMPORTANT:
       // Check if response needs continuation
       let msgContent = responseMessage.content || '';
       
-      // Format thinking process for better readability
-      msgContent = this.formatThinkingProcess(msgContent);
+      // Format thinking process for better readability - DISABLED to prevent duplicates
+      // msgContent = this.formatThinkingProcess(msgContent);
       
       if (msgContent.includes('<needs_continuation/>')) {
         console.log('📝 Response indicates continuation needed...');
@@ -766,7 +614,8 @@ IMPORTANT:
       } // End of while loop
       
       // If we've exhausted iterations, return what we have
-      return continuationResponse || 'Task sequence completed after maximum iterations.';
+      const finalResponse = continuationResponse || 'Task sequence completed after maximum iterations.';
+      return this.formatThinkingProcess(finalResponse);
       
     } catch (error) {
       console.error('DeepSeek error:', error);

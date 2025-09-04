@@ -445,7 +445,9 @@ export class Config {
   }
 
   getModel(): string {
-    return this.contentGeneratorConfig?.model || this.model;
+    // Prioritize environment variables (same as DeepSeek client)
+    return process.env['AZURE_MODEL'] || process.env['MODEL'] || 
+           this.contentGeneratorConfig?.model || this.model;
   }
 
   setModel(newModel: string): void {
