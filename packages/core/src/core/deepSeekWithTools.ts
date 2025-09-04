@@ -493,7 +493,11 @@ IMPORTANT:
         }
 
         const finalData = await finalApiResponse.json();
-        const finalMessage = finalData.choices?.[0]?.message?.content || '';
+        let finalMessage = finalData.choices?.[0]?.message?.content || '';
+        
+        // Remove <think> tags and their content from the response
+        finalMessage = finalMessage.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        
         this.conversation.push({ role: 'assistant', content: finalMessage });
         
         // Check if the model needs to continue (for complex multi-step tasks)
@@ -542,7 +546,11 @@ IMPORTANT:
         }
 
         const finalData = await finalApiResponse.json();
-        const finalMessage = finalData.choices?.[0]?.message?.content || '';
+        let finalMessage = finalData.choices?.[0]?.message?.content || '';
+        
+        // Remove <think> tags and their content from the response
+        finalMessage = finalMessage.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        
         this.conversation.push({ role: 'assistant', content: finalMessage });
         return finalMessage;
       }
@@ -551,7 +559,11 @@ IMPORTANT:
       this.conversation.push(responseMessage);
       
       // Check if response needs continuation
-      const msgContent = responseMessage.content || '';
+      let msgContent = responseMessage.content || '';
+      
+      // Remove <think> tags and their content from the response
+      msgContent = msgContent.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      
       if (msgContent.includes('<needs_continuation/>')) {
         console.log('📝 Response indicates continuation needed...');
         currentMessage = 'Continue with the next steps.';
