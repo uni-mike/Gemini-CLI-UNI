@@ -2,19 +2,19 @@
 
 A powerful CLI tool that extends Google's Gemini CLI with support for Azure OpenAI models (GPT-5, GPT-4o, GPT-4o-mini) and DeepSeek R1, with full tool support.
 
-## =€ Quick Start
+## =ï¿½ Quick Start
 
 ### Available Models
 
 | Model | Script | Speed | Best For |
 |-------|--------|-------|----------|
-| **GPT-4o-mini** | `./start-mini.sh` | ¡ Fast (2-3s) | Quick queries, simple tasks |
-| **GPT-4o** | `./start-4o.sh` | ¡ Fast (3-5s) | General use, complex tasks |
-| **DeepSeek R1** | `./start-deepseek.sh` | ¡ Fast (3-5s) | Reasoning, analysis, code |
+| **GPT-4o-mini** | `./start-mini.sh` | ï¿½ Fast (2-3s) | Quick queries, simple tasks |
+| **GPT-4o** | `./start-4o.sh` | ï¿½ Fast (3-5s) | General use, complex tasks |
+| **DeepSeek R1** | `./start-deepseek.sh` | ï¿½ Fast (3-5s) | Reasoning, analysis, code |
 | **GPT-5** | `./start-azure.sh` | = Slow (10-20s) | When you need the best |
-| **Gemini** | `npm run start` | ¡ Fast (1-3s) | Native tool support |
+| **Gemini** | `npm run start` | ï¿½ Fast (1-3s) | Native tool support |
 
-## =æ Installation
+## =ï¿½ Installation
 
 ```bash
 # Install dependencies
@@ -47,7 +47,7 @@ AZURE_ENDPOINT_URL=https://your-endpoint.models.ai.azure.com
 AZURE_DEPLOYMENT=DeepSeek-R1
 ```
 
-## =¡ Usage Examples
+## =ï¿½ Usage Examples
 
 ### Simple Query
 ```bash
@@ -73,7 +73,7 @@ npm run start
 > /write report.md
 ```
 
-## =à Features
+## =ï¿½ Features
 
 - **Multiple AI Models**: Seamlessly switch between GPT-5, GPT-4o, GPT-4o-mini, DeepSeek R1, and Gemini
 - **Tool Support**: Full file operations, shell commands, and more via intelligent prompting
@@ -81,16 +81,17 @@ npm run start
 - **Complex Task Handling**: Support for multi-step sequences and iterations
 - **Easy Model Switching**: Simple startup scripts for each model
 
-## =Ú Documentation
+## ðŸ“š Documentation
 
-- [Model Quickstart Guide](MODELS-QUICKSTART.md)
-- [Azure Models Configuration](AZURE-MODELS-GUIDE.md)
-- [Azure Integration Details](README-AZURE.md)
+- [Model Quickstart Guide](docs/MODELS-QUICKSTART.md)
+- [Azure Models Configuration](docs/AZURE-MODELS-GUIDE.md)
+- [Azure Integration Details](docs/README-AZURE.md)
+- [Azure Integration Success Story](docs/AZURE-INTEGRATION-SUCCESS.md)
 
 ## > Contributing
 
 This is a customized fork focusing on Azure OpenAI and DeepSeek integration. For the original Gemini CLI, see [Google's repository](https://github.com/google/generative-ai-js).
 
-## =Ä License
+## =ï¿½ License
 
 Apache 2.0 - See [LICENSE](LICENSE) file for details.
