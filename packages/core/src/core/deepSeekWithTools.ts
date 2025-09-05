@@ -271,7 +271,7 @@ export class DeepSeekWithTools {
           .filter((line: string) => line.length > 0)
           .map((line: string) => `• ${line}`);
         
-        return '\n🤔 **Thinking Process:**\n```thinking\n' + lines.join('\n') + '\n```\n';
+        return '\n🤔 **Thinking Process:**\n' + lines.join('\n') + '\n';
       }
     );
     
