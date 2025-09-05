@@ -271,7 +271,7 @@ export class DeepSeekWithTools {
           .filter((line: string) => line.length > 0)
           .map((line: string, i: number) => `${i + 1}. ${line}`);
         
-        return '\n✦ 🤔 **Thinking Process:**\n```thinking\n' + lines.join('\n') + '\n```\n';
+        return '\n🤔 **Thinking Process:**\n```thinking\n' + lines.join('\n') + '\n```\n';
       }
     );
     
@@ -608,14 +608,14 @@ IMPORTANT:
         continue;
       }
       
-      // No more continuations needed
-      return msgContent;
+      // No more continuations needed - Apply formatting here (main return path)
+      return this.formatThinkingProcess(msgContent);
       
       } // End of while loop
       
       // If we've exhausted iterations, return what we have
       const finalResponse = continuationResponse || 'Task sequence completed after maximum iterations.';
-      return this.formatThinkingProcess(finalResponse);
+      return finalResponse; // No formatting needed here, already formatted at main return
       
     } catch (error) {
       console.error('DeepSeek error:', error);
