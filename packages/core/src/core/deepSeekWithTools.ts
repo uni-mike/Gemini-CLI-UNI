@@ -269,7 +269,7 @@ export class DeepSeekWithTools {
         const lines = content.trim().split('\n')
           .map((line: string) => line.trim())
           .filter((line: string) => line.length > 0)
-          .map((line: string, i: number) => `${i + 1}. ${line}`);
+          .map((line: string) => `• ${line}`);
         
         return '\n🤔 **Thinking Process:**\n```thinking\n' + lines.join('\n') + '\n```\n';
       }

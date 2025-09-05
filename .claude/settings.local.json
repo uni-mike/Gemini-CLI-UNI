@@ -34,7 +34,8 @@
       "Bash(gh repo view:*)",
       "Bash(npx tsc:*)",
       "Bash(pkill:*)",
-      "Bash(./start-deepseek-fresh.sh:*)"
+      "Bash(./start-deepseek-fresh.sh:*)",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "ask": []
