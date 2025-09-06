@@ -35,7 +35,12 @@
       "Bash(npx tsc:*)",
       "Bash(pkill:*)",
       "Bash(./start-deepseek-fresh.sh:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:ai.azure.com)",
+      "WebSearch",
+      "Bash(pip3 install:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

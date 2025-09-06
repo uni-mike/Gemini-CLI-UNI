@@ -18,11 +18,11 @@ if [ -f .env.deepseek ]; then
 else
     echo "⚠️  .env.deepseek not found, using inline configuration"
     # Fallback to inline configuration
-    export AZURE_API_KEY=ENv2QR226JPye4UjaTXaSJN0H0A4B9ms
-    export AZURE_ENDPOINT_URL=https://DeepSeek-R1-rkcob.eastus.models.ai.azure.com
+    export AZURE_API_KEY=9c5d0679299045e9bd3513baf6ae0e86
+    export AZURE_ENDPOINT_URL=https://unipathai7556217047.services.ai.azure.com/models
     export AZURE_OPENAI_API_VERSION=2024-05-01-preview
-    export AZURE_DEPLOYMENT=DeepSeek-R1-rkcob
-    export AZURE_MODEL=DeepSeek-R1-rkcob
+    export AZURE_DEPLOYMENT=DeepSeek-R1-0528
+    export AZURE_MODEL=DeepSeek-R1-0528
 fi
 
 # Force Azure OpenAI auth type

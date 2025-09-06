@@ -30,10 +30,22 @@ export class AzureOpenAIWithTools {
       throw new Error('Azure OpenAI configuration missing: AZURE_API_KEY, AZURE_ENDPOINT_URL, and AZURE_DEPLOYMENT are required');
     }
 
+    // Check if this is an Azure AI Models endpoint (models.ai.azure.com or services.ai.azure.com)
+    const isAzureAIModels = endpoint.includes('models.ai.azure.com') || endpoint.includes('services.ai.azure.com');
+    
+    // Different URL format for Azure AI Models vs Azure OpenAI
+    const baseURL = isAzureAIModels 
+      ? endpoint.endsWith('/models') ? endpoint : `${endpoint}/models`  // Azure AI services uses /models path
+      : `${endpoint}/openai/deployments/${deployment}`;  // Azure OpenAI format
+    
     this.client = new OpenAI({
       apiKey,
-      baseURL: `${endpoint}/openai/deployments/${deployment}`,
-      defaultQuery: { 'api-version': apiVersion },
+      baseURL,
+      defaultQuery: isAzureAIModels ? { 'api-version': apiVersion } : { 'api-version': apiVersion },
+      defaultHeaders: isAzureAIModels ? {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      } : {},
     });
     
     this.deploymentName = deployment;
