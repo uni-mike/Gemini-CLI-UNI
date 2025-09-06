@@ -361,11 +361,13 @@ export async function createContentGenerator(
 
   if (config.authType === AuthType.AZURE_OPENAI) {
     // Check if this is a DeepSeek or other Azure AI model endpoint
-    const endpoint = config.azureEndpoint || process.env['ENDPOINT'] || '';
-    const isAzureAIModel = endpoint.includes('models.ai.azure.com');
+    const endpoint = config.azureEndpoint || process.env['AZURE_ENDPOINT_URL'] || process.env['ENDPOINT'] || '';
+    const model = process.env['AZURE_MODEL'] || '';
+    const isDeepSeek = model.toLowerCase().includes('deepseek');
+    const isAzureAIModel = endpoint.includes('models.ai.azure.com') || endpoint.includes('services.ai.azure.com');
     
-    if (isAzureAIModel) {
-      // Use DeepSeekWithTools for Azure AI models to support tools
+    if (isDeepSeek || isAzureAIModel) {
+      // Use DeepSeekWithTools for DeepSeek models or Azure AI models to support tools
       const deepSeekClient = new DeepSeekWithTools(gcConfig);
       
       // Create a wrapper that implements ContentGenerator interface
