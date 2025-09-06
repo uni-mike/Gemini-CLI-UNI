@@ -469,6 +469,8 @@ export class AzureOpenAIWithTools {
 
       let fullResponse = '';
       let toolCalls: any[] = [];
+      let buffer = '';  // Buffer to handle multi-chunk think tags
+      let inThinkTag = false;
 
       for await (const chunk of stream) {
         const delta = chunk.choices[0]?.delta;
@@ -476,7 +478,30 @@ export class AzureOpenAIWithTools {
         // Handle content
         if (delta?.content) {
           fullResponse += delta.content;
-          yield delta.content;
+          buffer += delta.content;
+          
+          // Check if we're entering or in a think tag
+          if (buffer.includes('<think>')) {
+            inThinkTag = true;
+          }
+          
+          // If we're in a think tag, check if it's complete
+          if (inThinkTag) {
+            if (buffer.includes('</think>')) {
+              // Remove the complete think tag and yield what's left
+              const filtered = buffer.replace(/<think>[\s\S]*?<\/think>/g, '');
+              if (filtered) {
+                yield filtered;
+              }
+              buffer = '';
+              inThinkTag = false;
+            }
+            // Otherwise keep buffering
+          } else {
+            // Not in a think tag, yield immediately
+            yield delta.content;
+            buffer = '';
+          }
         }
 
         // Collect tool calls

@@ -67,7 +67,10 @@ export class AzureOpenAIClient {
         stream: false,
       });
 
-      const message = response.choices[0]?.message?.content || '';
+      let message = response.choices[0]?.message?.content || '';
+      
+      // Filter out DeepSeek thinking tags if present
+      message = message.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
       
       return {
         message,
@@ -92,11 +95,42 @@ export class AzureOpenAIClient {
         stream: true,
       });
 
+      let buffer = '';
+      let inThinkTag = false;
+
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content;
         if (content) {
-          yield content;
+          buffer += content;
+          
+          // Check if we're entering a think tag
+          if (buffer.includes('<think>')) {
+            inThinkTag = true;
+          }
+          
+          // If we're in a think tag, wait for it to close
+          if (inThinkTag) {
+            if (buffer.includes('</think>')) {
+              // Filter out the complete think tag and yield what's left
+              const filtered = buffer.replace(/<think>[\s\S]*?<\/think>/g, '');
+              if (filtered) {
+                yield filtered;
+              }
+              buffer = '';
+              inThinkTag = false;
+            }
+            // Otherwise keep buffering
+          } else {
+            // Not in a think tag, yield immediately
+            yield content;
+            buffer = '';
+          }
         }
+      }
+      
+      // Handle any remaining buffered content
+      if (buffer && !inThinkTag) {
+        yield buffer;
       }
     } catch (error) {
       console.error('Azure OpenAI streaming error:', error);
