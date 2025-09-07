@@ -59,140 +59,138 @@ export class DeepSeekWithTools {
   }
 
   /**
-   * Convert Gemini tool to DeepSeek function schema
+   * Convert Gemini tool to DeepSeek function schema - FULLY DYNAMIC
    */
   private convertToolToFunction(toolName: string): DeepSeekFunction | null {
     const tool = this.toolRegistry.getTool(toolName);
     if (!tool) return null;
 
-    // Map common Gemini tools to DeepSeek function schemas
-    const functionSchemas: Record<string, DeepSeekFunction> = {
-      'read-file': {
-        name: 'read_file',
-        description: 'Read contents of a file',
-        parameters: {
-          type: 'object',
-          properties: {
-            absolute_path: {
-              type: 'string',
-              description: 'The absolute path to the file to read'
-            },
-            offset: {
-              type: 'number',
-              description: 'The line number to start reading from (optional)'
-            },
-            limit: {
-              type: 'number',
-              description: 'The number of lines to read (optional)'
-            }
-          },
-          required: ['absolute_path']
-        }
-      },
-      'write-file': {
-        name: 'write_file',
-        description: 'Write content to a file',
-        parameters: {
-          type: 'object',
-          properties: {
-            absolute_path: {
-              type: 'string',
-              description: 'The absolute path to the file to write'
-            },
-            content: {
-              type: 'string',
-              description: 'The content to write to the file'
-            }
-          },
-          required: ['absolute_path', 'content']
-        }
-      },
-      'shell': {
-        name: 'shell',
-        description: 'Execute a shell command',
-        parameters: {
-          type: 'object',
-          properties: {
-            command: {
-              type: 'string',
-              description: 'The shell command to execute'
-            }
-          },
-          required: ['command']
-        }
-      },
-      'ls': {
-        name: 'ls',
-        description: 'List directory contents',
-        parameters: {
-          type: 'object',
-          properties: {
-            path: {
-              type: 'string',
-              description: 'The directory path to list'
-            }
-          },
-          required: ['path']
-        }
-      },
-      'grep': {
-        name: 'grep',
-        description: 'Search for text in files',
-        parameters: {
-          type: 'object',
-          properties: {
-            pattern: {
-              type: 'string',
-              description: 'The search pattern (regex)'
-            },
-            path: {
-              type: 'string',
-              description: 'The path to search in'
-            }
-          },
-          required: ['pattern', 'path']
-        }
-      },
-      'edit': {
-        name: 'edit',
-        description: 'Edit a file by replacing text',
-        parameters: {
-          type: 'object',
-          properties: {
-            absolute_path: {
-              type: 'string',
-              description: 'The absolute path to the file to edit'
-            },
-            old_text: {
-              type: 'string',
-              description: 'The text to replace'
-            },
-            new_text: {
-              type: 'string',
-              description: 'The replacement text'
-            }
-          },
-          required: ['absolute_path', 'old_text', 'new_text']
-        }
-      }
+    // Dynamically convert tool schema to DeepSeek function
+    const mappedName = this.mapToolName(tool.name);
+    
+    // Extract parameters from tool's schema
+    let parameters: DeepSeekFunction['parameters'];
+    
+    if (tool.schema?.parametersJsonSchema && typeof tool.schema.parametersJsonSchema === 'object') {
+      const schema = tool.schema.parametersJsonSchema as any;
+      parameters = {
+        type: schema.type || 'object',
+        properties: schema.properties || {},
+        required: Array.isArray(schema.required) ? schema.required : []
+      };
+    } else {
+      // Default empty parameters if none provided
+      parameters = {
+        type: 'object',
+        properties: {},
+        required: []
+      };
+    }
+    
+    return {
+      name: mappedName,
+      description: tool.schema?.description || tool.description || tool.name,
+      parameters
     };
+  }
 
-    return functionSchemas[toolName] || null;
+  /**
+   * Generate dynamic tool descriptions for the system prompt
+   */
+  private getToolDescriptions(): string {
+    const allTools = this.toolRegistry.getAllTools();
+    const descriptions: string[] = [];
+    
+    for (const tool of allTools) {
+      // Map tool names to DeepSeek format
+      const toolName = this.mapToolName(tool.name);
+      
+      // Extract parameters from schema
+      let params = '';
+      if (tool.schema.parametersJsonSchema && typeof tool.schema.parametersJsonSchema === 'object') {
+        const schema = tool.schema.parametersJsonSchema as any;
+        const required = Array.isArray(schema.required) ? schema.required : [];
+        const properties = schema.properties || {};
+        
+        const paramList: string[] = [];
+        for (const [key] of Object.entries(properties)) {
+          const isRequired = required.includes(key);
+          paramList.push(`${key}${isRequired ? '' : '?'}`);
+        }
+        params = paramList.join(', ');
+      }
+      
+      descriptions.push(`${descriptions.length + 1}. ${toolName}(${params}) - ${tool.schema.description || tool.name}`);
+    }
+    
+    return descriptions.join('\n');
+  }
+
+  /**
+   * Map tool names from registry to DeepSeek format
+   */
+  private mapToolName(toolName: string): string {
+    // Fully dynamic tool name conversion - NO hardcoded mappings!
+    
+    // 1. If already snake_case, return as-is
+    if (toolName.includes('_') && !toolName.includes('-')) {
+      return toolName;
+    }
+    
+    // 2. Convert kebab-case to snake_case
+    if (toolName.includes('-')) {
+      return toolName.replace(/-/g, '_');
+    }
+    
+    // 3. Handle CamelCase tool names (e.g., WriteFileTool -> write_file)
+    if (toolName.endsWith('Tool')) {
+      // Remove 'Tool' suffix and convert to snake_case
+      const baseName = toolName.slice(0, -4);
+      return baseName
+        .replace(/([A-Z])/g, '_$1')
+        .toLowerCase()
+        .replace(/^_/, '');
+    }
+    
+    // 4. Handle other CamelCase (e.g., WebSearch -> web_search)
+    if (/[A-Z]/.test(toolName)) {
+      return toolName
+        .replace(/([a-z])([A-Z])/g, '$1_$2')
+        .toLowerCase();
+    }
+    
+    // 5. Default: return as-is for simple lowercase names
+    return toolName;
   }
 
   /**
    * Get all available tools as DeepSeek functions
+   * Uses the dynamic tool registry instead of hardcoded list
    */
   private getAvailableFunctions(): DeepSeekFunction[] {
     const functions: DeepSeekFunction[] = [];
-    const toolNames = ['read-file', 'write-file', 'shell', 'ls', 'grep', 'edit'];
     
-    for (const name of toolNames) {
-      const func = this.convertToolToFunction(name);
-      if (func) {
-        functions.push(func);
+    // Get all tools from the dynamic registry
+    const allTools = this.toolRegistry.getAllTools();
+    
+    // Convert each tool to DeepSeek function format
+    for (const tool of allTools) {
+      try {
+        const deepSeekFunction = this.convertToolToFunction(tool.name);
+        if (deepSeekFunction) {
+          functions.push(deepSeekFunction);
+        }
+      } catch (error) {
+        console.warn(`Failed to convert tool ${tool.name} to DeepSeek function:`, error);
       }
     }
+    
+    // Add any fallback functions if needed (for backwards compatibility)
+    if (functions.length === 0) {
+      console.warn('WARNING: No tools found in registry! Tool registry may not be initialized properly.');
+    }
+    
+    console.log(`✅ Loaded ${functions.length} tools from registry:`, functions.map(f => f.name).join(', '));
     
     return functions;
   }
@@ -299,7 +297,8 @@ export class DeepSeekWithTools {
   }
   
   /**
-   * Fallback implementation for basic tools
+   * Fallback implementation when tool not found in registry
+   * This should rarely be needed if registry is properly initialized
    */
   private async executeFallbackTool(functionName: string, args: any): Promise<string> {
     try {
@@ -433,7 +432,54 @@ export class DeepSeekWithTools {
         
         await fs.writeFile(filePath, newContent);
         return `File edited successfully: ${filePath}`;
+        
+      } else if (functionName === 'web_search' || functionName === 'web-search' || functionName === 'webSearch') {
+        // Direct implementation for web search using SerpAPI
+        const SERPAPI_KEY = '44608547a3c72872ff9cf50c518ce3b0a44f85b7348bfdda1a5b3d0da302237f';
+        const query = args.query || args.q || '';
+        const maxResults = args.max_results || 3;
+        
+        if (!query) {
+          return 'Error: No search query provided';
+        }
+        
+        try {
+          console.log(`🔍 Searching web for: "${query}"`);
+          const searchUrl = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(query)}&api_key=${SERPAPI_KEY}&num=${maxResults}`;
+          
+          const response = await fetch(searchUrl, {
+            headers: { 'Accept': 'application/json' }
+          });
+          
+          if (!response.ok) {
+            return `Search failed: ${response.status} ${response.statusText}`;
+          }
+          
+          const data = await response.json();
+          const results: string[] = [];
+          
+          // Add answer box if available
+          if (data.answer_box) {
+            if (data.answer_box.answer) {
+              results.push(`Answer: ${data.answer_box.answer}`);
+            } else if (data.answer_box.snippet) {
+              results.push(`Answer: ${data.answer_box.snippet}`);
+            }
+          }
+          
+          // Add organic results
+          if (data.organic_results) {
+            data.organic_results.slice(0, maxResults).forEach((result: any, i: number) => {
+              results.push(`\n${i + 1}. ${result.title}\n   URL: ${result.link}\n   ${result.snippet}`);
+            });
+          }
+          
+          return results.length > 0 ? results.join('\n') : 'No search results found';
+        } catch (error) {
+          return `Search error: ${error instanceof Error ? error.message : String(error)}`;
+        }
       }
+      
       return `Tool ${functionName} not found in registry and no fallback implementation`;
     } catch (error) {
       return `Error in fallback execution: ${error instanceof Error ? error.message : String(error)}`;
@@ -441,10 +487,36 @@ export class DeepSeekWithTools {
   }
 
   /**
+   * Clean DeepSeek special tokens from output
+   */
+  private cleanDeepSeekTokens(content: string): string {
+    // Remove DeepSeek's special tokens
+    return content
+      // Remove tool call markers
+      .replace(/<｜tool▁calls▁begin｜>/g, '')
+      .replace(/<｜tool▁calls▁end｜>/g, '')
+      .replace(/<｜tool▁call▁begin｜>/g, '')
+      .replace(/<｜tool▁call▁end｜>/g, '')
+      .replace(/<｜tool▁sep｜>/g, ': ')
+      .replace(/function<｜tool▁sep｜>/g, 'Using tool: ')
+      // Clean up any remaining special characters
+      .replace(/｜/g, '|')
+      .replace(/▁/g, '_')
+      // Remove excessive backticks from tool calls
+      .replace(/```\n*<\|/g, '')
+      .replace(/\|>\n*```/g, '')
+      // Clean up extra newlines
+      .replace(/\n{3,}/g, '\n\n');
+  }
+
+  /**
    * Format the entire response for beautiful presentation
    */
   private formatThinkingProcess(content: string | any): string {
     let textContent = typeof content === 'string' ? content : (content?.content || String(content));
+    
+    // First clean DeepSeek tokens
+    textContent = this.cleanDeepSeekTokens(textContent);
     
     // SINGLE SIMPLE CHECK: Only process raw <think> tags, skip everything else
     if (!textContent.includes('<think>') || textContent.includes('```thinking')) {
@@ -480,6 +552,9 @@ export class DeepSeekWithTools {
       
       // Add system message with enhanced tool instructions if this is the first message
       if (this.conversation.length === 0) {
+        const toolDescriptions = this.getToolDescriptions();
+        console.log('📝 Generated tool descriptions for system prompt:', toolDescriptions);
+        
         const systemPrompt = `You are an advanced AI assistant integrated into the UNIPATH CLI with full access to ALL tools including file system, shell execution, web search, and more.
 When asked to review, analyze, or improve code, you should PROACTIVELY use tools to explore the codebase.
 
@@ -494,12 +569,7 @@ Explain your analysis, considerations, and decision-making process.
 Then provide your final response.
 
 Available tools:
-1. read_file(absolute_path, offset?, limit?) - Read contents of a file
-2. write_file(absolute_path, content) - Write content to a file
-3. shell(command) - Execute a shell command
-4. ls(path) - List directory contents
-5. grep(pattern, path) - Search for text in files
-6. edit(absolute_path, old_text, new_text) - Edit a file by replacing text
+${this.getToolDescriptions()}
 
 To use a tool, respond with EXACTLY this format:
 <tool_use>
@@ -534,19 +604,18 @@ For COMPLEX TASKS:
 After I execute the tools, I'll provide the results and you can continue with your response.
 
 IMPORTANT: 
-- When asked to read a file, use read_file tool
-- When asked to list files/directories, use ls tool
-- When asked to run a command, use shell tool
-- When asked to write or create a file, use write_file tool
-- When asked to search in files, use grep tool
-- When asked to edit/modify a file, use edit tool
+- Review the available tools listed above and use the most appropriate one for each task
+- For web searches, use web_search tool (not grep)
+- For file searches, use grep or search_file_content tools
+- Each tool has specific capabilities - check the descriptions
 
 PROACTIVE BEHAVIOR:
 - When asked to "review code", "analyze codebase", or "improve" - IMMEDIATELY START using tools:
-  1. First use ls to see the project structure
-  2. Use read_file on package.json, README.md, and main files
-  3. Use grep to search for patterns, TODOs, or potential issues
-  4. Then provide specific improvements with actual file edits
+  1. First explore the project structure with available directory tools
+  2. Read key files like package.json, README.md, and main files
+  3. Use appropriate search tools to find patterns, TODOs, or potential issues
+  4. For research tasks, use web_search to find best practices and solutions
+  5. Then provide specific improvements with actual file edits
 - Don't just describe what you would do - USE THE TOOLS to actually explore and modify
 - If user says "review your code" they mean the codebase you're running in`;
         
@@ -713,7 +782,21 @@ PROACTIVE BEHAVIOR:
           content: combinedResults
         });
 
-        // Get final response after all tool executions
+        // Check if the assistant's response suggests more work is needed
+        const assistantContent = responseMessage.content || '';
+        const needsContinuation = assistantContent.includes('<needs_continuation/>') ||
+                                 assistantContent.toLowerCase().includes('continue') ||
+                                 assistantContent.toLowerCase().includes('next step') ||
+                                 (iterations < maxIterations && toolUseMatches.length > 0);
+
+        if (needsContinuation) {
+          console.log('📝 Task needs continuation, proceeding...');
+          console.log('🔄 Bypassing next speaker check for Azure OpenAI');
+          currentMessage = 'Please continue with the next steps based on the tool results above.';
+          continue;
+        }
+
+        // Get final response after all tool executions  
         const finalApiResponse = await fetch(url, {
           method: 'POST',
           headers: {
@@ -734,21 +817,8 @@ PROACTIVE BEHAVIOR:
         const finalData = await finalApiResponse.json();
         let finalMessage = finalData.choices?.[0]?.message?.content || '';
         
-        // Format thinking process for better readability - DISABLED to prevent duplicates  
-        // finalMessage = this.formatThinkingProcess(finalMessage);
-        
         this.conversation.push({ role: 'assistant', content: finalMessage });
-        
-        // Check if the model needs to continue (for complex multi-step tasks)
-        if (finalMessage.includes('<needs_continuation/>')) {
-          console.log('📝 Task needs continuation, proceeding...');
-          continuationResponse += finalMessage.replace('<needs_continuation/>', '').trim() + '\n';
-          // Continue to next iteration
-          currentMessage = 'Continue with the next steps of the task.';
-          continue;
-        } else {
-          return finalMessage;
-        }
+        return this.formatThinkingProcess(finalMessage);
       }
       
       // Also check if the model uses standard function_call format

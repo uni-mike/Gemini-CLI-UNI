@@ -4,4 +4,4 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const UNIPATH_CLI_COMPANION_EXTENSION_NAME = 'Gemini CLI Companion';
+export const UNIPATH_CLI_COMPANION_EXTENSION_NAME = 'UNIPATH CLI Companion';

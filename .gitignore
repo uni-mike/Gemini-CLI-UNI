@@ -63,3 +63,52 @@ TESTING_AI/
 # But ignore any output from them
 start-*.sh.out
 /.claude/
+
+# Test outputs and demo files
+*_test_output.txt
+*_demo.json
+*_demo.md
+crypto_trends_*.md
+crypto-test-output.log
+test-serpapi.js
+test-web-search.js
+approval_test.txt
+ide_test.md
+space_news_demo.json
+web_result_demo.json
+web_search_demo.md
+
+# IDE extension builds and temp files
+UNIPATH-CLI-Extensions-*.tar.gz
+extensions/
+META-INF/
+
+# Test input files
+test-*-input.txt
+test-search-input.txt
+
+# Session and report files
+SESSION_SUMMARY_*.md
+*_TEST_REPORT*.md
+*_TEST_RESULTS*.md
+*_INTEGRATION_*.md
+
+# IDE helper scripts (keep main ones, ignore test/temp ones)
+enable-*-ide.sh
+fix-*-ide*.sh
+test-ide-connection.sh
+test-*.sh
+!test-all.sh
+
+# Temporary web search implementations (keeping only the main one)
+packages/core/src/tools/web-search-*.ts
+!packages/core/src/tools/web-search.ts
+!packages/core/src/tools/web-search.js
+!packages/core/src/tools/web-search.d.ts
+
+# Extensions README and install scripts
+UNIPATH_EXTENSIONS_README.md
+install-unipath-extensions.sh
+
+# Start scripts for specific models (keep the main ones)
+start-pycharm.sh

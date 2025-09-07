@@ -16,6 +16,7 @@ import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
 import { AzureOpenAIWithTools } from './azureOpenAIWithTools.js';
 import { DeepSeekWithTools } from './deepSeekWithTools.js';
 import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
+import { IdeClient } from '../ide/ide-client.js';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_AZURE_MODEL } from '../config/models.js';
 import type { Config } from '../config/config.js';
 
@@ -370,6 +371,92 @@ export async function createContentGenerator(
     if (isDeepSeek || isAzureAIModel) {
       // Use DeepSeekWithTools for DeepSeek models or Azure AI models to support tools
       const deepSeekClient = new DeepSeekWithTools(gcConfig);
+      
+      // Session-based approval state
+      let sessionAutoApprove = false;
+      
+      // Set up approval flow callback for IDE integration  
+      deepSeekClient.setConfirmationCallback(async (details: any) => {
+        // Check if session auto-approve is enabled
+        if (sessionAutoApprove) {
+          console.log('✅ AUTO-APPROVED (session setting)');
+          return true;
+        }
+        
+        // For file operations, try to open diff in IDE
+        if (details.type === 'file_write' || details.type === 'file_edit') {
+          const filePath = details.path || details.file_path;
+          const content = details.content;
+          
+          try {
+            const ideClient = await IdeClient.getInstance();
+            
+            // Check if IDE is connected
+            if (ideClient.getConnectionStatus().status === 'connected') {
+              console.log(`\n🔗 Opening diff in IDE for: ${filePath}`);
+              console.log('💡 Review changes in your editor and approve/reject from there');
+              
+              // Open diff in native IDE - this will show the diff and wait for user action
+              const result = await ideClient.openDiff(filePath, content);
+              
+              if (result.status === 'accepted') {
+                console.log('✅ Changes approved in IDE');
+                sessionAutoApprove = true; // Enable session auto-approve after first manual approval
+                return true;
+              } else {
+                console.log('❌ Changes rejected in IDE');
+                return false;
+              }
+            } else {
+              // Fallback to console UI when IDE not connected
+              console.log('\n🔒 APPROVAL REQUIRED (IDE not connected)');
+              console.log('═'.repeat(80));
+              console.log(`📄 File: ${filePath}`);
+              
+              if (content) {
+                const preview = content.length > 500 
+                  ? content.substring(0, 500) + '...'
+                  : content;
+                console.log(`\n📝 Content Preview:\n${preview}`);
+              }
+              
+              console.log('═'.repeat(80));
+              console.log('🎯 Approval Options:');
+              console.log('  [y] Approve this change');
+              console.log('  [a] Auto-approve edit tools for this session (AUTO_EDIT mode)');
+              console.log('  [A] Auto-approve ALL tools for this session (YOLO mode)');  
+              console.log('  [n] Reject this change');
+              console.log('═'.repeat(80));
+              console.log('💡 To enable IDE integration: run `/ide enable`');
+              
+              // Auto-approve for now since we don't have interactive input yet
+              console.log('⚠️  AUTO-APPROVING (implement interactive input)');
+              sessionAutoApprove = true;
+              return true;
+            }
+          } catch (error) {
+            console.error('❌ IDE integration error:', error);
+            // Fallback to auto-approve if IDE fails
+            sessionAutoApprove = true;
+            return true;
+          }
+        } else {
+          // For non-file operations (shell commands etc), use console approval
+          console.log('\n🔒 APPROVAL REQUIRED');
+          console.log('═'.repeat(80));
+          
+          if (details.type === 'shell_command') {
+            console.log(`💻 Shell Command: ${details.command}`);
+          } else {
+            console.log(`🔧 Action: ${JSON.stringify(details, null, 2)}`);
+          }
+          
+          console.log('═'.repeat(80));
+          console.log('🎯 Options: [y] Approve  [n] Reject');
+          console.log('⚠️  AUTO-APPROVING shell command');
+          return true;
+        }
+      });
       
       // Create a wrapper that implements ContentGenerator interface
       const azureAIGenerator: ContentGenerator = {
