@@ -113,17 +113,20 @@ export function detectIdeFromEnv(): DetectedIde {
   if (process.env['PYCHARM_HOSTED'] || process.env['PYCHARM_DISPLAY_NAME']) {
     return DetectedIde.PyCharm;
   }
-  if (process.env['WEBSTORM_HOSTED'] || process.env['WEBIDE_PRODUCT']) {
+  if (process.env['WEBSTORM_HOSTED'] || 
+      process.env['WEBIDE_PRODUCT'] || 
+      process.env['WEBIDE_PRODUCT_CODE'] === 'WebStorm') {
     return DetectedIde.WebStorm;
   }
   if (process.env['IDEA_INITIAL_DIRECTORY'] || process.env['INTELLIJ_ENVIRONMENT_READER']) {
     return DetectedIde.IntelliJIDEA;
   }
-  // Generic JetBrains IDE detection
+  // Generic JetBrains IDE detection - including JediTerm terminal emulator
   if (process.env['JETBRAINS_IDE'] || 
       process.env['TERMINAL_INTEGRATION_COMMAND'] || 
       process.env['__INTELLIJ_COMMAND_HISTFILE__'] ||
-      process.env['IDE_PROJECT_ROOTS']) {
+      process.env['IDE_PROJECT_ROOTS'] ||
+      process.env['TERMINAL_EMULATOR'] === 'JetBrains-JediTerm') {
     return DetectedIde.JetBrainsIDE;
   }
   
