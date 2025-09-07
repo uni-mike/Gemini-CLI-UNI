@@ -1,20 +1,37 @@
 # UNIPATH CLI - Universal AI Interface
 
-A powerful universal CLI tool that provides seamless integration with multiple AI models including Azure OpenAI (GPT-5, GPT-4o, GPT-4o-mini), DeepSeek R1, and Google Gemini, with full tool support.
+A powerful universal CLI tool with **full tool support** for DeepSeek R1 and Google Gemini, plus Azure OpenAI models (GPT-5, GPT-4o, GPT-4o-mini).
 
-## =� Quick Start
+## 🚀 Quick Start - DeepSeek R1 Recommended!
 
 ### Available Models
 
-| Model | Script | Speed | Best For |
-|-------|--------|-------|----------|
-| **GPT-4o-mini** | `./start-mini.sh` | � Fast (2-3s) | Quick queries, simple tasks |
-| **GPT-4o** | `./start-4o.sh` | � Fast (3-5s) | General use, complex tasks |
-| **DeepSeek R1** | `./start-deepseek.sh` | � Fast (3-5s) | Reasoning, analysis, code |
-| **GPT-5** | `./start-azure.sh` | = Slow (10-20s) | When you need the best |
-| **Gemini** | `npm run start` | 🚀 Fast (1-3s) | Google's native model |
+| Model | Script | Speed | Tools | Best For |
+|-------|--------|-------|-------|----------|
+| **DeepSeek R1** ⭐ | `./start-deepseek.sh` | ⚡ Fast (3-5s) | ✅ **Full Tools** | **Reasoning, coding, file ops** |
+| **Gemini** | `npm run start` | 🚀 Fast (1-3s) | ✅ **Full Tools** | Google's native with tools |
+| **GPT-4o-mini** | `./start-mini.sh` | ⚡ Fast (2-3s) | ❌ Chat only | Quick queries, simple tasks |
+| **GPT-4o** | `./start-4o.sh` | ⚡ Fast (3-5s) | ❌ Chat only | General use, complex tasks |
+| **GPT-5** | `./start-azure.sh` | 🐌 Slow (10-20s) | ❌ Chat only | When you need the best |
 
-## =� Installation
+## 🛠️ DeepSeek R1 - Full Tool Integration
+
+DeepSeek R1 has **complete tool support** including:
+- **File Operations**: Read, write, edit files with diff previews
+- **Shell Commands**: Execute system commands with approval
+- **Search Tools**: Grep, glob, ripgrep for code exploration  
+- **Web Tools**: Search and fetch web content
+- **Memory**: Save and recall context across sessions
+
+## 🔒 Security & Approval Flow
+
+DeepSeek R1 includes Claude-style approval flow:
+- **Shows diffs** before making file changes
+- **Previews commands** before shell execution  
+- **Respects trust settings** for folders
+- **AUTO_EDIT mode** for trusted environments
+
+## 📦 Installation
 
 ```bash
 # Install dependencies
@@ -24,103 +41,100 @@ npm install
 npm run build
 
 # Set up your environment files
-cp .env.example .env.mini     # For GPT-4o-mini
+cp .env.example .env.deepseek  # For DeepSeek R1 (recommended)
+cp .env.example .env.mini      # For GPT-4o-mini
 cp .env.example .env.4o        # For GPT-4o  
-cp .env.example .env.deepseek  # For DeepSeek R1
 cp .env.example .env           # For GPT-5/Azure
 ```
 
-## =' Configuration
+## ⚙️ Configuration
 
-Edit the `.env` files with your API keys and endpoints:
+Edit the `.env.deepseek` file with your API keys and endpoints:
 
 ```bash
+# .env.deepseek (for DeepSeek R1 - recommended)
+API_KEY=your-deepseek-api-key
+ENDPOINT=https://your-endpoint.models.ai.azure.com
+API_VERSION=2024-05-01-preview
+MODEL=DeepSeek-R1-0528
+
 # .env (for GPT-5)
 AZURE_API_KEY=your-api-key-here
 AZURE_ENDPOINT_URL=https://your-endpoint.openai.azure.com/
 AZURE_DEPLOYMENT=gpt-5
 AZURE_MODEL=gpt-5
-
-# .env.deepseek (for DeepSeek R1)
-AZURE_API_KEY=your-deepseek-api-key
-AZURE_ENDPOINT_URL=https://your-endpoint.models.ai.azure.com
-AZURE_DEPLOYMENT=DeepSeek-R1
 ```
 
-## =� Usage Examples
+## 🔧 Usage Examples
 
-### Simple Query
+### DeepSeek R1 with Tools (Recommended)
 ```bash
-echo "What is the capital of France?" | ./start-mini.sh
+# Interactive mode with full tools
+./start-deepseek.sh
+
+# Direct commands
+echo "Read the file package.json and analyze it" | ./start-deepseek.sh
+echo "Search for TODO comments in the codebase" | ./start-deepseek.sh  
+echo "Run npm test and analyze the results" | ./start-deepseek.sh
 ```
 
-### Code Review
-```bash
-echo "Review this code: $(cat app.js)" | ./start-4o.sh
-```
-
-### Complex Reasoning
+### File Operations with DeepSeek R1
 ```bash
 ./start-deepseek.sh
-> Explain quantum computing implications for cryptography
+> Edit src/app.js and fix the bug on line 25
+> Create a new file docs/api.md with API documentation
+> Search for all uses of 'deprecated' in the codebase
 ```
 
-### File Operations (with UNIPATH)
+### Other Models (Chat Only)
 ```bash
-npm run start
-> /read package.json
-> /shell npm test
-> /write report.md
+# Simple queries
+echo "What is the capital of France?" | ./start-mini.sh
+
+# Code review (without tools)
+echo "Review this code: $(cat app.js)" | ./start-4o.sh
+
+# Complex reasoning
+echo "Explain quantum computing implications" | ./start-azure.sh
 ```
 
 ### Using the UNIPATH Command
 ```bash
 # After global installation
 unipath "What files are in the current directory?"
-unipath --model gpt-4o "Explain this codebase"
+unipath --model deepseek "Analyze this codebase with tools"
 ```
 
-## =� Features
+## ✨ Features
 
-- **Universal AI Interface**: Seamlessly switch between GPT-5, GPT-4o, GPT-4o-mini, DeepSeek R1, and Google Gemini
-- **Tool Support**: Full file operations, shell commands, and more via intelligent prompting
-- **Rate Limiting**: Automatic retry with exponential backoff
-- **Complex Task Handling**: Support for multi-step sequences and iterations
-- **Easy Model Switching**: Simple startup scripts for each model
+- **🎯 DeepSeek R1 Focus**: Best model with full tool integration
+- **🛠️ Complete Tool Support**: File operations, shell commands, web access  
+- **🔒 Security First**: Approval flow with diff previews
+- **⚡ Multiple Models**: GPT-5, GPT-4o, GPT-4o-mini, DeepSeek R1, Gemini
+- **🔄 Rate Limiting**: Automatic retry with exponential backoff
+- **📋 Complex Tasks**: Multi-step sequences and tool chaining
+- **🚀 Easy Switching**: Simple startup scripts for each model
 
 ## 📚 Documentation
 
 - [Model Quickstart Guide](docs/MODELS-QUICKSTART.md)
 - [Azure Models Configuration](docs/AZURE-MODELS-GUIDE.md)
 - [Azure Integration Details](docs/README-AZURE.md)
-- [Azure Integration Success Story](docs/AZURE-INTEGRATION-SUCCESS.md)
+- [Tool Integration Complete](UNIPATH_TOOLS_FINAL.md)
+- [Approval Flow Fixed](APPROVAL_FLOW_FIXED.md)
 
 ## 🤝 Credits & Attribution
 
-**UNIPATH CLI** is based on and extends [Google's Gemini CLI](https://github.com/google/generative-ai-js), which is licensed under the Apache License, Version 2.0.
+Based on Google's Gemini CLI, extended with:
+- Multi-model support (Azure OpenAI, DeepSeek R1)
+- Complete rebranding to UNIPATH
+- Enhanced tool integration for DeepSeek R1
+- Security improvements and approval flow
 
-### Original Work
-- **Gemini CLI** - Copyright 2025 Google LLC
-- Repository: https://github.com/google/generative-ai-js
-- License: Apache License, Version 2.0
+## 📄 License
 
-### Modifications & Extensions
-- **UNIPATH CLI** - Copyright 2025 Mike Admon and Contributors
-- Added support for Azure OpenAI models (GPT-5, GPT-4o, GPT-4o-mini)
-- Added DeepSeek R1 integration
-- Created universal AI interface system
-- Implemented UNIPATH branding and configuration
+Apache 2.0 License. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-## > Contributing
+---
 
-UNIPATH CLI is a universal AI interface that extends the original Google Gemini CLI with support for multiple AI providers. Based on [Google's Gemini CLI](https://github.com/google/generative-ai-js).
-
-### Repository
-
-GitHub: [uni-mike/Gemini-CLI-UNI](https://github.com/uni-mike/Gemini-CLI-UNI)
-
-## =� License
-
-Apache 2.0 - See [LICENSE](LICENSE) and [NOTICE](NOTICE) files for details.
-
-This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+**🌟 Recommended: Start with `./start-deepseek.sh` for the best experience with full tools!**

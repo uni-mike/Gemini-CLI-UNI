@@ -2,83 +2,127 @@
 
 ## Available Models & Startup Scripts
 
-### ⚡ Fast Models (2-5 seconds)
+### ⚡ Fast Models with Tools (RECOMMENDED)
 ```bash
-./start-mini.sh      # GPT-4o-mini - Fastest, cost-effective
-./start-4o.sh        # GPT-4o - Best balance of speed & quality
-./start-deepseek.sh  # DeepSeek R1 - Strong reasoning, open model
+./start-deepseek.sh  # DeepSeek R1 - ⭐ BEST CHOICE: Fast + Full Tools + Great reasoning
+npm run start        # Google Gemini - Original with full tool support
 ```
 
-### 🐌 Slower Models (10-20 seconds)
+### ⚡ Fast Models (Chat Only)
 ```bash
-./start-azure.sh     # GPT-5 - Highest quality but slow
+./start-mini.sh      # GPT-4o-mini - Fastest, cost-effective, no tools
+./start-4o.sh        # GPT-4o - Good balance, no tools
 ```
 
-### 🌐 Native Google Gemini (with full tool support)
+### 🐌 Slower Models (Chat Only)
 ```bash
-npm run start        # Google Gemini - Full tool integration
-
-# Or use the unipath command after installation
-unipath              # Launches interactive UNIPATH CLI
-unipath "Your prompt here"  # Direct command execution
+./start-azure.sh     # GPT-5 - Highest quality but slow, no tools
 ```
 
-## Model Comparison
+## Model Comparison - Updated for DeepSeek R1 Tools!
 
 | Model | Speed | Quality | Cost | Tools | Best For |
 |-------|-------|---------|------|-------|----------|
-| **GPT-4o-mini** | ⚡⚡⚡ (2-3s) | ⭐⭐⭐ | 💰 | ❌ | Quick queries, simple tasks |
-| **GPT-4o** | ⚡⚡ (3-5s) | ⭐⭐⭐⭐ | 💰💰 | ❌ | General use, complex tasks |
-| **DeepSeek R1** | ⚡⚡ (3-5s) | ⭐⭐⭐⭐ | 💰💰 | ❌ | Reasoning, analysis, code |
-| **GPT-5** | 🐌 (10-20s) | ⭐⭐⭐⭐⭐ | 💰💰💰 | ❌ | When you need the best |
-| **Gemini** | ⚡⚡⚡ (1-3s) | ⭐⭐⭐⭐ | 💰💰 | ✅ | When you need tools |
+| **DeepSeek R1** ⭐ | ⚡⚡ (3-5s) | ⭐⭐⭐⭐⭐ | 💰💰 | ✅ **FULL** | **Everything! Files, shell, reasoning** |
+| **Gemini** | ⚡⚡⚡ (1-3s) | ⭐⭐⭐⭐ | 💰💰 | ✅ **FULL** | Original tool support |
+| **GPT-4o-mini** | ⚡⚡⚡ (2-3s) | ⭐⭐⭐ | 💰 | ❌ None | Quick queries, simple tasks |
+| **GPT-4o** | ⚡⚡ (3-5s) | ⭐⭐⭐⭐ | 💰💰 | ❌ None | General use, complex tasks |
+| **GPT-5** | 🐌 (10-20s) | ⭐⭐⭐⭐⭐ | 💰💰💰 | ❌ None | When you need the best quality |
+
+## 🛠️ Tool Support Breakdown
+
+### DeepSeek R1 ⭐ (RECOMMENDED)
+✅ **File Operations**: Read, write, edit files with diff previews  
+✅ **Shell Commands**: Execute system commands with approval  
+✅ **Search Tools**: Grep, glob, ripgrep for code exploration  
+✅ **Web Tools**: Search and fetch web content  
+✅ **Memory**: Save and recall context across sessions  
+✅ **Approval Flow**: Claude-style security with previews  
+
+### Google Gemini
+✅ **All Tools**: Complete original tool support  
+✅ **IDE Integration**: Native VS Code extension support  
+
+### Azure Models (GPT-5, GPT-4o, GPT-4o-mini)
+❌ **No Tools**: Chat only, no file operations  
+❌ **No Shell**: Can't execute commands  
+❌ **No Files**: Can't read or write files  
 
 ## Quick Examples
 
-### Simple question (use mini for speed):
+### 🌟 RECOMMENDED: DeepSeek R1 with Tools
+```bash
+./start-deepseek.sh
+> Read package.json and analyze dependencies
+> Search for TODO comments in the codebase
+> Edit src/app.js and fix the TypeScript errors
+> Run npm test and show me the results
+```
+
+### File Operations (DeepSeek R1 only):
+```bash
+echo "Create a new README.md with project overview" | ./start-deepseek.sh
+echo "Search for all console.log statements" | ./start-deepseek.sh
+echo "Edit config.js and update the port to 3000" | ./start-deepseek.sh
+```
+
+### Simple questions (use mini for speed):
 ```bash
 echo "What is the capital of France?" | ./start-mini.sh
 ```
 
-### Code review (use GPT-4o or DeepSeek):
+### Code review without tools (GPT-4o or GPT-5):
 ```bash
 echo "Review this code: $(cat app.js)" | ./start-4o.sh
-# or
-echo "Analyze this algorithm: $(cat algo.py)" | ./start-deepseek.sh
 ```
 
-### Complex reasoning (use GPT-5 when quality matters):
+### Complex reasoning without tools (GPT-5):
 ```bash
-./start-azure.sh
-> Explain quantum computing implications for cryptography
+echo "Explain quantum computing implications for cryptography" | ./start-azure.sh
 ```
 
-### File operations (use UNIPATH with Gemini):
+## When to Use Each Model
+
+### Use DeepSeek R1 when you need:
+- ⭐ **File operations** (read, write, edit)
+- ⭐ **Shell commands** (run tests, build, deploy)  
+- ⭐ **Code exploration** (search, analyze)
+- ⭐ **Security** (approval flow with previews)
+- ⭐ **Complex reasoning** with tool support
+
+### Use Gemini when you need:
+- Original tool support
+- IDE integration
+- Google's ecosystem
+
+### Use GPT models when you need:
+- **GPT-4o-mini**: Quick simple questions
+- **GPT-4o**: Complex chat without tools  
+- **GPT-5**: Highest quality analysis (chat only)
+
+## 🎯 Recommendation
+
+**Start with DeepSeek R1**: `./start-deepseek.sh`
+
+It's the perfect balance of:
+- ⚡ Speed (3-5 seconds)
+- 🧠 Intelligence (excellent reasoning)  
+- 🛠️ Tools (complete file/shell/web support)
+- 🔒 Security (approval flow)
+- 💰 Cost-effectiveness
+
+## Configuration Files
+
 ```bash
-npm run start
-> /read package.json
-> /shell npm test
-> /write report.md
+# DeepSeek R1 (recommended)
+.env.deepseek
 
-# Or using the unipath command
-unipath
-> /read package.json
-> /shell npm test
+# Other models
+.env.mini      # GPT-4o-mini
+.env.4o        # GPT-4o  
+.env           # GPT-5
 ```
 
-## Troubleshooting
+---
 
-### Rate Limits (429 Error)
-The system now automatically retries with exponential backoff. If you still hit limits:
-1. Wait a minute between requests
-2. Use a cheaper model (mini) for testing
-3. Upgrade your Azure tier at https://aka.ms/oai/quotaincrease
-
-### Slow Responses
-- Switch from GPT-5 to GPT-4o for 3-4x speed improvement
-- Use mini for non-critical tasks
-- Consider DeepSeek R1 for good balance
-
-### Need Tools?
-The UNIPATH CLI with Google Gemini backend (`npm run start` or `unipath`) currently supports full file operations and shell commands.
-Azure models (GPT-5, GPT-4o, DeepSeek) are optimized for chat/Q&A interactions.
+**🌟 TL;DR: Use `./start-deepseek.sh` for the best experience!**
