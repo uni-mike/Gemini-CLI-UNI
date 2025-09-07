@@ -511,8 +511,11 @@ PROACTIVE BEHAVIOR:
           }
         }
         
-        // Add the original response (with tool_use blocks) to conversation
-        this.conversation.push(responseMessage);
+        // Add the assistant's response (but clean it to only include content and role)
+        this.conversation.push({
+          role: 'assistant',
+          content: responseMessage.content || ''
+        });
         
         // Add all tool results as a single user message
         const combinedResults = `Tool execution results:\n${toolResults.join('\n')}`;
@@ -567,11 +570,16 @@ PROACTIVE BEHAVIOR:
         console.log(`🔧 Executing function (via function_call): ${functionName}`);
         const functionResult = await this.executeToolDirectly(functionName, args);
         
-        // Add function result to conversation
+        // Add the assistant's intent to call a function
         this.conversation.push({
-          role: 'function',
-          name: functionName,
-          content: functionResult
+          role: 'assistant',
+          content: `Calling function: ${functionName}`
+        });
+        
+        // Add function result to conversation as a user message (Azure doesn't support 'function' role)
+        this.conversation.push({
+          role: 'user',
+          content: `Function ${functionName} result: ${functionResult}`
         });
 
         // Get final response after function execution
