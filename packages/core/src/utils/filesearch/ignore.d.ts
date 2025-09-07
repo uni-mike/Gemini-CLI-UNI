@@ -6,7 +6,7 @@
 export interface LoadIgnoreRulesOptions {
     projectRoot: string;
     useGitignore: boolean;
-    useGeminiignore: boolean;
+    useUnipathignore: boolean;
     ignoreDirs: string[];
 }
 export declare function loadIgnoreRules(options: LoadIgnoreRulesOptions): Ignore;
