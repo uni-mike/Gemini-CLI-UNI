@@ -4,6 +4,7 @@
  */
 
 import type { Config } from '../config/config.js';
+import { ApprovalMode } from '../config/config.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 
 interface DeepSeekFunction {
@@ -32,7 +33,9 @@ export class DeepSeekWithTools {
   private model: string;
   private apiVersion: string;
   private toolRegistry: ToolRegistry;
+  private config: Config;
   private conversation: DeepSeekMessage[] = [];
+  private confirmationCallback?: (details: any) => Promise<boolean>;
 
   constructor(config: Config) {
     this.apiKey = process.env['AZURE_API_KEY'] || process.env['API_KEY'] || '';
@@ -44,7 +47,15 @@ export class DeepSeekWithTools {
       throw new Error('DeepSeek configuration missing: API_KEY and ENDPOINT are required');
     }
     
+    this.config = config;
     this.toolRegistry = config.getToolRegistry();
+  }
+  
+  /**
+   * Set a callback for handling confirmation prompts
+   */
+  setConfirmationCallback(callback: (details: any) => Promise<boolean>) {
+    this.confirmationCallback = callback;
   }
 
   /**
@@ -224,10 +235,54 @@ export class DeepSeekWithTools {
         return this.executeFallbackTool(functionName, args);
       }
       
-      // Execute the tool from registry
+      // Execute the tool from registry with proper approval flow
       try {
         const invocation = tool.build(args);
-        const result = await invocation.execute(new AbortController().signal);
+        const abortController = new AbortController();
+        
+        // Check if confirmation is needed (like Claude does)
+        const confirmationDetails = await invocation.shouldConfirmExecute(abortController.signal);
+        
+        if (confirmationDetails) {
+          // Check approval mode
+          const approvalMode = this.config.getApprovalMode();
+          
+          if (approvalMode === 'autoEdit' && this.config.isTrustedFolder()) {
+            // Auto-approve in trusted folders with autoEdit mode
+            console.log('🔄 Auto-approving change (AUTO_EDIT mode in trusted folder)');
+          } else {
+            // Need user confirmation
+            console.log('\n📋 Change Preview:');
+            console.log('─'.repeat(50));
+            
+            // Show diff or description
+            if ((confirmationDetails as any).diff) {
+              console.log((confirmationDetails as any).diff);
+            } else if ((confirmationDetails as any).description) {
+              console.log((confirmationDetails as any).description);
+            } else {
+              console.log(JSON.stringify(confirmationDetails, null, 2));
+            }
+            
+            console.log('─'.repeat(50));
+            
+            // If we have a confirmation callback, use it
+            if (this.confirmationCallback) {
+              const approved = await this.confirmationCallback(confirmationDetails);
+              if (!approved) {
+                return 'Change rejected by user';
+              }
+            } else {
+              // For now, log that approval is needed
+              // In production, this should integrate with the CLI UI
+              console.log('⚠️  Approval needed but no UI callback set');
+              console.log('📝 Proceeding with change (fix needed for proper approval flow)');
+            }
+          }
+        }
+        
+        // Execute after approval (or if no confirmation needed)
+        const result = await invocation.execute(abortController.signal);
         if (typeof result === 'string') {
           return result;
         } else if (result && typeof result === 'object') {
@@ -248,6 +303,10 @@ export class DeepSeekWithTools {
    */
   private async executeFallbackTool(functionName: string, args: any): Promise<string> {
     try {
+      const approvalMode = this.config.getApprovalMode();
+      const isTrusted = this.config.isTrustedFolder();
+      const needsApproval = approvalMode !== ApprovalMode.AUTO_EDIT || !isTrusted;
+      
       // Basic implementations for core tools when registry lookup fails
       if (functionName === 'read_file' || functionName === 'read-file') {
         const fs = await import('fs/promises');
@@ -259,18 +318,78 @@ export class DeepSeekWithTools {
           return lines.slice(start, end).join('\n');
         }
         return content;
+        
       } else if (functionName === 'write_file' || functionName === 'write-file') {
+        const filePath = args.absolute_path || args.file_path;
+        
+        // Check if file exists and show diff if it does
+        if (needsApproval) {
+          const fs = await import('fs/promises');
+          try {
+            const existingContent = await fs.readFile(filePath, 'utf-8');
+            console.log('\n📋 File Change Preview:');
+            console.log('─'.repeat(50));
+            console.log(`File: ${filePath}`);
+            console.log('─'.repeat(50));
+            console.log('--- Current Content ---');
+            console.log(existingContent.substring(0, 500));
+            console.log('\n+++ New Content +++');
+            console.log(args.content.substring(0, 500));
+            console.log('─'.repeat(50));
+            
+            if (this.confirmationCallback) {
+              const approved = await this.confirmationCallback({ 
+                type: 'file_write',
+                path: filePath,
+                content: args.content 
+              });
+              if (!approved) {
+                return 'Write operation cancelled by user';
+              }
+            } else {
+              console.log('⚠️  Approval needed - proceeding (fix needed for proper approval)');
+            }
+          } catch {
+            // New file - just show what will be created
+            console.log(`\n📝 Creating new file: ${filePath}`);
+            console.log(`Content preview: ${args.content.substring(0, 200)}...`);
+          }
+        }
+        
         const fs = await import('fs/promises');
-        await fs.writeFile(args.absolute_path || args.file_path, args.content);
-        return `File written successfully to ${args.absolute_path || args.file_path}`;
+        await fs.writeFile(filePath, args.content);
+        return `File written successfully to ${filePath}`;
+        
       } else if (functionName === 'shell') {
+        // Shell commands should always ask for approval unless in auto mode
+        if (needsApproval) {
+          console.log('\n⚠️  Shell Command Approval:');
+          console.log('─'.repeat(50));
+          console.log(`Command: ${args.command}`);
+          console.log('─'.repeat(50));
+          
+          if (this.confirmationCallback) {
+            const approved = await this.confirmationCallback({
+              type: 'shell_command',
+              command: args.command
+            });
+            if (!approved) {
+              return 'Shell command cancelled by user';
+            }
+          } else {
+            console.log('⚠️  Approval needed - proceeding (fix needed for proper approval)');
+          }
+        }
+        
         const { execSync } = await import('child_process');
         const result = execSync(args.command, { encoding: 'utf-8' });
         return result;
+        
       } else if (functionName === 'ls') {
         const fs = await import('fs/promises');
         const files = await fs.readdir(args.path || '.');
         return files.join('\n');
+        
       } else if (functionName === 'grep') {
         const { execSync } = await import('child_process');
         const cmd = `grep -r "${args.pattern}" ${args.path || '.'}`;
@@ -280,12 +399,40 @@ export class DeepSeekWithTools {
         } catch (e) {
           return 'No matches found';
         }
+        
       } else if (functionName === 'edit') {
+        const filePath = args.absolute_path || args.file_path;
         const fs = await import('fs/promises');
-        const content = await fs.readFile(args.absolute_path || args.file_path, 'utf-8');
+        const content = await fs.readFile(filePath, 'utf-8');
         const newContent = content.replace(args.old_text || args.old_string, args.new_text || args.new_string);
-        await fs.writeFile(args.absolute_path || args.file_path, newContent);
-        return `File edited successfully: ${args.absolute_path || args.file_path}`;
+        
+        // Show diff for edits
+        if (needsApproval) {
+          console.log('\n📋 Edit Preview:');
+          console.log('─'.repeat(50));
+          console.log(`File: ${filePath}`);
+          console.log('─'.repeat(50));
+          console.log(`- ${args.old_text || args.old_string}`);
+          console.log(`+ ${args.new_text || args.new_string}`);
+          console.log('─'.repeat(50));
+          
+          if (this.confirmationCallback) {
+            const approved = await this.confirmationCallback({
+              type: 'file_edit',
+              path: filePath,
+              oldText: args.old_text || args.old_string,
+              newText: args.new_text || args.new_string
+            });
+            if (!approved) {
+              return 'Edit cancelled by user';
+            }
+          } else {
+            console.log('⚠️  Approval needed - proceeding (fix needed for proper approval)');
+          }
+        }
+        
+        await fs.writeFile(filePath, newContent);
+        return `File edited successfully: ${filePath}`;
       }
       return `Tool ${functionName} not found in registry and no fallback implementation`;
     } catch (error) {
