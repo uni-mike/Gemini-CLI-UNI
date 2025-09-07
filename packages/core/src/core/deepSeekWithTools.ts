@@ -523,17 +523,10 @@ export class DeepSeekWithTools {
       return textContent;
     }
     
-    // Replace <think>...</think> with beautiful format
+    // Replace <think>...</think> with minimal format - MUCH SIMPLER
     const formatted = textContent.replace(
       /<think>([\s\S]*?)<\/think>/g, 
-      (match: string, content: string) => {
-        const lines = content.trim().split('\n')
-          .map((line: string) => line.trim())
-          .filter((line: string) => line.length > 0)
-          .map((line: string) => `• ${line}`);
-        
-        return '\n🤔 **Thinking Process:**\n' + lines.join('\n') + '\n';
-      }
+      '🤔 Processing request...'
     );
     
     return formatted;
@@ -816,7 +809,15 @@ PROACTIVE BEHAVIOR:
           }
           
           try {
-            const result = await this.executeToolDirectly(functionName, args);
+            // Add timeout to prevent hanging
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Tool execution timeout')), 30000); // 30 second timeout
+            });
+            
+            const result = await Promise.race([
+              this.executeToolDirectly(functionName, args),
+              timeoutPromise
+            ]) as string;
             
             // Show completion with brief result info
             if (functionName === 'web_search' || functionName === 'web-search') {
@@ -839,9 +840,10 @@ PROACTIVE BEHAVIOR:
             
             toolResults.push(`${functionName}: ${result}`);
           } catch (error) {
-            console.error(`  ❌ ${functionName} failed: ${error instanceof Error ? error.message.substring(0, 50) : 'Unknown error'}`);
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`  ❌ ${functionName} failed: ${errorMsg.substring(0, 50)}`);
             console.error(`Error executing ${functionName}:`, error);
-            toolResults.push(`${functionName}: Error - ${error instanceof Error ? error.message : String(error)}`);
+            toolResults.push(`${functionName}: Error - ${errorMsg}`);
           }
         }
         
