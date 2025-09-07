@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useState, useCallback, useEffect } from 'react';
-import { AuthType } from '@google/gemini-cli-core';
-import { clearCachedCredentialFile, getErrorMessage, } from '@google/gemini-cli-core';
+import { AuthType } from '@unipath/unipath-cli-core';
+import { clearCachedCredentialFile, getErrorMessage, } from '@unipath/unipath-cli-core';
 import { runExitCleanup } from '../../utils/cleanup.js';
 export const useAuthCommand = (settings, setAuthError, config) => {
     const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(settings.merged.security?.auth?.selectedType === undefined);

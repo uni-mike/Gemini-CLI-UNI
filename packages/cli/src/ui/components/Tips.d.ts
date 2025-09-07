@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type React from 'react';
-import { type Config } from '@google/gemini-cli-core';
+import { type Config } from '@unipath/unipath-cli-core';
 interface TipsProps {
     config: Config;
 }

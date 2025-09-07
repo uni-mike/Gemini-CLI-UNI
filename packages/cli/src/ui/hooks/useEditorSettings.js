@@ -5,7 +5,7 @@
  */
 import { useState, useCallback } from 'react';
 import { MessageType } from '../types.js';
-import { allowEditorTypeInSandbox, checkHasEditorType, } from '@google/gemini-cli-core';
+import { allowEditorTypeInSandbox, checkHasEditorType, } from '@unipath/unipath-cli-core';
 export const useEditorSettings = (loadedSettings, setEditorError, addItem) => {
     const [isEditorDialogOpen, setIsEditorDialogOpen] = useState(false);
     const openEditorDialog = useCallback(() => {

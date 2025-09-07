@@ -5,8 +5,8 @@
  */
 import { type PartListUnion } from '@google/genai';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';
-import type { Config } from '@google/gemini-cli-core';
-import { ToolConfirmationOutcome } from '@google/gemini-cli-core';
+import type { Config } from '@unipath/unipath-cli-core';
+import { ToolConfirmationOutcome } from '@unipath/unipath-cli-core';
 import type { HistoryItemWithoutId, HistoryItem, SlashCommandProcessorResult } from '../types.js';
 import type { LoadedSettings } from '../../config/settings.js';
 import { type CommandContext, type SlashCommand } from '../commands/types.js';

@@ -16,7 +16,7 @@ import type {
   ThoughtSummary,
   ToolCallRequestInfo,
   GeminiErrorEventValue,
-} from '@google/gemini-cli-core';
+} from '@unipath/unipath-cli-core';
 import {
   GeminiEventType as ServerGeminiEventType,
   getErrorMessage,
@@ -33,7 +33,7 @@ import {
   parseAndFormatApiError,
   getCodeAssistServer,
   UserTierId,
-} from '@google/gemini-cli-core';
+} from '@unipath/unipath-cli-core';
 import { type Part, type PartListUnion, FinishReason } from '@google/genai';
 import type {
   HistoryItem,
@@ -84,7 +84,7 @@ function showCitations(settings: LoadedSettings, config: Config): boolean {
  * API interaction, and tool call lifecycle.
  */
 export const useGeminiStream = (
-  geminiClient: GeminiClient,
+  unipathClient: GeminiClient,
   history: HistoryItem[],
   addItem: UseHistoryManagerReturn['addItem'],
   config: Config,
@@ -164,7 +164,7 @@ export const useGeminiStream = (
     onExec,
     onDebugMessage,
     config,
-    geminiClient,
+    unipathClient,
   );
 
   const streamingState = useMemo(() => {
@@ -726,7 +726,7 @@ export const useGeminiStream = (
       setInitError(null);
 
       try {
-        const stream = geminiClient.sendMessageStream(
+        const stream = unipathClient.sendMessageStream(
           queryToSend,
           abortSignal,
           prompt_id!,
@@ -780,7 +780,7 @@ export const useGeminiStream = (
       addItem,
       setPendingHistoryItem,
       setInitError,
-      geminiClient,
+      unipathClient,
       onAuthError,
       config,
       startNewPrompt,
@@ -856,13 +856,13 @@ export const useGeminiStream = (
       );
 
       if (allToolsCancelled) {
-        if (geminiClient) {
+        if (unipathClient) {
           // We need to manually add the function responses to the history
           // so the model knows the tools were cancelled.
           const combinedParts = geminiTools.flatMap(
             (toolCall) => toolCall.response.responseParts,
           );
-          geminiClient.addHistory({
+          unipathClient.addHistory({
             role: 'user',
             parts: combinedParts,
           });
@@ -905,7 +905,7 @@ export const useGeminiStream = (
       isResponding,
       submitQuery,
       markToolsAsSubmitted,
-      geminiClient,
+      unipathClient,
       performMemoryRefresh,
       modelSwitchedFromQuotaError,
     ],
@@ -992,7 +992,7 @@ export const useGeminiStream = (
             const toolName = toolCall.request.name;
             const fileName = path.basename(filePath);
             const toolCallWithSnapshotFileName = `${timestamp}-${fileName}-${toolName}.json`;
-            const clientHistory = await geminiClient?.getHistory();
+            const clientHistory = await unipathClient?.getHistory();
             const toolCallWithSnapshotFilePath = path.join(
               checkpointDir,
               toolCallWithSnapshotFileName,
@@ -1032,7 +1032,7 @@ export const useGeminiStream = (
     onDebugMessage,
     gitService,
     history,
-    geminiClient,
+    unipathClient,
     storage,
   ]);
 

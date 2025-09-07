@@ -5,7 +5,7 @@
  */
 import 'dotenv/config';
 import type { DnsResolutionOrder, LoadedSettings } from './config/settings.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@unipath/unipath-cli-core';
 export declare function validateDnsResolutionOrder(order: string | undefined): DnsResolutionOrder;
 export declare function setupUnhandledRejectionHandler(): void;
 export declare function startInteractiveUI(config: Config, settings: LoadedSettings, startupWarnings: string[], workspaceRoot?: string): Promise<void>;

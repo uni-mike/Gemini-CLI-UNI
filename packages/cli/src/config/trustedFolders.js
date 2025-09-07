@@ -6,7 +6,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { homedir } from 'node:os';
-import { getErrorMessage, isWithinRoot, getIdeTrust, } from '@google/gemini-cli-core';
+import { getErrorMessage, isWithinRoot, getIdeTrust, } from '@unipath/unipath-cli-core';
 import stripJsonComments from 'strip-json-comments';
 export const TRUSTED_FOLDERS_FILENAME = 'trustedFolders.json';
 export const SETTINGS_DIRECTORY_NAME = '.gemini';

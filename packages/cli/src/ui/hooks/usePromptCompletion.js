@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { DEFAULT_GEMINI_FLASH_LITE_MODEL, getResponseText, } from '@google/gemini-cli-core';
+import { DEFAULT_GEMINI_FLASH_LITE_MODEL, getResponseText, } from '@unipath/unipath-cli-core';
 import { isSlashCommand } from '../utils/commandUtils.js';
 export const PROMPT_COMPLETION_MIN_LENGTH = 5;
 export const PROMPT_COMPLETION_DEBOUNCE_MS = 250;
@@ -34,7 +34,7 @@ export function usePromptCompletion({ buffer, config, enabled, }) {
     }, []);
     const generatePromptSuggestions = useCallback(async () => {
         const trimmedText = buffer.text.trim();
-        const geminiClient = config?.getGeminiClient();
+        const unipathClient = config?.getUnipathClient();
         if (trimmedText === lastRequestedTextRef.current) {
             return;
         }
@@ -42,7 +42,7 @@ export function usePromptCompletion({ buffer, config, enabled, }) {
             abortControllerRef.current.abort();
         }
         if (trimmedText.length < PROMPT_COMPLETION_MIN_LENGTH ||
-            !geminiClient ||
+            !unipathClient ||
             isSlashCommand(trimmedText) ||
             trimmedText.includes('@') ||
             !isPromptCompletionEnabled) {
@@ -72,7 +72,7 @@ export function usePromptCompletion({ buffer, config, enabled, }) {
                     thinkingBudget: 0,
                 },
             };
-            const response = await geminiClient.generateContent(contents, generationConfig, signal, DEFAULT_GEMINI_FLASH_LITE_MODEL);
+            const response = await unipathClient.generateContent(contents, generationConfig, signal, DEFAULT_GEMINI_FLASH_LITE_MODEL);
             if (signal.aborted) {
                 return;
             }

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useState, useEffect, useCallback } from 'react';
-import { UserTierId, getCodeAssistServer, } from '@google/gemini-cli-core';
+import { UserTierId, getCodeAssistServer, } from '@unipath/unipath-cli-core';
 export const usePrivacySettings = (config) => {
     const [privacyState, setPrivacyState] = useState({
         isLoading: true,

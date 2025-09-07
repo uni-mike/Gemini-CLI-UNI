@@ -10,7 +10,7 @@ export const copyCommand = {
     description: 'Copy the last result or code snippet to clipboard',
     kind: CommandKind.BUILT_IN,
     action: async (context, _args) => {
-        const chat = await context.services.config?.getGeminiClient()?.getChat();
+        const chat = await context.services.config?.getUnipathClient()?.getChat();
         const history = chat?.getHistory();
         // Get the last message from the AI (model role)
         const lastAiMessage = history

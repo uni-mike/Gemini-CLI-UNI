@@ -5,7 +5,7 @@
 
 echo "🧹 Cleaning up old processes..."
 pkill -f "start-deepseek" 2>/dev/null || true
-pkill -f "gemini-cli" 2>/dev/null || true
+pkill -f "unipath-cli" 2>/dev/null || true
 pkill -f "node.*start.js" 2>/dev/null || true
 
 echo "🔨 Force rebuilding..."
@@ -13,15 +13,6 @@ npm run build
 
 echo "🚀 Starting fresh DeepSeek instance..."
 echo "🧠 Using DeepSeek R1 for advanced reasoning and analysis"
-echo "✅ Loaded configuration from .env.deepseek"
-echo "📋 Configuration:"
-echo "   • Endpoint: https://DeepSeek-R1-rkcob.eastus.models.ai.azure.com"
-echo "   • Model: DeepSeek-R1-rkcob"
-echo "   • API Version: 2024-05-01-preview"
-echo ""
-echo "💡 Note: DeepSeek R1 is known for strong reasoning and code capabilities"
-echo "✨ Launching Gemini CLI with DeepSeek R1 backend..."
-echo ""
 
 # Load DeepSeek configuration from .env.deepseek (same as start-deepseek.sh)
 if [ -f .env.deepseek ]; then
@@ -33,9 +24,20 @@ if [ -f .env.deepseek ]; then
     export AZURE_MODEL=$(grep "^MODEL=" .env.deepseek | cut -d'=' -f2)
     export AZURE_DEPLOYMENT=$AZURE_MODEL
     
+    # Display actual configuration
+    echo "✅ Loaded configuration from .env.deepseek"
+    echo "📋 Configuration:"
+    echo "   • Endpoint: ${AZURE_ENDPOINT_URL}"
+    echo "   • Model: ${AZURE_MODEL}"
+    echo "   • API Version: ${AZURE_OPENAI_API_VERSION}"
+    echo ""
+    echo "💡 Note: DeepSeek R1 is known for strong reasoning and code capabilities"
+    echo "✨ Launching UNIPATH CLI with DeepSeek R1 backend..."
+    echo ""
+    
     # Force Azure OpenAI auth type
-    export GEMINI_DEFAULT_AUTH_TYPE=azure-openai
-    export GEMINI_CLI_DISABLE_NEXT_SPEAKER_CHECK=true
+    export UNIPATH_DEFAULT_AUTH_TYPE=azure-openai
+    export UNIPATH_CLI_DISABLE_NEXT_SPEAKER_CHECK=true
 else
     echo "❌ .env.deepseek file not found!"
     exit 1

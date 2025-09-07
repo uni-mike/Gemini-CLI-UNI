@@ -40,7 +40,10 @@
       "WebFetch(domain:ai.azure.com)",
       "WebSearch",
       "Bash(pip3 install:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(npm run cli:*)",
+      "Bash(npm run:*)",
+      "Bash(timeout 2 npm run start)"
     ],
     "deny": [],
     "ask": []

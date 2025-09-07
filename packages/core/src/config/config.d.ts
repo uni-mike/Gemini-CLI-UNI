@@ -7,7 +7,7 @@ import type { ContentGeneratorConfig } from '../core/contentGenerator.js';
 import { AuthType } from '../core/contentGenerator.js';
 import { PromptRegistry } from '../prompts/prompt-registry.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
-import { GeminiClient } from '../core/client.js';
+import { UnipathClient } from '../core/client.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { GitService } from '../services/gitService.js';
 import type { TelemetryTarget } from '../telemetry/index.js';
@@ -47,7 +47,7 @@ export interface TelemetrySettings {
     logPrompts?: boolean;
     outfile?: string;
 }
-export interface GeminiCLIExtension {
+export interface UnipathCLIExtension {
     name: string;
     version: string;
     isActive: boolean;
@@ -127,7 +127,7 @@ export interface ConfigParameters {
     maxSessionTurns?: number;
     experimentalZedIntegration?: boolean;
     listExtensions?: boolean;
-    extensions?: GeminiCLIExtension[];
+    extensions?: UnipathCLIExtension[];
     blockedMcpServers?: Array<{
         name: string;
         extensionName: string;
@@ -176,7 +176,7 @@ export declare class Config {
     private readonly accessibility;
     private readonly telemetrySettings;
     private readonly usageStatisticsEnabled;
-    private geminiClient;
+    private unipathClient;
     private readonly fileFiltering;
     private fileDiscoveryService;
     private gitService;
@@ -263,7 +263,7 @@ export declare class Config {
     getTelemetryOtlpProtocol(): 'grpc' | 'http';
     getTelemetryTarget(): TelemetryTarget;
     getTelemetryOutfile(): string | undefined;
-    getGeminiClient(): GeminiClient;
+    getUnipathClient(): UnipathClient;
     getEnableRecursiveFileSearch(): boolean;
     getFileFilteringDisableFuzzySearch(): boolean;
     getFileFilteringRespectGitIgnore(): boolean;
@@ -285,7 +285,7 @@ export declare class Config {
     getExperimentalZedIntegration(): boolean;
     getListExtensions(): boolean;
     getExtensionManagement(): boolean;
-    getExtensions(): GeminiCLIExtension[];
+    getExtensions(): UnipathCLIExtension[];
     getBlockedMcpServers(): Array<{
         name: string;
         extensionName: string;

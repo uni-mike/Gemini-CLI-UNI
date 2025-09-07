@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { quote, parse } from 'shell-quote';
 import { USER_SETTINGS_DIR, SETTINGS_DIRECTORY_NAME, } from '../config/settings.js';
 import { promisify } from 'node:util';
-import { FatalSandboxError } from '@google/gemini-cli-core';
+import { FatalSandboxError } from '@unipath/unipath-cli-core';
 import { ConsolePatcher } from '../ui/utils/ConsolePatcher.js';
 const execAsync = promisify(exec);
 function getContainerPath(hostPath) {
@@ -212,8 +212,8 @@ export async function start_sandbox(config, nodeArgs = [], cliConfig, cliArgs = 
                 `NODE_OPTIONS="${nodeOptions}"`,
                 ...finalArgv.map((arg) => quote([arg])),
             ].join(' '));
-            // start and set up proxy if GEMINI_SANDBOX_PROXY_COMMAND is set
-            const proxyCommand = process.env['GEMINI_SANDBOX_PROXY_COMMAND'];
+            // start and set up proxy if UNIPATH_SANDBOX_PROXY_COMMAND is set
+            const proxyCommand = process.env['UNIPATH_SANDBOX_PROXY_COMMAND'];
             let proxyProcess = undefined;
             let sandboxProcess = undefined;
             const sandboxEnv = { ...process.env };
@@ -300,7 +300,7 @@ export async function start_sandbox(config, nodeArgs = [], cliConfig, cliArgs = 
                     stdio: 'inherit',
                     env: {
                         ...process.env,
-                        GEMINI_SANDBOX: config.command, // in case sandbox is enabled via flags (see config.ts under cli package)
+                        UNIPATH_SANDBOX: config.command, // in case sandbox is enabled via flags (see config.ts under cli package)
                     },
                 });
             }
@@ -383,8 +383,8 @@ export async function start_sandbox(config, nodeArgs = [], cliConfig, cliArgs = 
         }
         // copy proxy environment variables, replacing localhost with SANDBOX_PROXY_NAME
         // copy as both upper-case and lower-case as is required by some utilities
-        // GEMINI_SANDBOX_PROXY_COMMAND implies HTTPS_PROXY unless HTTP_PROXY is set
-        const proxyCommand = process.env['GEMINI_SANDBOX_PROXY_COMMAND'];
+        // UNIPATH_SANDBOX_PROXY_COMMAND implies HTTPS_PROXY unless HTTP_PROXY is set
+        const proxyCommand = process.env['UNIPATH_SANDBOX_PROXY_COMMAND'];
         if (proxyCommand) {
             let proxy = process.env['HTTPS_PROXY'] ||
                 process.env['https_proxy'] ||
@@ -462,8 +462,8 @@ export async function start_sandbox(config, nodeArgs = [], cliConfig, cliArgs = 
         }
         // Pass through IDE mode environment variables
         for (const envVar of [
-            'GEMINI_CLI_IDE_SERVER_PORT',
-            'GEMINI_CLI_IDE_WORKSPACE_PATH',
+            'UNIPATH_CLI_IDE_SERVER_PORT',
+            'UNIPATH_CLI_IDE_WORKSPACE_PATH',
             'TERM_PROGRAM',
         ]) {
             if (process.env[envVar]) {

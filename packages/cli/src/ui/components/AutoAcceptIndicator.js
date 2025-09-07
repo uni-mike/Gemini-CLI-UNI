@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import { ApprovalMode } from '@google/gemini-cli-core';
+import { ApprovalMode } from '@unipath/unipath-cli-core';
 export const AutoAcceptIndicator = ({ approvalMode, }) => {
     let textColor = '';
     let textContent = '';

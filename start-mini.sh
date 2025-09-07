@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Start Gemini CLI with Azure OpenAI GPT-4o-mini
+# Start UNIPATH CLI with Azure OpenAI GPT-4o-mini
 # This provides a fast, cost-effective alternative using GPT-4o-mini
 
-echo "🚀 Starting Gemini CLI with Azure OpenAI GPT-4o-mini..."
+echo "🚀 Starting UNIPATH CLI with Azure OpenAI GPT-4o-mini..."
 echo "💰 Using cost-effective GPT-4o-mini model for faster responses"
 
 # Load GPT-4o-mini configuration from .env.mini
@@ -23,11 +23,11 @@ else
 fi
 
 # Force Azure OpenAI auth type
-export GEMINI_DEFAULT_AUTH_TYPE=azure-openai
+export UNIPATH_DEFAULT_AUTH_TYPE=azure-openai
 
-# Disable problematic Gemini features that don't work with OpenAI
-export GEMINI_CLI_DISABLE_NEXT_SPEAKER_CHECK=true
-export GEMINI_CLI_DISABLE_JSON_PARSING=true
+# Disable problematic UNIPATH features that don't work with OpenAI
+export UNIPATH_CLI_DISABLE_NEXT_SPEAKER_CHECK=true
+export UNIPATH_CLI_DISABLE_JSON_PARSING=true
 
 # Display current configuration
 echo "📋 Configuration:"
@@ -36,6 +36,6 @@ echo "   • Model: ${AZURE_MODEL}"
 echo "   • Deployment: ${AZURE_DEPLOYMENT}"
 echo ""
 
-# Start the Gemini CLI with all arguments passed through
-echo "✨ Launching Gemini CLI with GPT-4o-mini backend..."
+# Start the UNIPATH CLI with all arguments passed through
+echo "✨ Launching UNIPATH CLI with GPT-4o-mini backend..."
 npm run start "$@"

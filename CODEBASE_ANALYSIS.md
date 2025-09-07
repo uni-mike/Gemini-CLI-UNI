@@ -1,13 +1,13 @@
-# Gemini CLI UNI - Codebase Analysis
+# UNIPATH CLI - Codebase Analysis
 
 ## Project Overview
-This is a sophisticated CLI tool that extends Google's Gemini CLI to support multiple AI models through a unified interface. It's a fork/extension that adds Azure OpenAI and DeepSeek integration while maintaining all original Gemini CLI features.
+This is a sophisticated CLI tool that extends Google's Gemini CLI to support multiple AI models through a unified interface. UNIPATH CLI adds Azure OpenAI and DeepSeek integration while maintaining all original Gemini CLI features.
 
 ## Architecture
 
 ### Core Structure
 ```
-gemini-cli/
+unipath-cli/
 ├── packages/           # Monorepo structure
 │   ├── cli/           # User interface and commands
 │   └── core/          # Core logic and AI integrations
@@ -33,7 +33,7 @@ Each model has its own startup script that sets environment variables:
 - `start-deepseek.sh` - DeepSeek R1 (reasoning)
 - `start-azure.sh` - GPT-5 (most capable)
 
-The `GEMINI_DEFAULT_AUTH_TYPE=azure-openai` environment variable triggers the Azure integration.
+The `UNIPATH_DEFAULT_AUTH_TYPE=azure-openai` environment variable triggers the Azure integration.
 
 #### 3. **Core Integration Files**
 
@@ -89,9 +89,9 @@ Tools are bridged from Gemini format to OpenAI function calling format in `azure
 ```
 User runs ./start-deepseek.sh
 → Sets environment variables (API key, endpoint, model)
-→ Sets GEMINI_DEFAULT_AUTH_TYPE=azure-openai
+→ Sets UNIPATH_DEFAULT_AUTH_TYPE=azure-openai
 → Runs npm start
-→ Gemini CLI detects Azure auth type
+→ UNIPATH CLI detects Azure auth type
 → Initializes AzureOpenAIClient instead of Gemini
 → Full CLI interface with Azure backend
 ```
@@ -123,8 +123,8 @@ AI requests tool use
 - `AZURE_DEPLOYMENT` - Deployment name
 - `AZURE_MODEL` - Model identifier
 - `AZURE_OPENAI_API_VERSION` - API version
-- `GEMINI_DEFAULT_AUTH_TYPE` - Auth type selector
-- `GEMINI_CLI_DISABLE_NEXT_SPEAKER_CHECK` - Bypass Gemini-specific checks
+- `UNIPATH_DEFAULT_AUTH_TYPE` - Auth type selector
+- `UNIPATH_CLI_DISABLE_NEXT_SPEAKER_CHECK` - Bypass Gemini-specific checks
 
 ### Configuration Files
 - `.env.mini` - GPT-4o-mini config

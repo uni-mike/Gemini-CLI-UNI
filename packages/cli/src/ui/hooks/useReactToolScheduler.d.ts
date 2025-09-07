@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { Config, ToolCallRequestInfo, ExecutingToolCall, ScheduledToolCall, ValidatingToolCall, WaitingToolCall, CompletedToolCall, CancelledToolCall, EditorType } from '@google/gemini-cli-core';
+import type { Config, ToolCallRequestInfo, ExecutingToolCall, ScheduledToolCall, ValidatingToolCall, WaitingToolCall, CompletedToolCall, CancelledToolCall, EditorType } from '@unipath/unipath-cli-core';
 import type { HistoryItemToolGroup, HistoryItemWithoutId } from '../types.js';
 export type ScheduleFn = (request: ToolCallRequestInfo | ToolCallRequestInfo[], signal: AbortSignal) => void;
 export type MarkToolsAsSubmittedFn = (callIds: string[]) => void;

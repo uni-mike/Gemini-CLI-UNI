@@ -18,7 +18,7 @@ export async function createCodeAssistContentGenerator(httpOptions, authType, co
     throw new Error(`Unsupported authType: ${authType}`);
 }
 export function getCodeAssistServer(config) {
-    let server = config.getGeminiClient().getContentGenerator();
+    let server = config.getUnipathClient().getContentGenerator();
     // Unwrap LoggingContentGenerator if present
     if (server instanceof LoggingContentGenerator) {
         server = server.getWrapped();

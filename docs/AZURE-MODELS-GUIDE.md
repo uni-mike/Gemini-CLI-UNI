@@ -15,8 +15,8 @@ export AZURE_ENDPOINT_URL=https://mike-mazsz1c6-eastus2.openai.azure.com/
 export AZURE_DEPLOYMENT=gpt-5
 export AZURE_MODEL=gpt-5
 export AZURE_OPENAI_API_VERSION=2024-12-01-preview
-export GEMINI_DEFAULT_AUTH_TYPE=azure-openai
-export GEMINI_CLI_DISABLE_NEXT_SPEAKER_CHECK=true
+export UNIPATH_DEFAULT_AUTH_TYPE=azure-openai
+export UNIPATH_CLI_DISABLE_NEXT_SPEAKER_CHECK=true
 
 npm run start
 ```
@@ -65,7 +65,7 @@ AZURE_OPENAI_API_VERSION=2024-12-01-preview
 ### Tool/Function Calling
 **Status:** ❌ Not currently working with Azure OpenAI integration
 
-The Gemini CLI tools (file operations, shell commands, web search) require function calling support. Our current Azure integration bypasses the Gemini-specific implementations, which means:
+The UNIPATH CLI tools (file operations, shell commands, web search) require function calling support. Our current Azure integration bypasses some Google Gemini-specific implementations, which means:
 
 - ✅ **Working:** Basic chat and Q&A
 - ✅ **Working:** Code generation and explanations
@@ -90,7 +90,7 @@ Use either model with the startup scripts:
 ```
 
 ### For Tool-Heavy Work:
-Use the original Gemini CLI without Azure:
+Use UNIPATH CLI with native Google Gemini backend:
 ```bash
 npm run start  # Uses Google Gemini with full tool support
 ```

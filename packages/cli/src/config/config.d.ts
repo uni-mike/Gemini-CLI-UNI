@@ -3,8 +3,8 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { FileFilteringOptions } from '@google/gemini-cli-core';
-import { Config, FileDiscoveryService } from '@google/gemini-cli-core';
+import type { FileFilteringOptions } from '@unipath/unipath-cli-core';
+import { Config, FileDiscoveryService } from '@unipath/unipath-cli-core';
 import type { Settings } from './settings.js';
 import type { Extension } from './extension.js';
 export interface CliArgs {

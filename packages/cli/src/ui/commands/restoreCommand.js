@@ -69,7 +69,7 @@ async function restoreAction(context, args) {
             loadHistory(toolCallData.history);
         }
         if (toolCallData.clientHistory) {
-            await config?.getGeminiClient()?.setHistory(toolCallData.clientHistory);
+            await config?.getUnipathClient()?.setHistory(toolCallData.clientHistory);
         }
         if (toolCallData.commitHash) {
             await gitService?.restoreProjectFromSnapshot(toolCallData.commitHash);

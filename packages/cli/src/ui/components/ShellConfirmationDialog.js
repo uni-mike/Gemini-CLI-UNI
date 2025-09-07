@@ -4,7 +4,7 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import { ToolConfirmationOutcome } from '@google/gemini-cli-core';
+import { ToolConfirmationOutcome } from '@unipath/unipath-cli-core';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
 import { RenderInline } from '../utils/InlineMarkdownRenderer.js';

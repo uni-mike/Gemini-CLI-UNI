@@ -6,7 +6,7 @@
 
 import type { Content } from '@google/genai';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
-import type { GeminiClient } from '../core/client.js';
+import type { UnipathClient } from '../core/client.js';
 import type { GeminiChat } from '../core/geminiChat.js';
 import { isFunctionResponse } from './messageInspectors.js';
 
@@ -41,12 +41,14 @@ export interface NextSpeakerResponse {
 
 export async function checkNextSpeaker(
   chat: GeminiChat,
-  geminiClient: GeminiClient,
+  unipathClient: UnipathClient,
   abortSignal: AbortSignal,
 ): Promise<NextSpeakerResponse | null> {
   // ALWAYS skip next speaker check for Azure OpenAI to avoid JSON parsing issues
   // Check multiple conditions to ensure this bypass works
-  const isAzure = process.env['GEMINI_CLI_DISABLE_NEXT_SPEAKER_CHECK'] === 'true' || 
+  const isAzure = process.env['UNIPATH_CLI_DISABLE_NEXT_SPEAKER_CHECK'] === 'true' ||
+                  process.env['GEMINI_CLI_DISABLE_NEXT_SPEAKER_CHECK'] === 'true' || 
+                  process.env['UNIPATH_DEFAULT_AUTH_TYPE'] === 'azure-openai' ||
                   process.env['GEMINI_DEFAULT_AUTH_TYPE'] === 'azure-openai' ||
                   process.env['AZURE_API_KEY'] !== undefined;
   
@@ -118,7 +120,7 @@ export async function checkNextSpeaker(
   ];
 
   try {
-    const parsedResponse = (await geminiClient.generateJson(
+    const parsedResponse = (await unipathClient.generateJson(
       contents,
       RESPONSE_SCHEMA,
       abortSignal,

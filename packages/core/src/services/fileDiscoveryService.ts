@@ -9,11 +9,13 @@ import { GitIgnoreParser } from '../utils/gitIgnoreParser.js';
 import { isGitRepository } from '../utils/gitUtils.js';
 import * as path from 'node:path';
 
-const GEMINI_IGNORE_FILE_NAME = '.geminiignore';
+const UNIPATH_IGNORE_FILE_NAME = '.unipathignore';
+const GEMINI_IGNORE_FILE_NAME = '.geminiignore'; // Backward compatibility
 
 export interface FilterFilesOptions {
   respectGitIgnore?: boolean;
-  respectGeminiIgnore?: boolean;
+  respectUnipathIgnore?: boolean;
+  respectGeminiIgnore?: boolean; // Backward compatibility
 }
 
 export class FileDiscoveryService {
@@ -34,9 +36,15 @@ export class FileDiscoveryService {
     }
     const gParser = new GitIgnoreParser(this.projectRoot);
     try {
-      gParser.loadPatterns(GEMINI_IGNORE_FILE_NAME);
+      // Try loading .unipathignore first
+      gParser.loadPatterns(UNIPATH_IGNORE_FILE_NAME);
     } catch (_error) {
-      // ignore file not found
+      // If .unipathignore not found, try .geminiignore for backward compatibility
+      try {
+        gParser.loadPatterns(GEMINI_IGNORE_FILE_NAME);
+      } catch (_error2) {
+        // Neither ignore file found
+      }
     }
     this.geminiIgnoreFilter = gParser;
   }
@@ -48,15 +56,18 @@ export class FileDiscoveryService {
     filePaths: string[],
     options: FilterFilesOptions = {
       respectGitIgnore: true,
-      respectGeminiIgnore: true,
+      respectUnipathIgnore: true,
+      respectGeminiIgnore: true, // Backward compatibility
     },
   ): string[] {
     return filePaths.filter((filePath) => {
       if (options.respectGitIgnore && this.shouldGitIgnoreFile(filePath)) {
         return false;
       }
+      // Check both for backward compatibility
+      const shouldCheckIgnore = options.respectUnipathIgnore || options.respectGeminiIgnore;
       if (
-        options.respectGeminiIgnore &&
+        shouldCheckIgnore &&
         this.shouldGeminiIgnoreFile(filePath)
       ) {
         return false;
@@ -92,19 +103,21 @@ export class FileDiscoveryService {
     filePath: string,
     options: FilterFilesOptions = {},
   ): boolean {
-    const { respectGitIgnore = true, respectGeminiIgnore = true } = options;
+    const { respectGitIgnore = true, respectUnipathIgnore = true, respectGeminiIgnore = true } = options;
 
     if (respectGitIgnore && this.shouldGitIgnoreFile(filePath)) {
       return true;
     }
-    if (respectGeminiIgnore && this.shouldGeminiIgnoreFile(filePath)) {
+    // Check both for backward compatibility
+    const shouldCheckIgnore = respectUnipathIgnore || respectGeminiIgnore;
+    if (shouldCheckIgnore && this.shouldGeminiIgnoreFile(filePath)) {
       return true;
     }
     return false;
   }
 
   /**
-   * Returns loaded patterns from .geminiignore
+   * Returns loaded patterns from .unipathignore (or .geminiignore for backward compatibility)
    */
   getGeminiIgnorePatterns(): string[] {
     return this.geminiIgnoreFilter?.getPatterns() ?? [];

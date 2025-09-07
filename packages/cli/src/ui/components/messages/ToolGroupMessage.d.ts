@@ -5,7 +5,7 @@
  */
 import type React from 'react';
 import type { IndividualToolCallDisplay } from '../../types.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@unipath/unipath-cli-core';
 interface ToolGroupMessageProps {
     groupId: number;
     toolCalls: IndividualToolCallDisplay[];

@@ -216,7 +216,7 @@ function createGenerateContentResponse(text) {
 }
 export async function createContentGenerator(config, gcConfig, sessionId) {
     const version = process.env['CLI_VERSION'] || process.version;
-    const userAgent = `GeminiCLI/${version} (${process.platform}; ${process.arch})`;
+    const userAgent = `UnipathCLI/${version} (${process.platform}; ${process.arch})`;
     const baseHeaders = {
         'User-Agent': userAgent,
     };

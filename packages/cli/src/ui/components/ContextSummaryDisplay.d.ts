@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type React from 'react';
-import { type IdeContext, type MCPServerConfig } from '@google/gemini-cli-core';
+import { type IdeContext, type MCPServerConfig } from '@unipath/unipath-cli-core';
 interface ContextSummaryDisplayProps {
     geminiMdFileCount: number;
     contextFileNames: string[];

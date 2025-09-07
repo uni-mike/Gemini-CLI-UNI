@@ -29,24 +29,24 @@ export const initCommand: SlashCommand = {
       };
     }
     const targetDir = context.services.config.getTargetDir();
-    const geminiMdPath = path.join(targetDir, 'GEMINI.md');
+    const unipathMdPath = path.join(targetDir, 'UNIPATH.md');
 
-    if (fs.existsSync(geminiMdPath)) {
+    if (fs.existsSync(unipathMdPath)) {
       return {
         type: 'message',
         messageType: 'info',
         content:
-          'A GEMINI.md file already exists in this directory. No changes were made.',
+          'A UNIPATH.md file already exists in this directory. No changes were made.',
       };
     }
 
-    // Create an empty GEMINI.md file
-    fs.writeFileSync(geminiMdPath, '', 'utf8');
+    // Create an empty UNIPATH.md file
+    fs.writeFileSync(unipathMdPath, '', 'utf8');
 
     context.ui.addItem(
       {
         type: 'info',
-        text: 'Empty GEMINI.md created. Now analyzing the project to populate it.',
+        text: 'Empty UNIPATH.md created. Now analyzing the project to populate it.',
       },
       Date.now(),
     );
@@ -54,7 +54,7 @@ export const initCommand: SlashCommand = {
     return {
       type: 'submit_prompt',
       content: `
-You are an AI agent that brings the power of Gemini directly into the terminal. Your task is to analyze the current directory and generate a comprehensive GEMINI.md file to be used as instructional context for future interactions.
+You are an AI agent that brings the power of UNIPATH directly into the terminal. Your task is to analyze the current directory and generate a comprehensive UNIPATH.md file to be used as instructional context for future interactions.
 
 **Analysis Process:**
 

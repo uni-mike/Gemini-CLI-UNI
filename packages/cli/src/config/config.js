@@ -11,7 +11,7 @@ import { hideBin } from 'yargs/helpers';
 import process from 'node:process';
 import { mcpCommand } from '../commands/mcp.js';
 import { extensionsCommand } from '../commands/extensions.js';
-import { Config, loadServerHierarchicalMemory, setGeminiMdFilename as setServerGeminiMdFilename, getCurrentGeminiMdFilename, ApprovalMode, DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_EMBEDDING_MODEL, DEFAULT_MEMORY_FILE_FILTERING_OPTIONS, FileDiscoveryService, ShellTool, EditTool, WriteFileTool, } from '@google/gemini-cli-core';
+import { Config, loadServerHierarchicalMemory, setGeminiMdFilename as setServerGeminiMdFilename, getCurrentGeminiMdFilename, ApprovalMode, DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_EMBEDDING_MODEL, DEFAULT_MEMORY_FILE_FILTERING_OPTIONS, FileDiscoveryService, ShellTool, EditTool, WriteFileTool, } from '@unipath/unipath-cli-core';
 import { annotateActiveExtensions } from './extension.js';
 import { getCliVersion } from '../utils/version.js';
 import { loadSandboxConfig } from './sandboxConfig.js';

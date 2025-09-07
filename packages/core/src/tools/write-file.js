@@ -55,12 +55,12 @@ export async function getCorrectedFileContent(config, filePath, proposedContent,
             old_string: originalContent, // Treat entire current content as old_string
             new_string: proposedContent,
             file_path: filePath,
-        }, config.getGeminiClient(), abortSignal);
+        }, config.getUnipathClient(), abortSignal);
         correctedContent = correctedParams.new_string;
     }
     else {
         // This implies new file (ENOENT)
-        correctedContent = await ensureCorrectFileContent(proposedContent, config.getGeminiClient(), abortSignal);
+        correctedContent = await ensureCorrectFileContent(proposedContent, config.getUnipathClient(), abortSignal);
     }
     return { originalContent, correctedContent, fileExists };
 }

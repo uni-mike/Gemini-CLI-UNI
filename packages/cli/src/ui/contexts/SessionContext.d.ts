@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type React from 'react';
-import type { SessionMetrics, ModelMetrics } from '@google/gemini-cli-core';
+import type { SessionMetrics, ModelMetrics } from '@unipath/unipath-cli-core';
 export type { SessionMetrics, ModelMetrics };
 export interface SessionStatsState {
     sessionId: string;

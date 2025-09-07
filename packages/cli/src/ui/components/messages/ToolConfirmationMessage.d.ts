@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type React from 'react';
-import type { ToolCallConfirmationDetails, Config } from '@google/gemini-cli-core';
+import type { ToolCallConfirmationDetails, Config } from '@unipath/unipath-cli-core';
 export interface ToolConfirmationMessageProps {
     confirmationDetails: ToolCallConfirmationDetails;
     config: Config;

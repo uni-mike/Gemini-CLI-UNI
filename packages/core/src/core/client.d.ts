@@ -19,7 +19,7 @@ export declare function isThinkingDefault(model: string): boolean;
  * Exported for testing purposes.
  */
 export declare function findIndexAfterFraction(history: Content[], fraction: number): number;
-export declare class GeminiClient {
+export declare class UnipathClient {
     private readonly config;
     private chat?;
     private contentGenerator?;

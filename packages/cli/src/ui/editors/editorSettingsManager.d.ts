@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import { type EditorType } from '@google/gemini-cli-core';
+import { type EditorType } from '@unipath/unipath-cli-core';
 export interface EditorDisplay {
     name: string;
     type: EditorType | 'not_set';

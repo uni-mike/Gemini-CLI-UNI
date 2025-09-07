@@ -69,7 +69,7 @@ export class McpClient {
         this.workspaceContext = workspaceContext;
         this.debugMode = debugMode;
         this.client = new Client({
-            name: `gemini-cli-mcp-client-${this.serverName}`,
+            name: `unipath-cli-mcp-client-${this.serverName}`,
             version: '0.0.1',
         });
     }
@@ -588,7 +588,7 @@ export function hasNetworkTransport(config) {
  */
 export async function connectToMcpServer(mcpServerName, mcpServerConfig, debugMode, workspaceContext) {
     const mcpClient = new Client({
-        name: 'gemini-cli-mcp-client',
+        name: 'unipath-cli-mcp-client',
         version: '0.0.1',
     });
     mcpClient.registerCapabilities({

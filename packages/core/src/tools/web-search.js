@@ -19,9 +19,9 @@ class WebSearchToolInvocation extends BaseToolInvocation {
         return `Searching the web for: "${this.params.query}"`;
     }
     async execute(signal) {
-        const geminiClient = this.config.getGeminiClient();
+        const unipathClient = this.config.getUnipathClient();
         try {
-            const response = await geminiClient.generateContent([{ role: 'user', parts: [{ text: this.params.query }] }], { tools: [{ googleSearch: {} }] }, signal, DEFAULT_GEMINI_FLASH_MODEL);
+            const response = await unipathClient.generateContent([{ role: 'user', parts: [{ text: this.params.query }] }], { tools: [{ googleSearch: {} }] }, signal, DEFAULT_GEMINI_FLASH_MODEL);
             const responseText = getResponseText(response);
             const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
             const sources = groundingMetadata?.groundingChunks;

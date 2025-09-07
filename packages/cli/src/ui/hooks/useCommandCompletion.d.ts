@@ -7,7 +7,7 @@ import type { Suggestion } from '../components/SuggestionsDisplay.js';
 import type { CommandContext, SlashCommand } from '../commands/types.js';
 import type { TextBuffer } from '../components/shared/text-buffer.js';
 import type { PromptCompletion } from './usePromptCompletion.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@unipath/unipath-cli-core';
 export declare enum CompletionMode {
     IDLE = "IDLE",
     AT = "AT",

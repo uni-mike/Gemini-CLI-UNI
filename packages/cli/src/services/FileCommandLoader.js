@@ -8,7 +8,7 @@ import path from 'node:path';
 import toml from '@iarna/toml';
 import { glob } from 'glob';
 import { z } from 'zod';
-import { Storage } from '@google/gemini-cli-core';
+import { Storage } from '@unipath/unipath-cli-core';
 import { CommandKind } from '../ui/commands/types.js';
 import { DefaultArgumentProcessor } from './prompt-processors/argumentProcessor.js';
 import { SHORTHAND_ARGS_PLACEHOLDER, SHELL_INJECTION_TRIGGER, AT_FILE_INJECTION_TRIGGER, } from './prompt-processors/types.js';

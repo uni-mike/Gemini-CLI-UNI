@@ -5,7 +5,7 @@
  */
 
 import { type Content, Type } from '@google/genai';
-import { type GeminiClient } from '../core/client.js';
+import { type UnipathClient } from '../core/client.js';
 import { LruCache } from './LruCache.js';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
 
@@ -93,7 +93,7 @@ const editCorrectionWithInstructionCache = new LruCache<
  * @param new_string The original replacement string.
  * @param error The error that occurred during the initial edit.
  * @param current_content The current content of the file.
- * @param geminiClient The Gemini client to use for the LLM call.
+ * @param unipathClient The Gemini client to use for the LLM call.
  * @param abortSignal An abort signal to cancel the operation.
  * @returns A new search and replace pair.
  */
@@ -103,7 +103,7 @@ export async function FixLLMEditWithInstruction(
   new_string: string,
   error: string,
   current_content: string,
-  geminiClient: GeminiClient,
+  unipathClient: UnipathClient,
   abortSignal: AbortSignal,
 ): Promise<SearchReplaceEdit> {
   const cacheKey = `${instruction}---${old_string}---${new_string}--${current_content}--${error}`;
@@ -129,7 +129,7 @@ ${userPrompt}`,
     },
   ];
 
-  const result = (await geminiClient.generateJson(
+  const result = (await unipathClient.generateJson(
     contents,
     SearchReplaceEditSchema,
     abortSignal,

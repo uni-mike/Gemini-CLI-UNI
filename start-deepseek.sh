@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Start Gemini CLI with DeepSeek R1 via Azure AI
+# Start UNIPATH CLI with DeepSeek R1 via Azure AI
 # DeepSeek R1 is a highly capable open model with strong reasoning capabilities
 
-echo "🚀 Starting Gemini CLI with DeepSeek R1..."
+echo "🚀 Starting UNIPATH CLI with DeepSeek R1..."
 echo "🧠 Using DeepSeek R1 for advanced reasoning and analysis"
 
 # Load DeepSeek configuration from .env.deepseek
@@ -26,11 +26,11 @@ else
 fi
 
 # Force Azure OpenAI auth type
-export GEMINI_DEFAULT_AUTH_TYPE=azure-openai
+export UNIPATH_DEFAULT_AUTH_TYPE=azure-openai
 
-# Disable problematic Gemini features that don't work with OpenAI-compatible endpoints
-export GEMINI_CLI_DISABLE_NEXT_SPEAKER_CHECK=true
-export GEMINI_CLI_DISABLE_JSON_PARSING=true
+# Disable problematic UNIPATH features that don't work with OpenAI-compatible endpoints
+export UNIPATH_CLI_DISABLE_NEXT_SPEAKER_CHECK=true
+export UNIPATH_CLI_DISABLE_JSON_PARSING=true
 
 # Display current configuration
 echo "📋 Configuration:"
@@ -41,6 +41,6 @@ echo ""
 echo "💡 Note: DeepSeek R1 is known for strong reasoning and code capabilities"
 echo ""
 
-# Start the Gemini CLI with all arguments passed through
-echo "✨ Launching Gemini CLI with DeepSeek R1 backend..."
+# Start the UNIPATH CLI with all arguments passed through
+echo "✨ Launching UNIPATH CLI with DeepSeek R1 backend..."
 npm run start "$@"

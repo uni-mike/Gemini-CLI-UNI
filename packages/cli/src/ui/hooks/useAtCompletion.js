@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useEffect, useReducer, useRef } from 'react';
-import { FileSearchFactory, escapePath } from '@google/gemini-cli-core';
+import { FileSearchFactory, escapePath } from '@unipath/unipath-cli-core';
 import { MAX_SUGGESTIONS_TO_SHOW } from '../components/SuggestionsDisplay.js';
 export var AtCompletionStatus;
 (function (AtCompletionStatus) {

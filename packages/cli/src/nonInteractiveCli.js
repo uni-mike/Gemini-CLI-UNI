@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import { executeToolCall, shutdownTelemetry, isTelemetrySdkInitialized, GeminiEventType, parseAndFormatApiError, FatalInputError, FatalTurnLimitedError, } from '@google/gemini-cli-core';
+import { executeToolCall, shutdownTelemetry, isTelemetrySdkInitialized, GeminiEventType, parseAndFormatApiError, FatalInputError, FatalTurnLimitedError, } from '@unipath/unipath-cli-core';
 import { ConsolePatcher } from './ui/utils/ConsolePatcher.js';
 import { handleAtCommand } from './ui/hooks/atCommandProcessor.js';
 export async function runNonInteractive(config, input, prompt_id) {
@@ -20,7 +20,7 @@ export async function runNonInteractive(config, input, prompt_id) {
                 process.exit(0);
             }
         });
-        const geminiClient = config.getGeminiClient();
+        const unipathClient = config.getUnipathClient();
         const abortController = new AbortController();
         const { processedQuery, shouldProceed } = await handleAtCommand({
             query: input,
@@ -46,7 +46,7 @@ export async function runNonInteractive(config, input, prompt_id) {
                 throw new FatalTurnLimitedError('Reached max session turns for this session. Increase the number of turns by specifying maxSessionTurns in settings.json.');
             }
             const toolCallRequests = [];
-            const responseStream = geminiClient.sendMessageStream(currentMessages[0]?.parts || [], abortController.signal, prompt_id);
+            const responseStream = unipathClient.sendMessageStream(currentMessages[0]?.parts || [], abortController.signal, prompt_id);
             for await (const event of responseStream) {
                 if (abortController.signal.aborted) {
                     console.error('Operation cancelled.');

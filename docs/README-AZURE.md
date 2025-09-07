@@ -1,6 +1,6 @@
-# Azure OpenAI GPT-5 CLI
+# Azure OpenAI Integration in UNIPATH CLI
 
-A clean, fast CLI interface for Azure OpenAI GPT-5 without Gemini bloat.
+A clean, fast integration of Azure OpenAI models (GPT-5, GPT-4o, GPT-4o-mini) into the UNIPATH universal AI interface.
 
 ## 🚀 Features
 
@@ -35,7 +35,7 @@ The CLI automatically uses these Azure OpenAI settings:
 
 ## 📊 Performance Comparison
 
-| Feature | Original Gemini CLI | Clean Azure CLI |
+| Feature | Original Google Gemini | Azure Models in UNIPATH |
 |---------|-------------------|----------------|
 | Response Time | 40+ seconds | ~10 seconds |
 | JSON Parsing | ❌ Errors | ✅ Clean |
@@ -64,4 +64,4 @@ The CLI automatically uses these Azure OpenAI settings:
 ✅ **Clean OpenAI-native responses**  
 ✅ **Interactive & non-interactive modes**  
 
-**Result**: Successfully replaced Gemini with Azure OpenAI GPT-5!
+**Result**: Successfully integrated Azure OpenAI GPT-5 into UNIPATH CLI!

@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import { AuthType, logToolCall, convertToFunctionResponse, ToolConfirmationOutcome, clearCachedCredentialFile, isNodeError, getErrorMessage, isWithinRoot, getErrorStatus, MCPServerConfig, DiscoveredMCPTool, StreamEventType, } from '@google/gemini-cli-core';
+import { AuthType, logToolCall, convertToFunctionResponse, ToolConfirmationOutcome, clearCachedCredentialFile, isNodeError, getErrorMessage, isWithinRoot, getErrorStatus, MCPServerConfig, DiscoveredMCPTool, StreamEventType, } from '@unipath/unipath-cli-core';
 import * as acp from './acp.js';
 import { AcpFileSystemService } from './fileSystemService.js';
 import { Readable, Writable } from 'node:stream';
@@ -96,8 +96,8 @@ class GeminiAgent {
             const acpFileSystemService = new AcpFileSystemService(this.client, sessionId, this.clientCapabilities.fs, config.getFileSystemService());
             config.setFileSystemService(acpFileSystemService);
         }
-        const geminiClient = config.getGeminiClient();
-        const chat = await geminiClient.startChat();
+        const unipathClient = config.getUnipathClient();
+        const chat = await unipathClient.startChat();
         const session = new Session(sessionId, chat, config, this.client);
         this.sessions.set(sessionId, session);
         return {

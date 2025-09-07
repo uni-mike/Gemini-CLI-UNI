@@ -5,7 +5,7 @@
  */
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { Storage } from '@google/gemini-cli-core';
+import { Storage } from '@unipath/unipath-cli-core';
 const cleanupFunctions = [];
 export function registerCleanup(fn) {
     cleanupFunctions.push(fn);

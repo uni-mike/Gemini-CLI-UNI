@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import { ApprovalMode, checkCommandPermissions, escapeShellArg, getShellConfiguration, ShellExecutionService, flatMapTextParts, } from '@google/gemini-cli-core';
+import { ApprovalMode, checkCommandPermissions, escapeShellArg, getShellConfiguration, ShellExecutionService, flatMapTextParts, } from '@unipath/unipath-cli-core';
 import { SHELL_INJECTION_TRIGGER, SHORTHAND_ARGS_PLACEHOLDER, } from './types.js';
 import { extractInjections } from './injectionParser.js';
 export class ConfirmationRequiredError extends Error {

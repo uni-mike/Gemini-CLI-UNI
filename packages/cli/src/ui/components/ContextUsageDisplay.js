@@ -6,7 +6,7 @@ import { jsxs as _jsxs } from "react/jsx-runtime";
  */
 import { Text } from 'ink';
 import { Colors } from '../colors.js';
-import { tokenLimit } from '@google/gemini-cli-core';
+import { tokenLimit } from '@unipath/unipath-cli-core';
 export const ContextUsageDisplay = ({ promptTokenCount, model, }) => {
     const percentage = promptTokenCount / tokenLimit(model);
     return (_jsxs(Text, { color: Colors.Gray, children: ["(", ((1 - percentage) * 100).toFixed(0), "% context left)"] }));

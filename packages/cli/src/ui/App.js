@@ -44,7 +44,7 @@ import { ContextSummaryDisplay } from './components/ContextSummaryDisplay.js';
 import { useHistory } from './hooks/useHistoryManager.js';
 import { useInputHistoryStore } from './hooks/useInputHistoryStore.js';
 import process from 'node:process';
-import { ApprovalMode, getAllGeminiMdFilenames, isEditorAvailable, getErrorMessage, AuthType, logFlashFallback, FlashFallbackEvent, ideContext, isProQuotaExceededError, isGenericQuotaExceededError, UserTierId, DEFAULT_GEMINI_FLASH_MODEL, } from '@google/gemini-cli-core';
+import { ApprovalMode, getAllGeminiMdFilenames, isEditorAvailable, getErrorMessage, AuthType, logFlashFallback, FlashFallbackEvent, ideContext, isProQuotaExceededError, isGenericQuotaExceededError, UserTierId, DEFAULT_GEMINI_FLASH_MODEL, } from '@unipath/unipath-cli-core';
 import { IdeIntegrationNudge } from './IdeIntegrationNudge.js';
 import { validateAuthMethod } from '../config/auth.js';
 import { useLogger } from './hooks/useLogger.js';
@@ -232,7 +232,7 @@ const App = ({ config, settings, startupWarnings = [], version }) => {
     useEffect(() => {
         // Only sync when not currently authenticating
         if (!isAuthenticating) {
-            setUserTier(config.getGeminiClient()?.getUserTier());
+            setUserTier(config.getUnipathClient()?.getUserTier());
         }
     }, [config, isAuthenticating]);
     const { isEditorDialogOpen, openEditorDialog, handleEditorSelect, exitEditorDialog, } = useEditorSettings(settings, setEditorError, addItem);
@@ -426,7 +426,7 @@ const App = ({ config, settings, startupWarnings = [], version }) => {
     const inputHistoryStore = useInputHistoryStore();
     // Stable reference for cancel handler to avoid circular dependency
     const cancelHandlerRef = useRef(() => { });
-    const { streamingState, submitQuery, initError, pendingHistoryItems: pendingGeminiHistoryItems, thought, cancelOngoingRequest, } = useGeminiStream(config.getGeminiClient(), history, addItem, config, settings, setDebugMessage, handleSlashCommand, shellModeActive, getPreferredEditor, onAuthError, performMemoryRefresh, modelSwitchedFromQuotaError, setModelSwitchedFromQuotaError, refreshStatic, () => cancelHandlerRef.current());
+    const { streamingState, submitQuery, initError, pendingHistoryItems: pendingGeminiHistoryItems, thought, cancelOngoingRequest, } = useGeminiStream(config.getUnipathClient(), history, addItem, config, settings, setDebugMessage, handleSlashCommand, shellModeActive, getPreferredEditor, onAuthError, performMemoryRefresh, modelSwitchedFromQuotaError, setModelSwitchedFromQuotaError, refreshStatic, () => cancelHandlerRef.current());
     const pendingHistoryItems = useMemo(() => [...pendingSlashCommandHistoryItems, ...pendingGeminiHistoryItems], [pendingSlashCommandHistoryItems, pendingGeminiHistoryItems]);
     // Message queue for handling input during streaming
     const { messageQueue, addMessage, clearQueue, getQueuedMessagesText } = useMessageQueue({
@@ -639,7 +639,7 @@ const App = ({ config, settings, startupWarnings = [], version }) => {
         return getAllGeminiMdFilenames();
     }, [settings.merged.context?.fileName]);
     const initialPrompt = useMemo(() => config.getQuestion(), [config]);
-    const geminiClient = config.getGeminiClient();
+    const unipathClient = config.getUnipathClient();
     useEffect(() => {
         if (initialPrompt &&
             !initialPromptSubmitted.current &&
@@ -648,7 +648,7 @@ const App = ({ config, settings, startupWarnings = [], version }) => {
             !isThemeDialogOpen &&
             !isEditorDialogOpen &&
             !showPrivacyNotice &&
-            geminiClient?.isInitialized?.()) {
+            unipathClient?.isInitialized?.()) {
             submitQuery(initialPrompt);
             initialPromptSubmitted.current = true;
         }
@@ -660,7 +660,7 @@ const App = ({ config, settings, startupWarnings = [], version }) => {
         isThemeDialogOpen,
         isEditorDialogOpen,
         showPrivacyNotice,
-        geminiClient,
+        unipathClient,
     ]);
     if (quittingMessages) {
         return (_jsx(Box, { flexDirection: "column", marginBottom: 1, children: quittingMessages.map((item) => (_jsx(HistoryItemDisplay, { availableTerminalHeight: constrainHeight ? availableTerminalHeight : undefined, terminalWidth: terminalWidth, item: item, isPending: false, config: config }, item.id))) }));

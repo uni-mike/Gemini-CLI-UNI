@@ -9,7 +9,7 @@ import os from 'node:os';
 import pathMod from 'node:path';
 import { useState, useCallback, useEffect, useMemo, useReducer } from 'react';
 import stringWidth from 'string-width';
-import { unescapePath } from '@google/gemini-cli-core';
+import { unescapePath } from '@unipath/unipath-cli-core';
 import { toCodePoints, cpLen, cpSlice, stripUnsafeCharacters, } from '../../utils/textUtils.js';
 import { handleVimAction } from './vim-buffer-actions.js';
 // Simple helper for word‑wise ops.

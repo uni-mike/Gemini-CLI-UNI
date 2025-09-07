@@ -10,7 +10,7 @@ import type {
   TelemetrySettings,
   AuthType,
   ChatCompressionSettings,
-} from '@google/gemini-cli-core';
+} from '@unipath/unipath-cli-core';
 import type { CustomTheme } from '../ui/themes/theme.js';
 
 export enum MergeStrategy {

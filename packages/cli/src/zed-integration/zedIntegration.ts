@@ -11,7 +11,7 @@ import type {
   GeminiChat,
   ToolResult,
   ToolCallConfirmationDetails,
-} from '@google/gemini-cli-core';
+} from '@unipath/unipath-cli-core';
 import {
   AuthType,
   logToolCall,
@@ -25,7 +25,7 @@ import {
   MCPServerConfig,
   DiscoveredMCPTool,
   StreamEventType,
-} from '@google/gemini-cli-core';
+} from '@unipath/unipath-cli-core';
 import * as acp from './acp.js';
 import { AcpFileSystemService } from './fileSystemService.js';
 import { Readable, Writable } from 'node:stream';
@@ -158,8 +158,8 @@ class GeminiAgent {
       config.setFileSystemService(acpFileSystemService);
     }
 
-    const geminiClient = config.getGeminiClient();
-    const chat = await geminiClient.startChat();
+    const unipathClient = config.getUnipathClient();
+    const chat = await unipathClient.startChat();
     const session = new Session(sessionId, chat, config, this.client);
     this.sessions.set(sessionId, session);
 

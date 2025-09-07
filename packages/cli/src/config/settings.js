@@ -8,7 +8,7 @@ import * as path from 'node:path';
 import { homedir, platform } from 'node:os';
 import * as dotenv from 'dotenv';
 import process from 'node:process';
-import { FatalConfigError, GEMINI_CONFIG_DIR as GEMINI_DIR, getErrorMessage, Storage, } from '@google/gemini-cli-core';
+import { FatalConfigError, GEMINI_CONFIG_DIR as GEMINI_DIR, getErrorMessage, Storage, } from '@unipath/unipath-cli-core';
 import stripJsonComments from 'strip-json-comments';
 import { DefaultLight } from '../ui/themes/default-light.js';
 import { DefaultDark } from '../ui/themes/default.js';

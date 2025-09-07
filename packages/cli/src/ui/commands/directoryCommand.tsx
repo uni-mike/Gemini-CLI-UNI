@@ -9,7 +9,7 @@ import { CommandKind } from './types.js';
 import { MessageType } from '../types.js';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { loadServerHierarchicalMemory } from '@google/gemini-cli-core';
+import { loadServerHierarchicalMemory } from '@unipath/unipath-cli-core';
 
 export function expandHomeDir(p: string): string {
   if (!p) {
@@ -111,13 +111,13 @@ export const directoryCommand: SlashCommand = {
                 context.services.settings.merged.context?.discoveryMaxDirs,
               );
             config.setUserMemory(memoryContent);
-            config.setGeminiMdFileCount(fileCount);
-            context.ui.setGeminiMdFileCount(fileCount);
+            config.setUnipathMdFileCount(fileCount);
+            context.ui.setUnipathMdFileCount(fileCount);
           }
           addItem(
             {
               type: MessageType.INFO,
-              text: `Successfully added GEMINI.md files from the following directories if there are:\n- ${added.join('\n- ')}`,
+              text: `Successfully added UNIPATH.md files from the following directories if there are:\n- ${added.join('\n- ')}`,
             },
             Date.now(),
           );
@@ -126,7 +126,7 @@ export const directoryCommand: SlashCommand = {
         }
 
         if (added.length > 0) {
-          const gemini = config.getGeminiClient();
+          const gemini = config.getUnipathClient();
           if (gemini) {
             await gemini.addDirectoryContext();
           }

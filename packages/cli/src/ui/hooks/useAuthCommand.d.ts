@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType, type Config } from '@google/gemini-cli-core';
+import { AuthType, type Config } from '@unipath/unipath-cli-core';
 export declare const useAuthCommand: (settings: LoadedSettings, setAuthError: (error: string | null) => void, config: Config) => {
     isAuthDialogOpen: boolean;
     openAuthDialog: () => void;

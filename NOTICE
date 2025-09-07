@@ -1,0 +1,30 @@
+UNIPATH CLI
+Copyright 2025 UNIPATH Contributors
+
+This product is based on and includes software from the Gemini CLI project
+(https://github.com/google/generative-ai-js), which is:
+
+Copyright 2025 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+================================================================================
+
+This product includes modifications and extensions to support:
+- Azure OpenAI integration (GPT-5, GPT-4o, GPT-4o-mini)
+- DeepSeek R1 model integration
+- Universal AI interface capabilities
+- UNIPATH branding and configuration system
+
+These modifications are:
+Copyright 2025 Mike Admon and UNIPATH Contributors

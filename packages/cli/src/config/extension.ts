@@ -6,9 +6,9 @@
 
 import type {
   MCPServerConfig,
-  GeminiCLIExtension,
-} from '@google/gemini-cli-core';
-import { GEMINI_DIR, Storage } from '@google/gemini-cli-core';
+  UnipathCLIExtension,
+} from '@unipath/unipath-cli-core';
+import { GEMINI_DIR, Storage } from '@unipath/unipath-cli-core';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
@@ -248,7 +248,7 @@ function loadInstallMetadata(
 
 function getContextFileNames(config: ExtensionConfig): string[] {
   if (!config.contextFileName) {
-    return ['GEMINI.md'];
+    return ['UNIPATH.md'];
   } else if (!Array.isArray(config.contextFileName)) {
     return [config.contextFileName];
   }
@@ -266,11 +266,11 @@ export function annotateActiveExtensions(
   extensions: Extension[],
   enabledExtensionNames: string[],
   workspaceDir: string,
-): GeminiCLIExtension[] {
+): UnipathCLIExtension[] {
   const settings = loadSettings(workspaceDir).merged;
   const disabledExtensions = settings.extensions?.disabled ?? [];
 
-  const annotatedExtensions: GeminiCLIExtension[] = [];
+  const annotatedExtensions: UnipathCLIExtension[] = [];
 
   if (enabledExtensionNames.length === 0) {
     return extensions.map((extension) => ({

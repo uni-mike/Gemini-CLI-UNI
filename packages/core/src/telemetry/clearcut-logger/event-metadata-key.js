@@ -147,7 +147,7 @@ export var EventMetadataKey;
     // IDE Connection Event Keys
     // ===========================================================================
     // Logs the type of the IDE connection.
-    EventMetadataKey[EventMetadataKey["GEMINI_CLI_IDE_CONNECTION_TYPE"] = 46] = "GEMINI_CLI_IDE_CONNECTION_TYPE";
+    EventMetadataKey[EventMetadataKey["UNIPATH_CLI_IDE_CONNECTION_TYPE"] = 46] = "UNIPATH_CLI_IDE_CONNECTION_TYPE";
     // Logs AI added lines in edit/write tool response.
     EventMetadataKey[EventMetadataKey["GEMINI_CLI_AI_ADDED_LINES"] = 47] = "GEMINI_CLI_AI_ADDED_LINES";
     // Logs AI removed lines in edit/write tool response.

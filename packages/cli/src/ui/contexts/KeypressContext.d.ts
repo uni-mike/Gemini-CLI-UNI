@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@unipath/unipath-cli-core';
 import type React from 'react';
 export declare const PASTE_MODE_PREFIX = "\u001B[200~";
 export declare const PASTE_MODE_SUFFIX = "\u001B[201~";

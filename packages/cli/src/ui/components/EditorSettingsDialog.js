@@ -5,7 +5,7 @@ import { Colors } from '../colors.js';
 import { EDITOR_DISPLAY_NAMES, editorSettingsManager, } from '../editors/editorSettingsManager.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { SettingScope } from '../../config/settings.js';
-import { isEditorAvailable } from '@google/gemini-cli-core';
+import { isEditorAvailable } from '@unipath/unipath-cli-core';
 import { useKeypress } from '../hooks/useKeypress.js';
 export function EditorSettingsDialog({ onSelect, settings, onExit, }) {
     const [selectedScope, setSelectedScope] = useState(SettingScope.User);

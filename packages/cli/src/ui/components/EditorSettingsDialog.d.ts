@@ -6,7 +6,7 @@
 import type React from 'react';
 import type { LoadedSettings } from '../../config/settings.js';
 import { SettingScope } from '../../config/settings.js';
-import type { EditorType } from '@google/gemini-cli-core';
+import type { EditorType } from '@unipath/unipath-cli-core';
 interface EditorDialogProps {
     onSelect: (editorType: EditorType | undefined, scope: SettingScope) => void;
     settings: LoadedSettings;

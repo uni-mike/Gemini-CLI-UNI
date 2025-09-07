@@ -66,7 +66,7 @@ const COMPRESSION_TOKEN_THRESHOLD = 0.7;
  * means that only the last 30% of the chat history will be kept after compression.
  */
 const COMPRESSION_PRESERVE_THRESHOLD = 0.3;
-export class GeminiClient {
+export class UnipathClient {
     config;
     chat;
     contentGenerator;

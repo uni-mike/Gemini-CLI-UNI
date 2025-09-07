@@ -59,10 +59,10 @@ import { ContextSummaryDisplay } from './components/ContextSummaryDisplay.js';
 import { useHistory } from './hooks/useHistoryManager.js';
 import { useInputHistoryStore } from './hooks/useInputHistoryStore.js';
 import process from 'node:process';
-import type { EditorType, Config, IdeContext } from '@google/gemini-cli-core';
+import type { EditorType, Config, IdeContext } from '@unipath/unipath-cli-core';
 import {
   ApprovalMode,
-  getAllGeminiMdFilenames,
+  getAllUnipathMdFilenames,
   isEditorAvailable,
   getErrorMessage,
   AuthType,
@@ -73,7 +73,7 @@ import {
   isGenericQuotaExceededError,
   UserTierId,
   DEFAULT_GEMINI_FLASH_MODEL,
-} from '@google/gemini-cli-core';
+} from '@unipath/unipath-cli-core';
 import type { IdeIntegrationNudgeResult } from './IdeIntegrationNudge.js';
 import { IdeIntegrationNudge } from './IdeIntegrationNudge.js';
 import { validateAuthMethod } from '../config/auth.js';
@@ -199,7 +199,9 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     setStaticKey((prev) => prev + 1);
   }, [setStaticKey, stdout]);
 
-  const [geminiMdFileCount, setGeminiMdFileCount] = useState<number>(0);
+  const [unipathMdFileCount, setUnipathMdFileCount] = useState<number>(0);
+  // Backward compatibility alias
+  const setGeminiMdFileCount = setUnipathMdFileCount;
   const [debugMessage, setDebugMessage] = useState<string>('');
   const [themeError, setThemeError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -366,7 +368,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   useEffect(() => {
     // Only sync when not currently authenticating
     if (!isAuthenticating) {
-      setUserTier(config.getGeminiClient()?.getUserTier());
+      setUserTier(config.getUnipathClient()?.getUserTier());
     }
   }, [config, isAuthenticating]);
 
@@ -643,7 +645,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     openSettingsDialog,
     toggleVimEnabled,
     setIsProcessing,
-    setGeminiMdFileCount,
+    setUnipathMdFileCount,
   );
 
   const buffer = useTextBuffer({
@@ -669,7 +671,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     thought,
     cancelOngoingRequest,
   } = useGeminiStream(
-    config.getGeminiClient(),
+    config.getUnipathClient(),
     history,
     addItem,
     config,
@@ -956,11 +958,11 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     if (fromSettings) {
       return Array.isArray(fromSettings) ? fromSettings : [fromSettings];
     }
-    return getAllGeminiMdFilenames();
+    return getAllUnipathMdFilenames();
   }, [settings.merged.context?.fileName]);
 
   const initialPrompt = useMemo(() => config.getQuestion(), [config]);
-  const geminiClient = config.getGeminiClient();
+  const unipathClient = config.getUnipathClient();
 
   useEffect(() => {
     if (
@@ -971,7 +973,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
       !isThemeDialogOpen &&
       !isEditorDialogOpen &&
       !showPrivacyNotice &&
-      geminiClient?.isInitialized?.()
+      unipathClient?.isInitialized?.()
     ) {
       submitQuery(initialPrompt);
       initialPromptSubmitted.current = true;
@@ -984,7 +986,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     isThemeDialogOpen,
     isEditorDialogOpen,
     showPrivacyNotice,
-    geminiClient,
+    unipathClient,
   ]);
 
   if (quittingMessages) {
@@ -1318,7 +1320,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
                   ) : !hideContextSummary ? (
                     <ContextSummaryDisplay
                       ideContext={ideContextState}
-                      geminiMdFileCount={geminiMdFileCount}
+                      geminiMdFileCount={unipathMdFileCount}
                       contextFileNames={contextFileNames}
                       mcpServers={config.getMcpServers()}
                       blockedMcpServers={config.getBlockedMcpServers()}

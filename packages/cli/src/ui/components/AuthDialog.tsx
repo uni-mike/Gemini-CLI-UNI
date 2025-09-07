@@ -11,7 +11,7 @@ import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import type { LoadedSettings } from '../../config/settings.js';
 import { SettingScope } from '../../config/settings.js';
-import { AuthType } from '@google/gemini-cli-core';
+import { AuthType } from '@unipath/unipath-cli-core';
 import { validateAuthMethod } from '../../config/auth.js';
 import { useKeypress } from '../hooks/useKeypress.js';
 
@@ -44,18 +44,19 @@ export function AuthDialog({
     }
 
     const defaultAuthType = parseDefaultAuthType(
-      process.env['GEMINI_DEFAULT_AUTH_TYPE'],
+      process.env['UNIPATH_DEFAULT_AUTH_TYPE'] || process.env['GEMINI_DEFAULT_AUTH_TYPE'],
     );
 
-    if (process.env['GEMINI_DEFAULT_AUTH_TYPE'] && defaultAuthType === null) {
+    const authEnvVar = process.env['UNIPATH_DEFAULT_AUTH_TYPE'] || process.env['GEMINI_DEFAULT_AUTH_TYPE'];
+    if (authEnvVar && defaultAuthType === null) {
       return (
-        `Invalid value for GEMINI_DEFAULT_AUTH_TYPE: "${process.env['GEMINI_DEFAULT_AUTH_TYPE']}". ` +
+        `Invalid value for UNIPATH_DEFAULT_AUTH_TYPE: "${authEnvVar}". ` +
         `Valid values are: ${Object.values(AuthType).join(', ')}.`
       );
     }
 
     if (
-      process.env['GEMINI_API_KEY'] &&
+      (process.env['UNIPATH_API_KEY'] || process.env['GEMINI_API_KEY']) &&
       (!defaultAuthType || defaultAuthType === AuthType.USE_GEMINI)
     ) {
       return 'Existing API key detected (GEMINI_API_KEY). Select "Gemini API Key" option to use it.';
@@ -95,7 +96,7 @@ export function AuthDialog({
     }
 
     const defaultAuthType = parseDefaultAuthType(
-      process.env['GEMINI_DEFAULT_AUTH_TYPE'],
+      process.env['UNIPATH_DEFAULT_AUTH_TYPE'] || process.env['GEMINI_DEFAULT_AUTH_TYPE'],
     );
     if (defaultAuthType) {
       return item.value === defaultAuthType;

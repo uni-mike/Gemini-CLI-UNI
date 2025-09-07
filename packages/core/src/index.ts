@@ -9,6 +9,8 @@ export * from './config/config.js';
 
 // Export Core Logic
 export * from './core/client.js';
+// Backward compatibility exports
+export { UnipathClient as GeminiClient } from './core/client.js';
 export * from './core/contentGenerator.js';
 export * from './core/loggingContentGenerator.js';
 export * from './core/geminiChat.js';
@@ -59,9 +61,11 @@ export * from './services/fileSystemService.js';
 export * from './ide/ide-client.js';
 export * from './ide/ideContext.js';
 export * from './ide/ide-installer.js';
+export * from './ide/constants.js';
 export { getIdeInfo, DetectedIde } from './ide/detect-ide.js';
 export { type IdeInfo } from './ide/detect-ide.js';
-export * from './ide/constants.js';
+// Backward compatibility for extension name
+export { UNIPATH_CLI_COMPANION_EXTENSION_NAME as GEMINI_CLI_COMPANION_EXTENSION_NAME } from './ide/constants.js';
 
 // Export Shell Execution Service
 export * from './services/shellExecutionService.js';

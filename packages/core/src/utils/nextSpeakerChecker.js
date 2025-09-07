@@ -25,7 +25,7 @@ const RESPONSE_SCHEMA = {
     },
     required: ['reasoning', 'next_speaker'],
 };
-export async function checkNextSpeaker(chat, geminiClient, abortSignal) {
+export async function checkNextSpeaker(chat, unipathClient, abortSignal) {
     // ALWAYS skip next speaker check for Azure OpenAI to avoid JSON parsing issues
     // Check multiple conditions to ensure this bypass works
     const isAzure = process.env['GEMINI_CLI_DISABLE_NEXT_SPEAKER_CHECK'] === 'true' ||
@@ -84,7 +84,7 @@ export async function checkNextSpeaker(chat, geminiClient, abortSignal) {
         { role: 'user', parts: [{ text: CHECK_PROMPT }] },
     ];
     try {
-        const parsedResponse = (await geminiClient.generateJson(contents, RESPONSE_SCHEMA, abortSignal, DEFAULT_GEMINI_FLASH_MODEL));
+        const parsedResponse = (await unipathClient.generateJson(contents, RESPONSE_SCHEMA, abortSignal, DEFAULT_GEMINI_FLASH_MODEL));
         if (parsedResponse &&
             parsedResponse.next_speaker &&
             ['user', 'model'].includes(parsedResponse.next_speaker)) {

@@ -14,9 +14,13 @@
 ./start-azure.sh     # GPT-5 - Highest quality but slow
 ```
 
-### 🌐 Native Gemini (with full tool support)
+### 🌐 Native Google Gemini (with full tool support)
 ```bash
 npm run start        # Google Gemini - Full tool integration
+
+# Or use the unipath command after installation
+unipath              # Launches interactive UNIPATH CLI
+unipath "Your prompt here"  # Direct command execution
 ```
 
 ## Model Comparison
@@ -49,12 +53,17 @@ echo "Analyze this algorithm: $(cat algo.py)" | ./start-deepseek.sh
 > Explain quantum computing implications for cryptography
 ```
 
-### File operations (use native Gemini):
+### File operations (use UNIPATH with Gemini):
 ```bash
 npm run start
 > /read package.json
 > /shell npm test
 > /write report.md
+
+# Or using the unipath command
+unipath
+> /read package.json
+> /shell npm test
 ```
 
 ## Troubleshooting
@@ -71,5 +80,5 @@ The system now automatically retries with exponential backoff. If you still hit 
 - Consider DeepSeek R1 for good balance
 
 ### Need Tools?
-Only native Gemini (`npm run start`) currently supports file operations and shell commands.
-Azure models are chat/Q&A only for now.
+The UNIPATH CLI with Google Gemini backend (`npm run start` or `unipath`) currently supports full file operations and shell commands.
+Azure models (GPT-5, GPT-4o, DeepSeek) are optimized for chat/Q&A interactions.

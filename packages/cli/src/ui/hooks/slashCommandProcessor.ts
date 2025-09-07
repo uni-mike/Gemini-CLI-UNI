@@ -8,7 +8,7 @@ import { useCallback, useMemo, useEffect, useState } from 'react';
 import { type PartListUnion } from '@google/genai';
 import process from 'node:process';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@unipath/unipath-cli-core';
 import {
   GitService,
   Logger,
@@ -17,7 +17,7 @@ import {
   SlashCommandStatus,
   ToolConfirmationOutcome,
   Storage,
-} from '@google/gemini-cli-core';
+} from '@unipath/unipath-cli-core';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import { runExitCleanup } from '../../utils/cleanup.js';
 import type {
@@ -54,7 +54,7 @@ export const useSlashCommandProcessor = (
   openSettingsDialog: () => void,
   toggleVimEnabled: () => Promise<boolean>,
   setIsProcessing: (isProcessing: boolean) => void,
-  setGeminiMdFileCount: (count: number) => void,
+  setUnipathMdFileCount: (count: number) => void,
 ) => {
   const session = useSessionStats();
   const [commands, setCommands] = useState<readonly SlashCommand[]>([]);
@@ -181,7 +181,8 @@ export const useSlashCommandProcessor = (
         setPendingItem: setPendingCompressionItem,
         toggleCorgiMode,
         toggleVimEnabled,
-        setGeminiMdFileCount,
+        setUnipathMdFileCount,
+        setGeminiMdFileCount: setUnipathMdFileCount, // Backward compatibility
         reloadCommands,
       },
       session: {
@@ -205,7 +206,7 @@ export const useSlashCommandProcessor = (
       toggleCorgiMode,
       toggleVimEnabled,
       sessionShellAllowlist,
-      setGeminiMdFileCount,
+      setUnipathMdFileCount,
       reloadCommands,
     ],
   );
@@ -394,7 +395,7 @@ export const useSlashCommandProcessor = (
                   }
                 case 'load_history': {
                   config
-                    ?.getGeminiClient()
+                    ?.getUnipathClient()
                     ?.setHistory(result.clientHistory, { stripThoughts: true });
                   fullCommandContext.ui.clear();
                   result.history.forEach((item, index) => {

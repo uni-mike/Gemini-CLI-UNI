@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import { getErrorMessage, getMCPServerPrompts } from '@google/gemini-cli-core';
+import { getErrorMessage, getMCPServerPrompts } from '@unipath/unipath-cli-core';
 import { CommandKind } from '../ui/commands/types.js';
 /**
  * Discovers and loads executable slash commands from prompts exposed by

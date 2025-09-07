@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {} from 'yargs';
-import { FatalConfigError, getErrorMessage } from '@google/gemini-cli-core';
+import { FatalConfigError, getErrorMessage } from '@unipath/unipath-cli-core';
 import { enableExtension } from '../../config/extension.js';
 import { SettingScope } from '../../config/settings.js';
 export async function handleEnable(args) {

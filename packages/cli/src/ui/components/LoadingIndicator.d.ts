@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { ThoughtSummary } from '@google/gemini-cli-core';
+import type { ThoughtSummary } from '@unipath/unipath-cli-core';
 import type React from 'react';
 interface LoadingIndicatorProps {
     currentLoadingPhrase?: string;

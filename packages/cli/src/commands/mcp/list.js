@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { loadSettings } from '../../config/settings.js';
-import { MCPServerStatus, createTransport } from '@google/gemini-cli-core';
+import { MCPServerStatus, createTransport } from '@unipath/unipath-cli-core';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { loadExtensions } from '../../config/extension.js';
 const COLOR_GREEN = '\u001b[32m';

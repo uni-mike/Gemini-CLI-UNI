@@ -6,7 +6,7 @@
 import { useCallback, useMemo, useEffect, useState } from 'react';
 import {} from '@google/genai';
 import process from 'node:process';
-import { GitService, Logger, logSlashCommand, makeSlashCommandEvent, SlashCommandStatus, ToolConfirmationOutcome, Storage, } from '@google/gemini-cli-core';
+import { GitService, Logger, logSlashCommand, makeSlashCommandEvent, SlashCommandStatus, ToolConfirmationOutcome, Storage, } from '@unipath/unipath-cli-core';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import { runExitCleanup } from '../../utils/cleanup.js';
 import { MessageType } from '../types.js';
@@ -296,7 +296,7 @@ export const useSlashCommandProcessor = (config, settings, addItem, clearItems, 
                                 }
                             case 'load_history': {
                                 config
-                                    ?.getGeminiClient()
+                                    ?.getUnipathClient()
                                     ?.setHistory(result.clientHistory, { stripThoughts: true });
                                 fullCommandContext.ui.clear();
                                 result.history.forEach((item, index) => {

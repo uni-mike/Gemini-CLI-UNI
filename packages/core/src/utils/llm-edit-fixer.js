@@ -76,11 +76,11 @@ const editCorrectionWithInstructionCache = new LruCache(MAX_CACHE_SIZE);
  * @param new_string The original replacement string.
  * @param error The error that occurred during the initial edit.
  * @param current_content The current content of the file.
- * @param geminiClient The Gemini client to use for the LLM call.
+ * @param unipathClient The Gemini client to use for the LLM call.
  * @param abortSignal An abort signal to cancel the operation.
  * @returns A new search and replace pair.
  */
-export async function FixLLMEditWithInstruction(instruction, old_string, new_string, error, current_content, geminiClient, abortSignal) {
+export async function FixLLMEditWithInstruction(instruction, old_string, new_string, error, current_content, unipathClient, abortSignal) {
     const cacheKey = `${instruction}---${old_string}---${new_string}--${current_content}--${error}`;
     const cachedResult = editCorrectionWithInstructionCache.get(cacheKey);
     if (cachedResult) {
@@ -102,7 +102,7 @@ ${userPrompt}`,
             ],
         },
     ];
-    const result = (await geminiClient.generateJson(contents, SearchReplaceEditSchema, abortSignal, DEFAULT_GEMINI_FLASH_MODEL));
+    const result = (await unipathClient.generateJson(contents, SearchReplaceEditSchema, abortSignal, DEFAULT_GEMINI_FLASH_MODEL));
     editCorrectionWithInstructionCache.set(cacheKey, result);
     return result;
 }

@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import {} from '@google/gemini-cli-core';
+import {} from '@unipath/unipath-cli-core';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import { isNarrowWidth } from '../utils/isNarrowWidth.js';
 export const ContextSummaryDisplay = ({ geminiMdFileCount, contextFileNames, mcpServers, blockedMcpServers, showToolDescriptions, ideContext, }) => {

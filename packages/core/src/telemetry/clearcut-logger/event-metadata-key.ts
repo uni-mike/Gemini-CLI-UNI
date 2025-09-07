@@ -211,7 +211,7 @@ export enum EventMetadataKey {
   // ===========================================================================
 
   // Logs the type of the IDE connection.
-  GEMINI_CLI_IDE_CONNECTION_TYPE = 46,
+  UNIPATH_CLI_IDE_CONNECTION_TYPE = 46,
 
   // Logs AI added lines in edit/write tool response.
   GEMINI_CLI_AI_ADDED_LINES = 47,

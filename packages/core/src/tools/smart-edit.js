@@ -176,7 +176,7 @@ class EditToolInvocation {
         return [{ path: this.params.file_path }];
     }
     async attemptSelfCorrection(params, currentContent, initialError, abortSignal, originalLineEnding) {
-        const fixedEdit = await FixLLMEditWithInstruction(params.instruction, params.old_string, params.new_string, initialError.raw, currentContent, this.config.getGeminiClient(), abortSignal);
+        const fixedEdit = await FixLLMEditWithInstruction(params.instruction, params.old_string, params.new_string, initialError.raw, currentContent, this.config.getUnipathClient(), abortSignal);
         if (fixedEdit.noChangesRequired) {
             return {
                 currentContent,

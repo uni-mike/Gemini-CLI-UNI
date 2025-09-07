@@ -705,7 +705,7 @@ export class ClearcutLogger {
   logIdeConnectionEvent(event: IdeConnectionEvent): void {
     const data: EventValue[] = [
       {
-        gemini_cli_key: EventMetadataKey.GEMINI_CLI_IDE_CONNECTION_TYPE,
+        gemini_cli_key: EventMetadataKey.UNIPATH_CLI_IDE_CONNECTION_TYPE,
         value: JSON.stringify(event.connection_type),
       },
     ];

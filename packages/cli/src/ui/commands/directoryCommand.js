@@ -7,7 +7,7 @@ import { CommandKind } from './types.js';
 import { MessageType } from '../types.js';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { loadServerHierarchicalMemory } from '@google/gemini-cli-core';
+import { loadServerHierarchicalMemory } from '@unipath/unipath-cli-core';
 export function expandHomeDir(p) {
     if (!p) {
         return '';
@@ -93,7 +93,7 @@ export const directoryCommand = {
                     errors.push(`Error refreshing memory: ${error.message}`);
                 }
                 if (added.length > 0) {
-                    const gemini = config.getGeminiClient();
+                    const gemini = config.getUnipathClient();
                     if (gemini) {
                         await gemini.addDirectoryContext();
                     }

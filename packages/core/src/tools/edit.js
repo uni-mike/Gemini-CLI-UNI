@@ -88,7 +88,7 @@ class EditToolInvocation {
         }
         else if (currentContent !== null) {
             // Editing an existing file
-            const correctedEdit = await ensureCorrectEdit(params.file_path, currentContent, params, this.config.getGeminiClient(), abortSignal);
+            const correctedEdit = await ensureCorrectEdit(params.file_path, currentContent, params, this.config.getUnipathClient(), abortSignal);
             finalOldString = correctedEdit.params.old_string;
             finalNewString = correctedEdit.params.new_string;
             occurrences = correctedEdit.occurrences;

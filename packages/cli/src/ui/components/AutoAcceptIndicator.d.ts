@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type React from 'react';
-import { ApprovalMode } from '@google/gemini-cli-core';
+import { ApprovalMode } from '@unipath/unipath-cli-core';
 interface AutoAcceptIndicatorProps {
     approvalMode: ApprovalMode;
 }

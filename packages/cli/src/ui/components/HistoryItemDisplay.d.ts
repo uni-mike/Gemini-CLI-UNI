@@ -5,7 +5,7 @@
  */
 import type React from 'react';
 import type { HistoryItem } from '../types.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@unipath/unipath-cli-core';
 import type { SlashCommand } from '../commands/types.js';
 interface HistoryItemDisplayProps {
     item: HistoryItem;

@@ -72,10 +72,10 @@ class WebSearchToolInvocation extends BaseToolInvocation<
   }
 
   async execute(signal: AbortSignal): Promise<WebSearchToolResult> {
-    const geminiClient = this.config.getGeminiClient();
+    const unipathClient = this.config.getUnipathClient();
 
     try {
-      const response = await geminiClient.generateContent(
+      const response = await unipathClient.generateContent(
         [{ role: 'user', parts: [{ text: this.params.query }] }],
         { tools: [{ googleSearch: {} }] },
         signal,

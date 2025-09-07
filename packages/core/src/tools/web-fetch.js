@@ -47,7 +47,7 @@ class WebFetchToolInvocation extends BaseToolInvocation {
                     { selector: 'img', format: 'skip' },
                 ],
             }).substring(0, MAX_CONTENT_LENGTH);
-            const geminiClient = this.config.getGeminiClient();
+            const unipathClient = this.config.getUnipathClient();
             const fallbackPrompt = `The user requested the following: "${this.params.prompt}".
 
 I was unable to access the URL directly. Instead, I have fetched the raw content of the page. Please use the following content to answer the request. Do not attempt to access the URL again.
@@ -56,7 +56,7 @@ I was unable to access the URL directly. Instead, I have fetched the raw content
 ${textContent}
 ---
 `;
-            const result = await geminiClient.generateContent([{ role: 'user', parts: [{ text: fallbackPrompt }] }], {}, signal, DEFAULT_GEMINI_FLASH_MODEL);
+            const result = await unipathClient.generateContent([{ role: 'user', parts: [{ text: fallbackPrompt }] }], {}, signal, DEFAULT_GEMINI_FLASH_MODEL);
             const resultText = getResponseText(result) || '';
             return {
                 llmContent: resultText,
@@ -117,9 +117,9 @@ ${textContent}
         if (isPrivate) {
             return this.executeFallback(signal);
         }
-        const geminiClient = this.config.getGeminiClient();
+        const unipathClient = this.config.getUnipathClient();
         try {
-            const response = await geminiClient.generateContent([{ role: 'user', parts: [{ text: userPrompt }] }], { tools: [{ urlContext: {} }] }, signal, // Pass signal
+            const response = await unipathClient.generateContent([{ role: 'user', parts: [{ text: userPrompt }] }], { tools: [{ urlContext: {} }] }, signal, // Pass signal
             DEFAULT_GEMINI_FLASH_MODEL);
             console.debug(`[WebFetchTool] Full response for prompt "${userPrompt.substring(0, 50)}...":`, JSON.stringify(response, null, 2));
             let responseText = getResponseText(response) || '';

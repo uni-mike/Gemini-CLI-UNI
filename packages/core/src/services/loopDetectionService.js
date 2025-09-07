@@ -272,7 +272,7 @@ export class LoopDetectionService {
     }
     async checkForLoopWithLLM(signal) {
         const recentHistory = this.config
-            .getGeminiClient()
+            .getUnipathClient()
             .getHistory()
             .slice(-LLM_LOOP_CHECK_HISTORY_COUNT);
         const trimmedHistory = this.trimRecentHistory(recentHistory);
@@ -309,7 +309,7 @@ Please analyze the conversation history to determine the possibility that the co
         let result;
         try {
             result = await this.config
-                .getGeminiClient()
+                .getUnipathClient()
                 .generateJson(contents, schema, signal, DEFAULT_GEMINI_FLASH_MODEL);
         }
         catch (e) {

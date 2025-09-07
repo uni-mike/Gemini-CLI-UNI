@@ -32,7 +32,7 @@ export const compressCommand = {
             ui.setPendingItem(pendingMessage);
             const promptId = `compress-${Date.now()}`;
             const compressed = await context.services.config
-                ?.getGeminiClient()
+                ?.getUnipathClient()
                 ?.tryCompressChat(promptId, true);
             if (compressed) {
                 ui.addItem({

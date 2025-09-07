@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import { allowEditorTypeInSandbox, checkHasEditorType, } from '@google/gemini-cli-core';
+import { allowEditorTypeInSandbox, checkHasEditorType, } from '@unipath/unipath-cli-core';
 export const EDITOR_DISPLAY_NAMES = {
     cursor: 'Cursor',
     emacs: 'Emacs',

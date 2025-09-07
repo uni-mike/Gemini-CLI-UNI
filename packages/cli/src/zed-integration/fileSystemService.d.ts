@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { FileSystemService } from '@google/gemini-cli-core';
+import type { FileSystemService } from '@unipath/unipath-cli-core';
 import type * as acp from './acp.js';
 /**
  * ACP client-based implementation of FileSystemService

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config, ToolCallRequestInfo } from '@google/gemini-cli-core';
+import type { Config, ToolCallRequestInfo } from '@unipath/unipath-cli-core';
 import {
   executeToolCall,
   shutdownTelemetry,
@@ -13,7 +13,7 @@ import {
   parseAndFormatApiError,
   FatalInputError,
   FatalTurnLimitedError,
-} from '@google/gemini-cli-core';
+} from '@unipath/unipath-cli-core';
 import type { Content, Part } from '@google/genai';
 
 import { ConsolePatcher } from './ui/utils/ConsolePatcher.js';
@@ -39,7 +39,7 @@ export async function runNonInteractive(
       }
     });
 
-    const geminiClient = config.getGeminiClient();
+    const unipathClient = config.getUnipathClient();
 
     const abortController = new AbortController();
 
@@ -77,7 +77,7 @@ export async function runNonInteractive(
       }
       const toolCallRequests: ToolCallRequestInfo[] = [];
 
-      const responseStream = geminiClient.sendMessageStream(
+      const responseStream = unipathClient.sendMessageStream(
         currentMessages[0]?.parts || [],
         abortController.signal,
         prompt_id,

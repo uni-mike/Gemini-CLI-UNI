@@ -85,7 +85,7 @@ export class IdeClient {
         this.setState(IDEConnectionStatus.Connecting);
         const configFromFile = await this.getConnectionConfigFromFile();
         const workspacePath = configFromFile?.workspacePath ??
-            process.env['GEMINI_CLI_IDE_WORKSPACE_PATH'];
+            process.env['UNIPATH_CLI_IDE_WORKSPACE_PATH'];
         const { isValid, error } = IdeClient.validateWorkspacePath(workspacePath, this.currentIdeDisplayName, process.cwd());
         if (!isValid) {
             this.setState(IDEConnectionStatus.Disconnected, error, true);
@@ -263,18 +263,18 @@ export class IdeClient {
         return { isValid: true };
     }
     getPortFromEnv() {
-        const port = process.env['GEMINI_CLI_IDE_SERVER_PORT'];
+        const port = process.env['UNIPATH_CLI_IDE_SERVER_PORT'];
         if (!port) {
             return undefined;
         }
         return port;
     }
     getStdioConfigFromEnv() {
-        const command = process.env['GEMINI_CLI_IDE_SERVER_STDIO_COMMAND'];
+        const command = process.env['UNIPATH_CLI_IDE_SERVER_STDIO_COMMAND'];
         if (!command) {
             return undefined;
         }
-        const argsStr = process.env['GEMINI_CLI_IDE_SERVER_STDIO_ARGS'];
+        const argsStr = process.env['UNIPATH_CLI_IDE_SERVER_STDIO_ARGS'];
         let args = [];
         if (argsStr) {
             try {
@@ -283,11 +283,11 @@ export class IdeClient {
                     args = parsedArgs;
                 }
                 else {
-                    logger.error('GEMINI_CLI_IDE_SERVER_STDIO_ARGS must be a JSON array string.');
+                    logger.error('UNIPATH_CLI_IDE_SERVER_STDIO_ARGS must be a JSON array string.');
                 }
             }
             catch (e) {
-                logger.error('Failed to parse GEMINI_CLI_IDE_SERVER_STDIO_ARGS:', e);
+                logger.error('Failed to parse UNIPATH_CLI_IDE_SERVER_STDIO_ARGS:', e);
             }
         }
         return { command, args };

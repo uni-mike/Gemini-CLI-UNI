@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type { PartListUnion } from '@google/genai';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@unipath/unipath-cli-core';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';
 interface HandleAtCommandParams {
     query: string;

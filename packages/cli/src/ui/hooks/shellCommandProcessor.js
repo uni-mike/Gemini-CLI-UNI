@@ -5,7 +5,7 @@
  */
 import { ToolCallStatus } from '../types.js';
 import { useCallback } from 'react';
-import { isBinary, ShellExecutionService } from '@google/gemini-cli-core';
+import { isBinary, ShellExecutionService } from '@unipath/unipath-cli-core';
 import {} from '@google/genai';
 import { SHELL_COMMAND_NAME } from '../constants.js';
 import { formatMemoryUsage } from '../utils/formatters.js';
@@ -15,11 +15,11 @@ import os from 'node:os';
 import fs from 'node:fs';
 export const OUTPUT_UPDATE_INTERVAL_MS = 1000;
 const MAX_OUTPUT_LENGTH = 10000;
-function addShellCommandToGeminiHistory(geminiClient, rawQuery, resultText) {
+function addShellCommandToGeminiHistory(unipathClient, rawQuery, resultText) {
     const modelContent = resultText.length > MAX_OUTPUT_LENGTH
         ? resultText.substring(0, MAX_OUTPUT_LENGTH) + '\n... (truncated)'
         : resultText;
-    geminiClient.addHistory({
+    unipathClient.addHistory({
         role: 'user',
         parts: [
             {
@@ -40,7 +40,7 @@ ${modelContent}
  * Hook to process shell commands.
  * Orchestrates command execution and updates history and agent context.
  */
-export const useShellCommandProcessor = (addItemToHistory, setPendingHistoryItem, onExec, onDebugMessage, config, geminiClient) => {
+export const useShellCommandProcessor = (addItemToHistory, setPendingHistoryItem, onExec, onDebugMessage, config, unipathClient) => {
     const handleShellCommand = useCallback((rawQuery, abortSignal) => {
         if (typeof rawQuery !== 'string' || rawQuery.trim() === '') {
             return false;
@@ -183,7 +183,7 @@ export const useShellCommandProcessor = (addItemToHistory, setPendingHistoryItem
                         tools: [finalToolDisplay],
                     }, userMessageTimestamp);
                     // Add the same complete, contextual result to the LLM's history.
-                    addShellCommandToGeminiHistory(geminiClient, rawQuery, finalOutput);
+                    addShellCommandToGeminiHistory(unipathClient, rawQuery, finalOutput);
                 })
                     .catch((err) => {
                     setPendingHistoryItem(null);
@@ -227,7 +227,7 @@ export const useShellCommandProcessor = (addItemToHistory, setPendingHistoryItem
         addItemToHistory,
         setPendingHistoryItem,
         onExec,
-        geminiClient,
+        unipathClient,
     ]);
     return { handleShellCommand };
 };

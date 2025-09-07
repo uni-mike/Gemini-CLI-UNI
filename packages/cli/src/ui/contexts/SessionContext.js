@@ -1,6 +1,6 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 import { createContext, useCallback, useContext, useState, useMemo, useEffect, } from 'react';
-import { uiTelemetryService, sessionId } from '@google/gemini-cli-core';
+import { uiTelemetryService, sessionId } from '@unipath/unipath-cli-core';
 // --- Context Definition ---
 const SessionStatsContext = createContext(undefined);
 // --- Provider Component ---

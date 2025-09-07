@@ -9,11 +9,11 @@ import { getResponseText, partToString } from './partUtils.js';
  * The default summarizer for tool results.
  *
  * @param result The result of the tool execution.
- * @param geminiClient The Gemini client to use for summarization.
+ * @param unipathClient The Gemini client to use for summarization.
  * @param abortSignal The abort signal to use for summarization.
  * @returns The summary of the result.
  */
-export const defaultSummarizer = (result, _geminiClient, _abortSignal) => Promise.resolve(JSON.stringify(result.llmContent));
+export const defaultSummarizer = (result, _unipathClient, _abortSignal) => Promise.resolve(JSON.stringify(result.llmContent));
 const SUMMARIZE_TOOL_OUTPUT_PROMPT = `Summarize the following tool output to be a maximum of {maxOutputTokens} tokens. The summary should be concise and capture the main points of the tool output.
 
 The summarization should be done based on the content that is provided. Here are the basic rules to follow:
@@ -27,8 +27,8 @@ Text to summarize:
 
 Return the summary string which should first contain an overall summarization of text followed by the full stack trace of errors and warnings in the tool output.
 `;
-export const llmSummarizer = (result, geminiClient, abortSignal) => summarizeToolOutput(partToString(result.llmContent), geminiClient, abortSignal);
-export async function summarizeToolOutput(textToSummarize, geminiClient, abortSignal, maxOutputTokens = 2000) {
+export const llmSummarizer = (result, unipathClient, abortSignal) => summarizeToolOutput(partToString(result.llmContent), unipathClient, abortSignal);
+export async function summarizeToolOutput(textToSummarize, unipathClient, abortSignal, maxOutputTokens = 2000) {
     // There is going to be a slight difference here since we are comparing length of string with maxOutputTokens.
     // This is meant to be a ballpark estimation of if we need to summarize the tool output.
     if (!textToSummarize || textToSummarize.length < maxOutputTokens) {
@@ -40,7 +40,7 @@ export async function summarizeToolOutput(textToSummarize, geminiClient, abortSi
         maxOutputTokens,
     };
     try {
-        const parsedResponse = (await geminiClient.generateContent(contents, toolOutputSummarizerConfig, abortSignal, DEFAULT_GEMINI_FLASH_LITE_MODEL));
+        const parsedResponse = (await unipathClient.generateContent(contents, toolOutputSummarizerConfig, abortSignal, DEFAULT_GEMINI_FLASH_LITE_MODEL));
         return getResponseText(parsedResponse) || textToSummarize;
     }
     catch (error) {

@@ -208,7 +208,7 @@ class ShellToolInvocation extends BaseToolInvocation {
                 }
                 : {};
             if (summarizeConfig && summarizeConfig[ShellTool.Name]) {
-                const summary = await summarizeToolOutput(llmContent, this.config.getGeminiClient(), signal, summarizeConfig[ShellTool.Name].tokenBudget);
+                const summary = await summarizeToolOutput(llmContent, this.config.getUnipathClient(), signal, summarizeConfig[ShellTool.Name].tokenBudget);
                 return {
                     llmContent: summary,
                     returnDisplay: returnDisplayMessage,

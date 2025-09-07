@@ -10,7 +10,7 @@ import {
   type CodeAssistServer,
   UserTierId,
   getCodeAssistServer,
-} from '@google/gemini-cli-core';
+} from '@unipath/unipath-cli-core';
 
 export interface PrivacyState {
   isLoading: boolean;

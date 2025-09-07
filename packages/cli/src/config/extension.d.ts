@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { MCPServerConfig, GeminiCLIExtension } from '@google/gemini-cli-core';
+import type { MCPServerConfig, UnipathCLIExtension } from '@unipath/unipath-cli-core';
 import { SettingScope } from '../config/settings.js';
 export declare const EXTENSIONS_DIRECTORY_NAME: string;
 export declare const EXTENSIONS_CONFIG_FILENAME = "gemini-extension.json";
@@ -51,7 +51,7 @@ export declare function loadExtension(extensionDir: string): Extension | null;
  * @param enabledExtensionNames The names of explicitly enabled extensions.
  * @param workspaceDir The current workspace directory.
  */
-export declare function annotateActiveExtensions(extensions: Extension[], enabledExtensionNames: string[], workspaceDir: string): GeminiCLIExtension[];
+export declare function annotateActiveExtensions(extensions: Extension[], enabledExtensionNames: string[], workspaceDir: string): UnipathCLIExtension[];
 export declare function installExtension(installMetadata: ExtensionInstallMetadata, cwd?: string): Promise<string>;
 export declare function uninstallExtension(extensionName: string, cwd?: string): Promise<void>;
 export declare function toOutputString(extension: Extension): string;

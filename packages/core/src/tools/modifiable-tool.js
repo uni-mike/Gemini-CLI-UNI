@@ -18,7 +18,7 @@ export function isModifiableDeclarativeTool(tool) {
 }
 function createTempFilesForModify(currentContent, proposedContent, file_path) {
     const tempDir = os.tmpdir();
-    const diffDir = path.join(tempDir, 'gemini-cli-tool-modify-diffs');
+    const diffDir = path.join(tempDir, 'unipath-cli-tool-modify-diffs');
     if (!fs.existsSync(diffDir)) {
         fs.mkdirSync(diffDir, { recursive: true });
     }

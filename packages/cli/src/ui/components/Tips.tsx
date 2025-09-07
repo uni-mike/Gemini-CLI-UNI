@@ -7,14 +7,14 @@
 import type React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import { type Config } from '@google/gemini-cli-core';
+import { type Config } from '@unipath/unipath-cli-core';
 
 interface TipsProps {
   config: Config;
 }
 
 export const Tips: React.FC<TipsProps> = ({ config }) => {
-  const geminiMdFileCount = config.getGeminiMdFileCount();
+  const unipathMdFileCount = config.getUnipathMdFileCount();
   return (
     <Box flexDirection="column">
       <Text color={Colors.Foreground}>Tips for getting started:</Text>
@@ -24,7 +24,7 @@ export const Tips: React.FC<TipsProps> = ({ config }) => {
       <Text color={Colors.Foreground}>
         2. Be specific for the best results.
       </Text>
-      {geminiMdFileCount === 0 && (
+      {unipathMdFileCount === 0 && (
         <Text color={Colors.Foreground}>
           3. Create{' '}
           <Text bold color={Colors.AccentPurple}>
@@ -34,7 +34,7 @@ export const Tips: React.FC<TipsProps> = ({ config }) => {
         </Text>
       )}
       <Text color={Colors.Foreground}>
-        {geminiMdFileCount === 0 ? '4.' : '3.'}{' '}
+        {unipathMdFileCount === 0 ? '4.' : '3.'}{' '}
         <Text bold color={Colors.AccentPurple}>
           /help
         </Text>{' '}

@@ -6,7 +6,7 @@ set -a
 set +a
 
 # Force Azure OpenAI auth type
-export GEMINI_DEFAULT_AUTH_TYPE=azure-openai
+export UNIPATH_DEFAULT_AUTH_TYPE=azure-openai
 
 # Start the CLI
 npm run start "$@"

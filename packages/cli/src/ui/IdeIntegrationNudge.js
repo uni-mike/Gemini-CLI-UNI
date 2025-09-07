@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { getIdeInfo } from '@google/gemini-cli-core';
+import { getIdeInfo } from '@unipath/unipath-cli-core';
 import { Box, Text } from 'ink';
 import { RadioButtonSelect } from './components/shared/RadioButtonSelect.js';
 import { useKeypress } from './hooks/useKeypress.js';

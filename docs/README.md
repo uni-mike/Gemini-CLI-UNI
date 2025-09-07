@@ -1,6 +1,6 @@
-# Gemini CLI UNI Documentation
+# UNIPATH CLI Documentation
 
-This directory contains comprehensive documentation for the Gemini CLI with Azure OpenAI and DeepSeek integrations.
+This directory contains comprehensive documentation for UNIPATH CLI - a universal AI interface with support for Azure OpenAI, DeepSeek, and Google Gemini models.
 
 ## Available Documentation
 
@@ -12,7 +12,7 @@ This directory contains comprehensive documentation for the Gemini CLI with Azur
 - [**Azure Integration Details**](README-AZURE.md) - Technical details about the Azure integration implementation
 
 ### 📖 Case Studies
-- [**Azure Integration Success Story**](AZURE-INTEGRATION-SUCCESS.md) - The journey of integrating Azure OpenAI and DeepSeek into Gemini CLI
+- [**Azure Integration Success Story**](AZURE-INTEGRATION-SUCCESS.md) - The journey of integrating Azure OpenAI and DeepSeek into UNIPATH CLI
 
 ## Quick Links
 
@@ -27,4 +27,4 @@ This directory contains comprehensive documentation for the Gemini CLI with Azur
 | GPT-4o | Azure OpenAI | ⚡ 3-5s | General use, complex tasks |
 | DeepSeek R1 | Azure AI | ⚡ 3-5s | Reasoning, analysis, code |
 | GPT-5 | Azure OpenAI | 🐌 10-20s | Maximum quality required |
-| Gemini | Google | ⚡ 1-3s | Native tool support |
+| Gemini | Google | ⚡ 1-3s | Google's native model |

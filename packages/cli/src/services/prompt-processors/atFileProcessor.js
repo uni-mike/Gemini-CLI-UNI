@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-import { flatMapTextParts, readPathFromWorkspace, } from '@google/gemini-cli-core';
+import { flatMapTextParts, readPathFromWorkspace, } from '@unipath/unipath-cli-core';
 import { MessageType } from '../../ui/types.js';
 import { AT_FILE_INJECTION_TRIGGER, } from './types.js';
 import { extractInjections } from './injectionParser.js';

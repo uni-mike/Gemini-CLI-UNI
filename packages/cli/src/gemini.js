@@ -27,7 +27,7 @@ import { runNonInteractive } from './nonInteractiveCli.js';
 import { loadExtensions } from './config/extension.js';
 import { cleanupCheckpoints, registerCleanup, runExitCleanup, } from './utils/cleanup.js';
 import { getCliVersion } from './utils/version.js';
-import { sessionId, logUserPrompt, AuthType, getOauthClient, logIdeConnection, IdeConnectionEvent, IdeConnectionType, uiTelemetryService, } from '@google/gemini-cli-core';
+import { sessionId, logUserPrompt, AuthType, getOauthClient, logIdeConnection, IdeConnectionEvent, IdeConnectionType, uiTelemetryService, } from '@unipath/unipath-cli-core';
 import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
 import { validateNonInteractiveAuth } from './validateNonInterActiveAuth.js';

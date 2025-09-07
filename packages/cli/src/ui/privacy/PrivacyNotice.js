@@ -5,7 +5,7 @@ import { jsx as _jsx } from "react/jsx-runtime";
  * SPDX-License-Identifier: Apache-2.0
  */
 import { Box } from 'ink';
-import { AuthType } from '@google/gemini-cli-core';
+import { AuthType } from '@unipath/unipath-cli-core';
 import { GeminiPrivacyNotice } from './GeminiPrivacyNotice.js';
 import { CloudPaidPrivacyNotice } from './CloudPaidPrivacyNotice.js';
 import { CloudFreePrivacyNotice } from './CloudFreePrivacyNotice.js';

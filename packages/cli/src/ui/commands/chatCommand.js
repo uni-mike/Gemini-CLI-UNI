@@ -8,7 +8,7 @@ import React from 'react';
 import { Text } from 'ink';
 import { Colors } from '../colors.js';
 import { CommandKind } from './types.js';
-import { decodeTagName } from '@google/gemini-cli-core';
+import { decodeTagName } from '@unipath/unipath-cli-core';
 import path from 'node:path';
 import { MessageType } from '../types.js';
 const getSavedChatTags = async (context, mtSortDesc) => {
@@ -99,7 +99,7 @@ const saveCommand = {
                 };
             }
         }
-        const chat = await config?.getGeminiClient()?.getChat();
+        const chat = await config?.getUnipathClient()?.getChat();
         if (!chat) {
             return {
                 type: 'message',

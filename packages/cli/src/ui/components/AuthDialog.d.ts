@@ -6,7 +6,7 @@
 import type React from 'react';
 import type { LoadedSettings } from '../../config/settings.js';
 import { SettingScope } from '../../config/settings.js';
-import { AuthType } from '@google/gemini-cli-core';
+import { AuthType } from '@unipath/unipath-cli-core';
 interface AuthDialogProps {
     onSelect: (authMethod: AuthType | undefined, scope: SettingScope) => void;
     settings: LoadedSettings;

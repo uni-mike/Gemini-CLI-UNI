@@ -24,9 +24,9 @@ import { ShellTool } from '../tools/shell.js';
 import { WriteFileTool } from '../tools/write-file.js';
 import { WebFetchTool } from '../tools/web-fetch.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
-import { MemoryTool, setGeminiMdFilename } from '../tools/memoryTool.js';
+import { MemoryTool, setUnipathMdFilename } from '../tools/memoryTool.js';
 import { WebSearchTool } from '../tools/web-search.js';
-import { GeminiClient } from '../core/client.js';
+import { UnipathClient } from '../core/client.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { GitService } from '../services/gitService.js';
 import type { TelemetryTarget } from '../telemetry/index.js';
@@ -90,7 +90,7 @@ export interface TelemetrySettings {
   outfile?: string;
 }
 
-export interface GeminiCLIExtension {
+export interface UnipathCLIExtension {
   name: string;
   version: string;
   isActive: boolean;
@@ -170,7 +170,8 @@ export interface ConfigParameters {
   mcpServerCommand?: string;
   mcpServers?: Record<string, MCPServerConfig>;
   userMemory?: string;
-  geminiMdFileCount?: number;
+  unipathMdFileCount?: number;
+  geminiMdFileCount?: number; // Backward compatibility
   approvalMode?: ApprovalMode;
   showMemoryUsage?: boolean;
   contextFileName?: string | string[];
@@ -194,7 +195,7 @@ export interface ConfigParameters {
   maxSessionTurns?: number;
   experimentalZedIntegration?: boolean;
   listExtensions?: boolean;
-  extensions?: GeminiCLIExtension[];
+  extensions?: UnipathCLIExtension[];
   blockedMcpServers?: Array<{ name: string; extensionName: string }>;
   noBrowser?: boolean;
   summarizeToolOutput?: Record<string, SummarizeToolOutputSettings>;
@@ -235,13 +236,13 @@ export class Config {
   private readonly mcpServerCommand: string | undefined;
   private readonly mcpServers: Record<string, MCPServerConfig> | undefined;
   private userMemory: string;
-  private geminiMdFileCount: number;
+  private unipathMdFileCount: number;
   private approvalMode: ApprovalMode;
   private readonly showMemoryUsage: boolean;
   private readonly accessibility: AccessibilitySettings;
   private readonly telemetrySettings: TelemetrySettings;
   private readonly usageStatisticsEnabled: boolean;
-  private geminiClient!: GeminiClient;
+  private unipathClient!: UnipathClient; // Still UnipathClient class but for UNIPATH
   private readonly fileFiltering: {
     respectGitIgnore: boolean;
     respectGeminiIgnore: boolean;
@@ -264,7 +265,7 @@ export class Config {
   private inFallbackMode = false;
   private readonly maxSessionTurns: number;
   private readonly listExtensions: boolean;
-  private readonly _extensions: GeminiCLIExtension[];
+  private readonly _extensions: UnipathCLIExtension[];
   private readonly _blockedMcpServers: Array<{
     name: string;
     extensionName: string;
@@ -312,7 +313,7 @@ export class Config {
     this.mcpServerCommand = params.mcpServerCommand;
     this.mcpServers = params.mcpServers;
     this.userMemory = params.userMemory ?? '';
-    this.geminiMdFileCount = params.geminiMdFileCount ?? 0;
+    this.unipathMdFileCount = params.unipathMdFileCount ?? params.geminiMdFileCount ?? 0;
     this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
     this.accessibility = params.accessibility ?? {};
@@ -367,7 +368,7 @@ export class Config {
     this.eventEmitter = params.eventEmitter;
 
     if (params.contextFileName) {
-      setGeminiMdFilename(params.contextFileName);
+      setUnipathMdFilename(params.contextFileName);
     }
 
     if (this.telemetrySettings.enabled) {
@@ -397,8 +398,8 @@ export class Config {
   async refreshAuth(authMethod: AuthType) {
     // Save the current conversation history before creating a new client
     let existingHistory: Content[] = [];
-    if (this.geminiClient && this.geminiClient.isInitialized()) {
-      existingHistory = this.geminiClient.getHistory();
+    if (this.unipathClient && this.unipathClient.isInitialized()) {
+      existingHistory = this.unipathClient.getHistory();
     }
 
     // Create new content generator config
@@ -408,8 +409,8 @@ export class Config {
     );
 
     // Create and initialize new client in local variable first
-    const newGeminiClient = new GeminiClient(this);
-    await newGeminiClient.initialize(newContentGeneratorConfig);
+    const newUnipathClient = new UnipathClient(this);
+    await newUnipathClient.initialize(newContentGeneratorConfig);
 
     // Vertex and Genai have incompatible encryption and sending history with
     // throughtSignature from Genai to Vertex will fail, we need to strip them
@@ -419,11 +420,11 @@ export class Config {
 
     // Only assign to instance properties after successful initialization
     this.contentGeneratorConfig = newContentGeneratorConfig;
-    this.geminiClient = newGeminiClient;
+    this.unipathClient = newUnipathClient;
 
     // Restore the conversation history to the new client
     if (existingHistory.length > 0) {
-      this.geminiClient.setHistory(existingHistory, {
+      this.unipathClient.setHistory(existingHistory, {
         stripThoughts: fromGenaiToVertex,
       });
     }
@@ -566,12 +567,21 @@ export class Config {
     this.userMemory = newUserMemory;
   }
 
+  getUnipathMdFileCount(): number {
+    return this.unipathMdFileCount;
+  }
+
+  setUnipathMdFileCount(count: number): void {
+    this.unipathMdFileCount = count;
+  }
+
+  // Backward compatibility
   getGeminiMdFileCount(): number {
-    return this.geminiMdFileCount;
+    return this.getUnipathMdFileCount();
   }
 
   setGeminiMdFileCount(count: number): void {
-    this.geminiMdFileCount = count;
+    this.setUnipathMdFileCount(count);
   }
 
   getApprovalMode(): ApprovalMode {
@@ -619,8 +629,13 @@ export class Config {
     return this.telemetrySettings.outfile;
   }
 
-  getGeminiClient(): GeminiClient {
-    return this.geminiClient;
+  getUnipathClient(): UnipathClient {
+    return this.unipathClient;
+  }
+
+  // Backward compatibility
+  getGeminiClient(): UnipathClient {
+    return this.getUnipathClient();
   }
 
   getEnableRecursiveFileSearch(): boolean {
@@ -703,7 +718,7 @@ export class Config {
     return this.extensionManagement;
   }
 
-  getExtensions(): GeminiCLIExtension[] {
+  getExtensions(): UnipathCLIExtension[] {
     return this._extensions;
   }
 

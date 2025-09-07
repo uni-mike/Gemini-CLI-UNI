@@ -43,7 +43,7 @@ function getTimestampFromFunctionId(fcnId) {
  * Will look through the gemini client history and determine when the most recent
  * edit to a target file occurred. If no edit happened, it will return -1
  * @param filePath the path to the file
- * @param client the geminiClient, so that we can get the history
+ * @param client the unipathClient, so that we can get the history
  * @returns a DateTime (as a number) of when the last edit occurred, or -1 if no edit was found.
  */
 async function findLastEditTimestamp(filePath, client) {
@@ -104,7 +104,7 @@ async function findLastEditTimestamp(filePath, client) {
  *
  * @param currentContent The current content of the file.
  * @param originalParams The original EditToolParams
- * @param client The GeminiClient for LLM calls.
+ * @param client The UnipathClient for LLM calls.
  * @returns A promise resolving to an object containing the (potentially corrected)
  *          EditToolParams (as CorrectedEditParams) and the final occurrences count.
  */
@@ -264,7 +264,7 @@ const OLD_STRING_CORRECTION_SCHEMA = {
     },
     required: ['corrected_target_snippet'],
 };
-export async function correctOldStringMismatch(geminiClient, fileContent, problematicSnippet, abortSignal) {
+export async function correctOldStringMismatch(unipathClient, fileContent, problematicSnippet, abortSignal) {
     const prompt = `
 Context: A process needs to find an exact literal, unique match for a specific text snippet within a file's content. The provided snippet failed to match exactly. This is most likely because it has been overly escaped.
 
@@ -287,7 +287,7 @@ Return ONLY the corrected target snippet in the specified JSON format with the k
 `.trim();
     const contents = [{ role: 'user', parts: [{ text: prompt }] }];
     try {
-        const result = await geminiClient.generateJson(contents, OLD_STRING_CORRECTION_SCHEMA, abortSignal, EditModel, EditConfig);
+        const result = await unipathClient.generateJson(contents, OLD_STRING_CORRECTION_SCHEMA, abortSignal, EditModel, EditConfig);
         if (result &&
             typeof result['corrected_target_snippet'] === 'string' &&
             result['corrected_target_snippet'].length > 0) {
@@ -319,7 +319,7 @@ const NEW_STRING_CORRECTION_SCHEMA = {
 /**
  * Adjusts the new_string to align with a corrected old_string, maintaining the original intent.
  */
-export async function correctNewString(geminiClient, originalOldString, correctedOldString, originalNewString, abortSignal) {
+export async function correctNewString(unipathClient, originalOldString, correctedOldString, originalNewString, abortSignal) {
     if (originalOldString === correctedOldString) {
         return originalNewString;
     }
@@ -351,7 +351,7 @@ Return ONLY the corrected string in the specified JSON format with the key 'corr
   `.trim();
     const contents = [{ role: 'user', parts: [{ text: prompt }] }];
     try {
-        const result = await geminiClient.generateJson(contents, NEW_STRING_CORRECTION_SCHEMA, abortSignal, EditModel, EditConfig);
+        const result = await unipathClient.generateJson(contents, NEW_STRING_CORRECTION_SCHEMA, abortSignal, EditModel, EditConfig);
         if (result &&
             typeof result['corrected_new_string'] === 'string' &&
             result['corrected_new_string'].length > 0) {
@@ -379,7 +379,7 @@ const CORRECT_NEW_STRING_ESCAPING_SCHEMA = {
     },
     required: ['corrected_new_string_escaping'],
 };
-export async function correctNewStringEscaping(geminiClient, oldString, potentiallyProblematicNewString, abortSignal) {
+export async function correctNewStringEscaping(unipathClient, oldString, potentiallyProblematicNewString, abortSignal) {
     const prompt = `
 Context: A text replacement operation is planned. The text to be replaced (old_string) has been correctly identified in the file. However, the replacement text (new_string) might have been improperly escaped by a previous LLM generation (e.g. too many backslashes for newlines like \\n instead of \n, or unnecessarily quotes like \\"Hello\\" instead of "Hello").
 
@@ -402,7 +402,7 @@ Return ONLY the corrected string in the specified JSON format with the key 'corr
   `.trim();
     const contents = [{ role: 'user', parts: [{ text: prompt }] }];
     try {
-        const result = await geminiClient.generateJson(contents, CORRECT_NEW_STRING_ESCAPING_SCHEMA, abortSignal, EditModel, EditConfig);
+        const result = await unipathClient.generateJson(contents, CORRECT_NEW_STRING_ESCAPING_SCHEMA, abortSignal, EditModel, EditConfig);
         if (result &&
             typeof result['corrected_new_string_escaping'] === 'string' &&
             result['corrected_new_string_escaping'].length > 0) {

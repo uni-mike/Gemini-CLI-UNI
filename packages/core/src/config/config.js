@@ -21,7 +21,7 @@ import { WebFetchTool } from '../tools/web-fetch.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
 import { MemoryTool, setGeminiMdFilename } from '../tools/memoryTool.js';
 import { WebSearchTool } from '../tools/web-search.js';
-import { GeminiClient } from '../core/client.js';
+import { UnipathClient } from '../core/client.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { GitService } from '../services/gitService.js';
 import { initializeTelemetry, DEFAULT_TELEMETRY_TARGET, DEFAULT_OTLP_ENDPOINT, } from '../telemetry/index.js';
@@ -134,7 +134,7 @@ export class Config {
     accessibility;
     telemetrySettings;
     usageStatisticsEnabled;
-    geminiClient;
+    unipathClient;
     fileFiltering;
     fileDiscoveryService = null;
     gitService = undefined;
@@ -270,24 +270,24 @@ export class Config {
     async refreshAuth(authMethod) {
         // Save the current conversation history before creating a new client
         let existingHistory = [];
-        if (this.geminiClient && this.geminiClient.isInitialized()) {
-            existingHistory = this.geminiClient.getHistory();
+        if (this.unipathClient && this.unipathClient.isInitialized()) {
+            existingHistory = this.unipathClient.getHistory();
         }
         // Create new content generator config
         const newContentGeneratorConfig = createContentGeneratorConfig(this, authMethod);
         // Create and initialize new client in local variable first
-        const newGeminiClient = new GeminiClient(this);
-        await newGeminiClient.initialize(newContentGeneratorConfig);
+        const newUnipathClient = new UnipathClient(this);
+        await newUnipathClient.initialize(newContentGeneratorConfig);
         // Vertex and Genai have incompatible encryption and sending history with
         // throughtSignature from Genai to Vertex will fail, we need to strip them
         const fromGenaiToVertex = this.contentGeneratorConfig?.authType === AuthType.USE_GEMINI &&
             authMethod === AuthType.LOGIN_WITH_GOOGLE;
         // Only assign to instance properties after successful initialization
         this.contentGeneratorConfig = newContentGeneratorConfig;
-        this.geminiClient = newGeminiClient;
+        this.unipathClient = newUnipathClient;
         // Restore the conversation history to the new client
         if (existingHistory.length > 0) {
-            this.geminiClient.setHistory(existingHistory, {
+            this.unipathClient.setHistory(existingHistory, {
                 stripThoughts: fromGenaiToVertex,
             });
         }
@@ -433,8 +433,8 @@ export class Config {
     getTelemetryOutfile() {
         return this.telemetrySettings.outfile;
     }
-    getGeminiClient() {
-        return this.geminiClient;
+    getUnipathClient() {
+        return this.unipathClient;
     }
     getEnableRecursiveFileSearch() {
         return this.fileFiltering.enableRecursiveFileSearch;

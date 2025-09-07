@@ -8,7 +8,8 @@ import path from 'node:path';
 import os from 'node:os';
 import * as crypto from 'node:crypto';
 
-export const GEMINI_DIR = '.gemini';
+export const UNIPATH_DIR = '.unipath';
+export const GEMINI_DIR = UNIPATH_DIR; // Alias for backward compatibility
 export const GOOGLE_ACCOUNTS_FILENAME = 'google_accounts.json';
 
 /**

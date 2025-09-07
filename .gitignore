@@ -62,3 +62,4 @@ TESTING_AI/
 # Startup scripts are included (they're useful)
 # But ignore any output from them
 start-*.sh.out
+/.claude/

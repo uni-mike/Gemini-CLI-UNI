@@ -1,5 +1,5 @@
 import { jsx as _jsx } from "react/jsx-runtime";
-import { KittySequenceOverflowEvent, logKittySequenceOverflow, } from '@google/gemini-cli-core';
+import { KittySequenceOverflowEvent, logKittySequenceOverflow, } from '@unipath/unipath-cli-core';
 import { useStdin } from 'ink';
 import { createContext, useCallback, useContext, useEffect, useRef, } from 'react';
 import readline from 'node:readline';

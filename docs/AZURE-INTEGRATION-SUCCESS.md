@@ -2,11 +2,11 @@
 
 ## ✅ What We Achieved
 
-**MISSION ACCOMPLISHED**: Successfully integrated Azure OpenAI GPT-5 into the Gemini CLI without losing any of the interface features!
+**MISSION ACCOMPLISHED**: Successfully integrated Azure OpenAI GPT-5 into the UNIPATH CLI (formerly Gemini CLI) without losing any of the interface features!
 
 ### 🚀 Key Results:
 
-1. **✅ Full Gemini CLI Interface**: Status bar, tools, streaming, all features intact
+1. **✅ Full UNIPATH CLI Interface**: Status bar, tools, streaming, all features intact
 2. **✅ Azure OpenAI GPT-5 Backend**: Direct connection to your Azure deployment  
 3. **✅ Fast Responses**: No more 40-second delays or JSON parsing errors
 4. **✅ Clean Integration**: Minimal code changes, environment-based switching
@@ -15,12 +15,12 @@
 
 ### Quick Start
 ```bash
-./start-azure-gemini-cli.sh "your question here"
+./start-azure.sh "your question here"
 ```
 
 ### Interactive Mode
 ```bash
-./start-azure-gemini-cli.sh
+./start-azure.sh
 > hello, what model are you?
 ✦ AI assistant with unspecified model.
 > 
@@ -43,7 +43,7 @@
 2. **`packages/cli/src/ui/components/AuthDialog.tsx`** - Added "Azure OpenAI" option
 3. **`packages/cli/src/config/auth.ts`** - Added Azure OpenAI validation  
 4. **`packages/core/src/utils/nextSpeakerChecker.ts`** - Added bypass for Azure OpenAI
-5. **`start-azure-gemini-cli.sh`** - Startup script with environment configuration
+5. **`start-azure.sh`** - Startup script with environment configuration
 
 ### Key Features:
 - **Environment Variables**: Automatic Azure configuration loading
@@ -53,7 +53,7 @@
 
 ## 🎯 What This Gives You
 
-### ✅ **The Real Gemini CLI Interface**
+### ✅ **The Real UNIPATH CLI Interface**
 - Status bar showing `gpt-5` 
 - All built-in tools (20+ tools)
 - File operations, shell commands, web search
@@ -68,7 +68,7 @@
 - Fast, reliable responses
 
 ### ✅ **No Compromises**
-- **No custom CLI** - Using the real Gemini CLI
+- **No custom CLI** - Using the real UNIPATH CLI
 - **No missing features** - All tools and functionality intact  
 - **No performance issues** - Fast responses, no JSON errors
 - **Easy switching** - Can still use original Gemini with different script
@@ -77,14 +77,14 @@
 
 ### For Quick Commands:
 ```bash
-./start-azure-gemini-cli.sh "analyze this codebase"
-./start-azure-gemini-cli.sh "what files should I look at first?"
+./start-azure.sh "analyze this codebase"
+./start-azure.sh "what files should I look at first?"
 ```
 
 ### For Chat/Interactive:
 ```bash
-./start-azure-gemini-cli.sh
-# Opens full Gemini CLI interface powered by Azure OpenAI
+./start-azure.sh
+# Opens full UNIPATH CLI interface powered by Azure OpenAI
 ```
 
 ### Configuration:
@@ -98,7 +98,7 @@ The script automatically sets:
 
 ## 🎊 Final Result
 
-**You now have the complete Gemini CLI experience powered by Azure OpenAI GPT-5!**
+**You now have the complete UNIPATH CLI experience powered by Azure OpenAI GPT-5!**
 
 - ✅ Same familiar interface and features
 - ✅ All 20+ built-in developer tools  

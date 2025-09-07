@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { GeminiEventType as ServerGeminiEventType, getErrorMessage, isNodeError, MessageSenderType, logUserPrompt, GitService, UnauthorizedError, UserPromptEvent, DEFAULT_GEMINI_FLASH_MODEL, logConversationFinishedEvent, ConversationFinishedEvent, ApprovalMode, parseAndFormatApiError, getCodeAssistServer, UserTierId, } from '@google/gemini-cli-core';
+import { GeminiEventType as ServerGeminiEventType, getErrorMessage, isNodeError, MessageSenderType, logUserPrompt, GitService, UnauthorizedError, UserPromptEvent, DEFAULT_GEMINI_FLASH_MODEL, logConversationFinishedEvent, ConversationFinishedEvent, ApprovalMode, parseAndFormatApiError, getCodeAssistServer, UserTierId, } from '@unipath/unipath-cli-core';
 import { FinishReason } from '@google/genai';
 import { StreamingState, MessageType, ToolCallStatus } from '../types.js';
 import { isAtCommand, isSlashCommand } from '../utils/commandUtils.js';
@@ -36,7 +36,7 @@ function showCitations(settings, config) {
  * Manages the Gemini stream, including user input, command processing,
  * API interaction, and tool call lifecycle.
  */
-export const useGeminiStream = (geminiClient, history, addItem, config, settings, onDebugMessage, handleSlashCommand, shellModeActive, getPreferredEditor, onAuthError, performMemoryRefresh, modelSwitchedFromQuotaError, setModelSwitchedFromQuotaError, onEditorClose, onCancelSubmit) => {
+export const useGeminiStream = (unipathClient, history, addItem, config, settings, onDebugMessage, handleSlashCommand, shellModeActive, getPreferredEditor, onAuthError, performMemoryRefresh, modelSwitchedFromQuotaError, setModelSwitchedFromQuotaError, onEditorClose, onCancelSubmit) => {
     const [initError, setInitError] = useState(null);
     const abortControllerRef = useRef(null);
     const turnCancelledRef = useRef(false);
@@ -69,7 +69,7 @@ export const useGeminiStream = (geminiClient, history, addItem, config, settings
         await done;
         setIsResponding(false);
     }, []);
-    const { handleShellCommand } = useShellCommandProcessor(addItem, setPendingHistoryItem, onExec, onDebugMessage, config, geminiClient);
+    const { handleShellCommand } = useShellCommandProcessor(addItem, setPendingHistoryItem, onExec, onDebugMessage, config, unipathClient);
     const streamingState = useMemo(() => {
         if (toolCalls.some((tc) => tc.status === 'awaiting_approval')) {
             return StreamingState.WaitingForConfirmation;
@@ -451,7 +451,7 @@ export const useGeminiStream = (geminiClient, history, addItem, config, settings
         setIsResponding(true);
         setInitError(null);
         try {
-            const stream = geminiClient.sendMessageStream(queryToSend, abortSignal, prompt_id);
+            const stream = unipathClient.sendMessageStream(queryToSend, abortSignal, prompt_id);
             const processingStatus = await processGeminiStreamEvents(stream, userMessageTimestamp, abortSignal);
             if (processingStatus === StreamProcessingStatus.UserCancelled) {
                 return;
@@ -488,7 +488,7 @@ export const useGeminiStream = (geminiClient, history, addItem, config, settings
         addItem,
         setPendingHistoryItem,
         setInitError,
-        geminiClient,
+        unipathClient,
         onAuthError,
         config,
         startNewPrompt,
@@ -531,11 +531,11 @@ export const useGeminiStream = (geminiClient, history, addItem, config, settings
         // If all the tools were cancelled, don't submit a response to Gemini.
         const allToolsCancelled = geminiTools.every((tc) => tc.status === 'cancelled');
         if (allToolsCancelled) {
-            if (geminiClient) {
+            if (unipathClient) {
                 // We need to manually add the function responses to the history
                 // so the model knows the tools were cancelled.
                 const combinedParts = geminiTools.flatMap((toolCall) => toolCall.response.responseParts);
-                geminiClient.addHistory({
+                unipathClient.addHistory({
                     role: 'user',
                     parts: combinedParts,
                 });
@@ -559,7 +559,7 @@ export const useGeminiStream = (geminiClient, history, addItem, config, settings
         isResponding,
         submitQuery,
         markToolsAsSubmitted,
-        geminiClient,
+        unipathClient,
         performMemoryRefresh,
         modelSwitchedFromQuotaError,
     ]);
@@ -621,7 +621,7 @@ export const useGeminiStream = (geminiClient, history, addItem, config, settings
                         const toolName = toolCall.request.name;
                         const fileName = path.basename(filePath);
                         const toolCallWithSnapshotFileName = `${timestamp}-${fileName}-${toolName}.json`;
-                        const clientHistory = await geminiClient?.getHistory();
+                        const clientHistory = await unipathClient?.getHistory();
                         const toolCallWithSnapshotFilePath = path.join(checkpointDir, toolCallWithSnapshotFileName);
                         await fs.writeFile(toolCallWithSnapshotFilePath, JSON.stringify({
                             history,
@@ -647,7 +647,7 @@ export const useGeminiStream = (geminiClient, history, addItem, config, settings
         onDebugMessage,
         gitService,
         history,
-        geminiClient,
+        unipathClient,
         storage,
     ]);
     return {

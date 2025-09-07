@@ -5,7 +5,7 @@
  */
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { getErrorMessage, isNodeError, unescapePath, } from '@google/gemini-cli-core';
+import { getErrorMessage, isNodeError, unescapePath, } from '@unipath/unipath-cli-core';
 import { ToolCallStatus } from '../types.js';
 /**
  * Parses a query string to find all '@<path>' commands and text segments.

@@ -5,7 +5,7 @@
  */
 import type { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { type HistoryItem } from '../types.js';
-import type { EditorType } from '@google/gemini-cli-core';
+import type { EditorType } from '@unipath/unipath-cli-core';
 interface UseEditorSettingsReturn {
     isEditorDialogOpen: boolean;
     openEditorDialog: () => void;
