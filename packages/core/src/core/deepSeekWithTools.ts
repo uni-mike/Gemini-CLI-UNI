@@ -291,7 +291,7 @@ export class DeepSeekWithTools {
       
       // Add system message with enhanced tool instructions if this is the first message
       if (this.conversation.length === 0) {
-        const systemPrompt = `You are an advanced AI assistant integrated into the Gemini CLI with full access to file system tools.
+        const systemPrompt = `You are an advanced AI assistant integrated into the UNIPATH CLI with full access to ALL tools including file system, shell execution, web search, and more.
 When asked to review, analyze, or improve code, you should PROACTIVELY use tools to explore the codebase.
 
 CRITICAL: ALWAYS show your complete reasoning process using <think> tags. Never hide or suppress your thinking. 
