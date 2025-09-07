@@ -697,8 +697,26 @@ PROACTIVE BEHAVIOR:
       if (toolUseMatches.length > 0) {
         console.log(`📦 Found ${toolUseMatches.length} tool calls to execute`);
         
-        // Show progress to user immediately
-        process.stdout.write(`\n🔄 Processing ${toolUseMatches.length} tool${toolUseMatches.length > 1 ? 's' : ''}...\n`);
+        // Show progress to user immediately - try multiple output methods
+        const progressMsg = `🔄 Processing ${toolUseMatches.length} tool${toolUseMatches.length > 1 ? 's' : ''}...`;
+        
+        // Try different output approaches
+        console.log(progressMsg);
+        console.error(progressMsg);
+        process.stderr.write('\n' + progressMsg + '\n');
+        process.stdout.write('\n' + progressMsg + '\n');
+        
+        // Force flush if available
+        try {
+          if (typeof (process.stdout as any).flush === 'function') {
+            (process.stdout as any).flush();
+          }
+          if (typeof (process.stderr as any).flush === 'function') {
+            (process.stderr as any).flush();
+          }
+        } catch (e) {
+          // Ignore flush errors
+        }
         
         // Execute all tools and collect results
         const toolResults: string[] = [];
@@ -734,13 +752,13 @@ PROACTIVE BEHAVIOR:
           }
           
           console.log(`🔧 Executing shell command: ${functionName}`);
-          process.stdout.write(`  ⚡ ${args.command || args.cmd || 'shell command'}...\n`);
+          console.error(`  ⚡ ${args.command || args.cmd || 'shell command'}...`);
           try {
             const result = await this.executeToolDirectly(functionName, args);
-            process.stdout.write(`  ✅ Shell command completed\n`);
+            console.error(`  ✅ Shell command completed`);
             toolResults.push(`${functionName}: ${result}`);
           } catch (error) {
-            process.stdout.write(`  ❌ Shell command failed\n`);
+            console.error(`  ❌ Shell command failed`);
             console.error(`Error executing ${functionName}:`, error);
             toolResults.push(`${functionName}: Error - ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -770,31 +788,31 @@ PROACTIVE BEHAVIOR:
           // Show specific progress based on tool type
           if (functionName === 'web_search' || functionName === 'web-search') {
             const query = args.query || args.q || 'unknown query';
-            process.stdout.write(`  🔍 Web search: "${query.substring(0, 45)}${query.length > 45 ? '...' : ''}"\n`);
+            console.error(`  🔍 Web search: "${query.substring(0, 45)}${query.length > 45 ? '...' : ''}"`);
           } else if (functionName === 'read_file' || functionName === 'read-file') {
             const file = args.file_path || args.absolute_path || 'file';
             const filename = file.split('/').pop();
-            process.stdout.write(`  📖 Reading file: ${filename}\n`);
+            console.error(`  📖 Reading file: ${filename}`);
           } else if (functionName === 'write_file' || functionName === 'write-file') {
             const file = args.file_path || args.absolute_path || 'file';
             const filename = file.split('/').pop();
             const contentLength = (args.content || '').length;
-            process.stdout.write(`  📝 Creating file: ${filename} (${contentLength} chars)\n`);
+            console.error(`  📝 Creating file: ${filename} (${contentLength} chars)`);
           } else if (functionName === 'edit') {
             const file = args.file_path || args.absolute_path || 'file';
             const filename = file.split('/').pop();
             const oldText = (args.old_text || args.old_string || '').substring(0, 30);
-            process.stdout.write(`  ✏️  Editing: ${filename} (replacing "${oldText}...")\n`);
+            console.error(`  ✏️  Editing: ${filename} (replacing "${oldText}...")`);
           } else if (functionName === 'search_file_content') {
             const pattern = args.regex || args.pattern || 'pattern';
             const globPattern = args.globPattern || args.glob || '*';
-            process.stdout.write(`  🔎 Searching "${pattern}" in ${globPattern}\n`);
+            console.error(`  🔎 Searching "${pattern}" in ${globPattern}`);
           } else if (functionName === 'grep') {
             const pattern = args.pattern || 'pattern';
             const path = args.path || '.';
-            process.stdout.write(`  🔍 Grep search: "${pattern}" in ${path.split('/').pop() || path}\n`);
+            console.error(`  🔍 Grep search: "${pattern}" in ${path.split('/').pop() || path}`);
           } else {
-            process.stdout.write(`  ⚡ ${functionName}...\n`);
+            console.error(`  ⚡ ${functionName}...`);
           }
           
           try {
@@ -804,24 +822,24 @@ PROACTIVE BEHAVIOR:
             if (functionName === 'web_search' || functionName === 'web-search') {
               const lines = result.split('\n').length;
               const hasAnswerBox = result.includes('Answer:');
-              process.stdout.write(`  ✅ Found ${lines} results${hasAnswerBox ? ' + answer box' : ''}\n`);
+              console.error(`  ✅ Found ${lines} results${hasAnswerBox ? ' + answer box' : ''}`);
             } else if (functionName === 'write_file' || functionName === 'write-file') {
-              process.stdout.write(`  ✅ File created successfully\n`);
+              console.error(`  ✅ File created successfully`);
             } else if (functionName === 'read_file' || functionName === 'read-file') {
               const lineCount = result.split('\n').length;
-              process.stdout.write(`  ✅ Read ${lineCount} lines\n`);
+              console.error(`  ✅ Read ${lineCount} lines`);
             } else if (functionName === 'edit') {
-              process.stdout.write(`  ✅ Edit applied successfully\n`);
+              console.error(`  ✅ Edit applied successfully`);
             } else if (functionName === 'search_file_content' || functionName === 'grep') {
               const matches = result.split('\n').filter(line => line.trim()).length;
-              process.stdout.write(`  ✅ Found ${matches} matches\n`);
+              console.error(`  ✅ Found ${matches} matches`);
             } else {
-              process.stdout.write(`  ✅ Completed\n`);
+              console.error(`  ✅ Completed`);
             }
             
             toolResults.push(`${functionName}: ${result}`);
           } catch (error) {
-            process.stdout.write(`  ❌ ${functionName} failed: ${error instanceof Error ? error.message.substring(0, 50) : 'Unknown error'}\n`);
+            console.error(`  ❌ ${functionName} failed: ${error instanceof Error ? error.message.substring(0, 50) : 'Unknown error'}`);
             console.error(`Error executing ${functionName}:`, error);
             toolResults.push(`${functionName}: Error - ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -843,11 +861,7 @@ PROACTIVE BEHAVIOR:
         // Show completion status
         const successCount = toolResults.filter(r => !r.includes('Error -')).length;
         const errorCount = toolResults.length - successCount;
-        process.stdout.write(`\n🎯 Completed ${successCount}/${toolResults.length} tools successfully`);
-        if (errorCount > 0) {
-          process.stdout.write(` (${errorCount} failed)`);
-        }
-        process.stdout.write(`\n`);
+        console.error(`\n🎯 Completed ${successCount}/${toolResults.length} tools successfully${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
 
         // Check if the assistant's response suggests more work is needed
         const assistantContent = responseMessage.content || '';
@@ -858,7 +872,7 @@ PROACTIVE BEHAVIOR:
 
         if (needsContinuation) {
           console.log('📝 Task needs continuation, proceeding...');
-          process.stdout.write(`\n🔄 Moving to next phase...\n`);
+          console.error(`\n🔄 Moving to next phase...`);
           console.log('🔄 Bypassing next speaker check for Azure OpenAI');
           currentMessage = 'Please continue with the next steps based on the tool results above.';
           continue;
