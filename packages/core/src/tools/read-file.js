@@ -115,8 +115,8 @@ export class ReadFileTool extends BaseDeclarativeTool {
             return 'Limit must be a positive number';
         }
         const fileService = this.config.getFileService();
-        if (fileService.shouldGeminiIgnoreFile(params.absolute_path)) {
-            return `File path '${filePath}' is ignored by .geminiignore pattern(s).`;
+        if (fileService.shouldUnipathIgnoreFile(params.absolute_path)) {
+            return `File path '${filePath}' is ignored by .unipathignore pattern(s).`;
         }
         return null;
     }

@@ -43,7 +43,16 @@
       "Bash(python3:*)",
       "Bash(npm run cli:*)",
       "Bash(npm run:*)",
-      "Bash(timeout 2 npm run start)"
+      "Bash(timeout 2 npm run start)",
+      "Bash(./test-all-tools.sh:*)",
+      "Bash(npx tsx:*)",
+      "Bash(./quick-tool-test.sh:*)",
+      "Bash(./test-shell-tool.sh:*)",
+      "Bash(./test-web-tools.sh:*)",
+      "Bash(./test-all-unipath-tools.sh:*)",
+      "Bash(./test-tools-manual.sh:*)",
+      "Bash(./TEST_EVERY_TOOL.sh:*)",
+      "Bash(./FAST_TEST_ALL.sh)"
     ],
     "deny": [],
     "ask": []

@@ -32,7 +32,7 @@ export interface WebSearchToolResult extends ToolResult {
     } ? GroundingMetadata['groundingChunks'] : GroundingChunkItem[];
 }
 /**
- * A tool to perform web searches using Google Search via the Gemini API.
+ * A tool to perform web searches using Google Search via the API.
  */
 export declare class WebSearchTool extends BaseDeclarativeTool<WebSearchToolParams, WebSearchToolResult> {
     private readonly config;

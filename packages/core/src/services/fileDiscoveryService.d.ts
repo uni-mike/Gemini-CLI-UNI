@@ -5,11 +5,12 @@
  */
 export interface FilterFilesOptions {
     respectGitIgnore?: boolean;
-    respectGeminiIgnore?: boolean;
+    respectUnipathIgnore?: boolean;
+    respectGeminiIgnore?: boolean; // Backward compatibility
 }
 export declare class FileDiscoveryService {
     private gitIgnoreFilter;
-    private geminiIgnoreFilter;
+    private unipathIgnoreFilter;
     private projectRoot;
     constructor(projectRoot: string);
     /**
@@ -21,15 +22,15 @@ export declare class FileDiscoveryService {
      */
     shouldGitIgnoreFile(filePath: string): boolean;
     /**
-     * Checks if a single file should be gemini-ignored
+     * Checks if a single file should be unipath-ignored
      */
-    shouldGeminiIgnoreFile(filePath: string): boolean;
+    shouldUnipathIgnoreFile(filePath: string): boolean;
     /**
      * Unified method to check if a file should be ignored based on filtering options
      */
     shouldIgnoreFile(filePath: string, options?: FilterFilesOptions): boolean;
     /**
-     * Returns loaded patterns from .geminiignore
+     * Returns loaded patterns from .unipathignore (or .geminiignore for backward compatibility)
      */
-    getGeminiIgnorePatterns(): string[];
+    getUnipathIgnorePatterns(): string[];
 }

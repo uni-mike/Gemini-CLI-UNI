@@ -8,7 +8,7 @@ import { ToolErrorType } from './tool-error.js';
 import { getErrorMessage } from '../utils/errors.js';
 import {} from '../config/config.js';
 import { getResponseText } from '../utils/partUtils.js';
-import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
+import { DEFAULT_UNIPATH_FLASH_MODEL } from '../config/models.js';
 class WebSearchToolInvocation extends BaseToolInvocation {
     config;
     constructor(config, params) {
@@ -21,7 +21,7 @@ class WebSearchToolInvocation extends BaseToolInvocation {
     async execute(signal) {
         const unipathClient = this.config.getUnipathClient();
         try {
-            const response = await unipathClient.generateContent([{ role: 'user', parts: [{ text: this.params.query }] }], { tools: [{ googleSearch: {} }] }, signal, DEFAULT_GEMINI_FLASH_MODEL);
+            const response = await unipathClient.generateContent([{ role: 'user', parts: [{ text: this.params.query }] }], { tools: [{ googleSearch: {} }] }, signal, DEFAULT_UNIPATH_FLASH_MODEL);
             const responseText = getResponseText(response);
             const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
             const sources = groundingMetadata?.groundingChunks;
@@ -103,13 +103,13 @@ class WebSearchToolInvocation extends BaseToolInvocation {
     }
 }
 /**
- * A tool to perform web searches using Google Search via the Gemini API.
+ * A tool to perform web searches using Google Search via the API.
  */
 export class WebSearchTool extends BaseDeclarativeTool {
     config;
     static Name = 'google_web_search';
     constructor(config) {
-        super(WebSearchTool.Name, 'GoogleSearch', 'Performs a web search using Google Search (via the Gemini API) and returns the results. This tool is useful for finding information on the internet based on a query.', Kind.Search, {
+        super(WebSearchTool.Name, 'GoogleSearch', 'Performs a web search using Google Search (via the API) and returns the results. This tool is useful for finding information on the internet based on a query.', Kind.Search, {
             type: 'object',
             properties: {
                 query: {

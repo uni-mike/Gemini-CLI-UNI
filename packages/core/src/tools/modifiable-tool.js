@@ -25,8 +25,8 @@ function createTempFilesForModify(currentContent, proposedContent, file_path) {
     const ext = path.extname(file_path);
     const fileName = path.basename(file_path, ext);
     const timestamp = Date.now();
-    const tempOldPath = path.join(diffDir, `gemini-cli-modify-${fileName}-old-${timestamp}${ext}`);
-    const tempNewPath = path.join(diffDir, `gemini-cli-modify-${fileName}-new-${timestamp}${ext}`);
+    const tempOldPath = path.join(diffDir, `unipath-cli-modify-${fileName}-old-${timestamp}${ext}`);
+    const tempNewPath = path.join(diffDir, `unipath-cli-modify-${fileName}-new-${timestamp}${ext}`);
     fs.writeFileSync(tempOldPath, currentContent, 'utf8');
     fs.writeFileSync(tempNewPath, proposedContent, 'utf8');
     return { oldPath: tempOldPath, newPath: tempNewPath };

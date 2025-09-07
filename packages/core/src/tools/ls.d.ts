@@ -19,11 +19,11 @@ export interface LSToolParams {
      */
     ignore?: string[];
     /**
-     * Whether to respect .gitignore and .geminiignore patterns (optional, defaults to true)
+     * Whether to respect .gitignore and .unipathignore patterns (optional, defaults to true)
      */
     file_filtering_options?: {
         respect_git_ignore?: boolean;
-        respect_gemini_ignore?: boolean;
+        respect_unipath_ignore?: boolean;
     };
 }
 /**

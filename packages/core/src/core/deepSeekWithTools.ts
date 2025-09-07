@@ -187,29 +187,71 @@ export class DeepSeekWithTools {
   }
 
   /**
-   * Execute a tool directly
+   * Execute a tool directly using the tool registry
    */
   private async executeToolDirectly(functionName: string, args: any): Promise<string> {
     try {
-      // Map function names to tool names
-      const toolMap: Record<string, string> = {
-        'read_file': 'read-file',
-        'write_file': 'write-file',
-        'shell': 'shell',
-        'ls': 'ls',
-        'grep': 'grep',
-        'edit': 'edit'
-      };
-
-      const toolName = toolMap[functionName];
-      if (!toolName) {
-        return `Error: Unknown function ${functionName}`;
+      // Try to find the tool in the registry
+      const toolRegistry = this.toolRegistry;
+      const allTools = toolRegistry.getAllTools();
+      
+      // Find tool by name (with various naming conventions)
+      const possibleNames = [
+        functionName,
+        functionName.replace(/_/g, '-'),
+        functionName.replace(/_/g, ''),
+        functionName.toLowerCase(),
+        functionName.replace('_', ''),
+        `${functionName}-tool`,
+        `${functionName}Tool`
+      ];
+      
+      let tool = null;
+      for (const t of allTools) {
+        const toolName = t.name || '';
+        if (possibleNames.some(pn => 
+          toolName === pn || 
+          toolName.toLowerCase() === pn.toLowerCase() ||
+          toolName.toLowerCase().includes(pn.toLowerCase())
+        )) {
+          tool = t;
+          break;
+        }
       }
-
-      // Simple tool execution
-      if (toolName === 'read-file') {
+      
+      if (!tool) {
+        // Fallback to basic implementation for core tools
+        return this.executeFallbackTool(functionName, args);
+      }
+      
+      // Execute the tool from registry
+      try {
+        const invocation = tool.build(args);
+        const result = await invocation.execute(new AbortController().signal);
+        if (typeof result === 'string') {
+          return result;
+        } else if (result && typeof result === 'object') {
+          return (result as any).output || (result as any).llmContent || JSON.stringify(result);
+        }
+        return 'Tool executed successfully';
+      } catch (toolError) {
+        // If tool.build fails, try fallback
+        return this.executeFallbackTool(functionName, args);
+      }
+    } catch (error) {
+      return `Error executing function ${functionName}: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+  
+  /**
+   * Fallback implementation for basic tools
+   */
+  private async executeFallbackTool(functionName: string, args: any): Promise<string> {
+    try {
+      // Basic implementations for core tools when registry lookup fails
+      if (functionName === 'read_file' || functionName === 'read-file') {
         const fs = await import('fs/promises');
-        const content = await fs.readFile(args.absolute_path, 'utf-8');
+        const content = await fs.readFile(args.absolute_path || args.file_path, 'utf-8');
         if (args.offset !== undefined && args.limit !== undefined) {
           const lines = content.split('\n');
           const start = args.offset;
@@ -217,19 +259,19 @@ export class DeepSeekWithTools {
           return lines.slice(start, end).join('\n');
         }
         return content;
-      } else if (toolName === 'write-file') {
+      } else if (functionName === 'write_file' || functionName === 'write-file') {
         const fs = await import('fs/promises');
-        await fs.writeFile(args.absolute_path, args.content);
-        return `File written successfully to ${args.absolute_path}`;
-      } else if (toolName === 'shell') {
+        await fs.writeFile(args.absolute_path || args.file_path, args.content);
+        return `File written successfully to ${args.absolute_path || args.file_path}`;
+      } else if (functionName === 'shell') {
         const { execSync } = await import('child_process');
         const result = execSync(args.command, { encoding: 'utf-8' });
         return result;
-      } else if (toolName === 'ls') {
+      } else if (functionName === 'ls') {
         const fs = await import('fs/promises');
         const files = await fs.readdir(args.path || '.');
         return files.join('\n');
-      } else if (toolName === 'grep') {
+      } else if (functionName === 'grep') {
         const { execSync } = await import('child_process');
         const cmd = `grep -r "${args.pattern}" ${args.path || '.'}`;
         try {
@@ -238,16 +280,16 @@ export class DeepSeekWithTools {
         } catch (e) {
           return 'No matches found';
         }
-      } else if (toolName === 'edit') {
+      } else if (functionName === 'edit') {
         const fs = await import('fs/promises');
-        const content = await fs.readFile(args.absolute_path, 'utf-8');
-        const newContent = content.replace(args.old_text, args.new_text);
-        await fs.writeFile(args.absolute_path, newContent);
-        return `File edited successfully: ${args.absolute_path}`;
+        const content = await fs.readFile(args.absolute_path || args.file_path, 'utf-8');
+        const newContent = content.replace(args.old_text || args.old_string, args.new_text || args.new_string);
+        await fs.writeFile(args.absolute_path || args.file_path, newContent);
+        return `File edited successfully: ${args.absolute_path || args.file_path}`;
       }
-      return `Tool ${toolName} not implemented`;
+      return `Tool ${functionName} not found in registry and no fallback implementation`;
     } catch (error) {
-      return `Error executing function ${functionName}: ${error instanceof Error ? error.message : String(error)}`;
+      return `Error in fallback execution: ${error instanceof Error ? error.message : String(error)}`;
     }
   }
 

@@ -71,11 +71,11 @@ function createTempFilesForModify(
   const timestamp = Date.now();
   const tempOldPath = path.join(
     diffDir,
-    `gemini-cli-modify-${fileName}-old-${timestamp}${ext}`,
+    `unipath-cli-modify-${fileName}-old-${timestamp}${ext}`,
   );
   const tempNewPath = path.join(
     diffDir,
-    `gemini-cli-modify-${fileName}-new-${timestamp}${ext}`,
+    `unipath-cli-modify-${fileName}-new-${timestamp}${ext}`,
   );
 
   fs.writeFileSync(tempOldPath, currentContent, 'utf8');

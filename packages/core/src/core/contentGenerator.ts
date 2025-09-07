@@ -176,7 +176,8 @@ export interface ContentGenerator {
 
 export enum AuthType {
   LOGIN_WITH_GOOGLE = 'oauth-personal',
-  USE_GEMINI = 'gemini-api-key',
+  USE_GEMINI = 'gemini-api-key',  // Kept for backward compatibility
+  USE_UNIPATH = 'gemini-api-key',  // New preferred name
   USE_VERTEX_AI = 'vertex-ai',
   CLOUD_SHELL = 'cloud-shell',
   AZURE_OPENAI = 'azure-openai',

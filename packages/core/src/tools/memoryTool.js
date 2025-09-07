@@ -43,36 +43,36 @@ Do NOT use this tool:
 
 - \`fact\` (string, required): The specific fact or piece of information to remember. This should be a clear, self-contained statement. For example, if the user says "My favorite color is blue", the fact would be "My favorite color is blue".
 `;
-export const GEMINI_CONFIG_DIR = '.gemini';
-export const DEFAULT_CONTEXT_FILENAME = 'GEMINI.md';
-export const MEMORY_SECTION_HEADER = '## Gemini Added Memories';
-// This variable will hold the currently configured filename for GEMINI.md context files.
-// It defaults to DEFAULT_CONTEXT_FILENAME but can be overridden by setGeminiMdFilename.
-let currentGeminiMdFilename = DEFAULT_CONTEXT_FILENAME;
-export function setGeminiMdFilename(newFilename) {
+export const UNIPATH_CONFIG_DIR = '.unipath';
+export const DEFAULT_CONTEXT_FILENAME = 'UNIPATH.md';
+export const MEMORY_SECTION_HEADER = '## UNIPATH Added Memories';
+// This variable will hold the currently configured filename for UNIPATH.md context files.
+// It defaults to DEFAULT_CONTEXT_FILENAME but can be overridden by setUnipathMdFilename.
+let currentUnipathMdFilename = DEFAULT_CONTEXT_FILENAME;
+export function setUnipathMdFilename(newFilename) {
     if (Array.isArray(newFilename)) {
         if (newFilename.length > 0) {
-            currentGeminiMdFilename = newFilename.map((name) => name.trim());
+            currentUnipathMdFilename = newFilename.map((name) => name.trim());
         }
     }
     else if (newFilename && newFilename.trim() !== '') {
-        currentGeminiMdFilename = newFilename.trim();
+        currentUnipathMdFilename = newFilename.trim();
     }
 }
-export function getCurrentGeminiMdFilename() {
-    if (Array.isArray(currentGeminiMdFilename)) {
-        return currentGeminiMdFilename[0];
+export function getCurrentUnipathMdFilename() {
+    if (Array.isArray(currentUnipathMdFilename)) {
+        return currentUnipathMdFilename[0];
     }
-    return currentGeminiMdFilename;
+    return currentUnipathMdFilename;
 }
-export function getAllGeminiMdFilenames() {
-    if (Array.isArray(currentGeminiMdFilename)) {
-        return currentGeminiMdFilename;
+export function getAllUnipathMdFilenames() {
+    if (Array.isArray(currentUnipathMdFilename)) {
+        return currentUnipathMdFilename;
     }
-    return [currentGeminiMdFilename];
+    return [currentUnipathMdFilename];
 }
 function getGlobalMemoryFilePath() {
-    return path.join(Storage.getGlobalGeminiDir(), getCurrentGeminiMdFilename());
+    return path.join(Storage.getGlobalUnipathDir(), getCurrentUnipathMdFilename());
 }
 /**
  * Ensures proper newline separation before appending content.

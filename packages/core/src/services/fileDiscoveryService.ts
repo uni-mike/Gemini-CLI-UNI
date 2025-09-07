@@ -20,7 +20,7 @@ export interface FilterFilesOptions {
 
 export class FileDiscoveryService {
   private gitIgnoreFilter: GitIgnoreFilter | null = null;
-  private geminiIgnoreFilter: GitIgnoreFilter | null = null;
+  private unipathIgnoreFilter: GitIgnoreFilter | null = null;
   private projectRoot: string;
 
   constructor(projectRoot: string) {
@@ -46,7 +46,7 @@ export class FileDiscoveryService {
         // Neither ignore file found
       }
     }
-    this.geminiIgnoreFilter = gParser;
+    this.unipathIgnoreFilter = gParser;
   }
 
   /**
@@ -68,7 +68,7 @@ export class FileDiscoveryService {
       const shouldCheckIgnore = options.respectUnipathIgnore || options.respectGeminiIgnore;
       if (
         shouldCheckIgnore &&
-        this.shouldGeminiIgnoreFile(filePath)
+        this.shouldUnipathIgnoreFile(filePath)
       ) {
         return false;
       }
@@ -87,11 +87,11 @@ export class FileDiscoveryService {
   }
 
   /**
-   * Checks if a single file should be gemini-ignored
+   * Checks if a single file should be unipath-ignored
    */
-  shouldGeminiIgnoreFile(filePath: string): boolean {
-    if (this.geminiIgnoreFilter) {
-      return this.geminiIgnoreFilter.isIgnored(filePath);
+  shouldUnipathIgnoreFile(filePath: string): boolean {
+    if (this.unipathIgnoreFilter) {
+      return this.unipathIgnoreFilter.isIgnored(filePath);
     }
     return false;
   }
@@ -110,7 +110,7 @@ export class FileDiscoveryService {
     }
     // Check both for backward compatibility
     const shouldCheckIgnore = respectUnipathIgnore || respectGeminiIgnore;
-    if (shouldCheckIgnore && this.shouldGeminiIgnoreFile(filePath)) {
+    if (shouldCheckIgnore && this.shouldUnipathIgnoreFile(filePath)) {
       return true;
     }
     return false;
@@ -119,7 +119,7 @@ export class FileDiscoveryService {
   /**
    * Returns loaded patterns from .unipathignore (or .geminiignore for backward compatibility)
    */
-  getGeminiIgnorePatterns(): string[] {
-    return this.geminiIgnoreFilter?.getPatterns() ?? [];
+  getUnipathIgnorePatterns(): string[] {
+    return this.unipathIgnoreFilter?.getPatterns() ?? [];
   }
 }

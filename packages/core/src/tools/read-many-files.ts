@@ -65,11 +65,11 @@ export interface ReadManyFilesParams {
   useDefaultExcludes?: boolean;
 
   /**
-   * Whether to respect .gitignore and .geminiignore patterns (optional, defaults to true)
+   * Whether to respect .gitignore and .unipathignore patterns (optional, defaults to true)
    */
   file_filtering_options?: {
     respect_git_ignore?: boolean;
-    respect_gemini_ignore?: boolean;
+    respect_unipath_ignore?: boolean;
   };
 }
 
@@ -94,7 +94,7 @@ type FileProcessingResult =
 
 /**
  * Creates the default exclusion patterns including dynamic patterns.
- * This combines the shared patterns with dynamic patterns like GEMINI.md.
+ * This combines the shared patterns with dynamic patterns like UNIPATH.md.
  * TODO(adh): Consider making this configurable or extendable through a command line argument.
  */
 function getDefaultExcludes(config?: Config): string[] {
@@ -126,17 +126,17 @@ ${this.config.getTargetDir()}
     // Determine the final list of exclusion patterns exactly as in execute method
     const paramExcludes = this.params.exclude || [];
     const paramUseDefaultExcludes = this.params.useDefaultExcludes !== false;
-    const geminiIgnorePatterns = this.config
+    const unipathIgnorePatterns = this.config
       .getFileService()
-      .getGeminiIgnorePatterns();
+      .getUnipathIgnorePatterns();
     const finalExclusionPatternsForDescription: string[] =
       paramUseDefaultExcludes
         ? [
             ...getDefaultExcludes(this.config),
             ...paramExcludes,
-            ...geminiIgnorePatterns,
+            ...unipathIgnorePatterns,
           ]
-        : [...paramExcludes, ...geminiIgnorePatterns];
+        : [...paramExcludes, ...unipathIgnorePatterns];
 
     let excludeDesc = `Excluding: ${
       finalExclusionPatternsForDescription.length > 0
@@ -149,13 +149,13 @@ ${finalExclusionPatternsForDescription
         : 'none specified'
     }`;
 
-    // Add a note if .geminiignore patterns contributed to the final list of exclusions
-    if (geminiIgnorePatterns.length > 0) {
-      const geminiPatternsInEffect = geminiIgnorePatterns.filter((p) =>
+    // Add a note if .unipathignore patterns contributed to the final list of exclusions
+    if (unipathIgnorePatterns.length > 0) {
+      const unipathPatternsInEffect = unipathIgnorePatterns.filter((p) =>
         finalExclusionPatternsForDescription.includes(p),
       ).length;
-      if (geminiPatternsInEffect > 0) {
-        excludeDesc += ` (includes ${geminiPatternsInEffect} from .geminiignore)`;
+      if (unipathPatternsInEffect > 0) {
+        excludeDesc += ` (includes ${unipathPatternsInEffect} from .unipathignore)`;
       }
     }
 
@@ -180,9 +180,9 @@ ${finalExclusionPatternsForDescription
       respectGitIgnore:
         this.params.file_filtering_options?.respect_git_ignore ??
         defaultFileIgnores.respectGitIgnore, // Use the property from the returned object
-      respectGeminiIgnore:
-        this.params.file_filtering_options?.respect_gemini_ignore ??
-        defaultFileIgnores.respectGeminiIgnore, // Use the property from the returned object
+      respectUnipathIgnore:
+        this.params.file_filtering_options?.respect_unipath_ignore ??
+        defaultFileIgnores.respectUnipathIgnore, // Use the property from the returned object
     };
     // Get centralized file discovery service
     const fileDiscovery = this.config.getFileService();
@@ -235,14 +235,14 @@ ${finalExclusionPatternsForDescription
               entries.map((p) => path.relative(this.config.getTargetDir(), p)),
               {
                 respectGitIgnore: true,
-                respectGeminiIgnore: false,
+                respectUnipathIgnore: false,
               },
             )
             .map((p) => path.resolve(this.config.getTargetDir(), p))
         : entries;
 
-      // Apply gemini ignore filtering if enabled
-      const finalFilteredEntries = fileFilteringOptions.respectGeminiIgnore
+      // Apply unipath ignore filtering if enabled
+      const finalFilteredEntries = fileFilteringOptions.respectUnipathIgnore
         ? fileDiscovery
             .filterFiles(
               gitFilteredEntries.map((p) =>
@@ -250,14 +250,14 @@ ${finalExclusionPatternsForDescription
               ),
               {
                 respectGitIgnore: false,
-                respectGeminiIgnore: true,
+                respectUnipathIgnore: true,
               },
             )
             .map((p) => path.resolve(this.config.getTargetDir(), p))
         : gitFilteredEntries;
 
       let gitIgnoredCount = 0;
-      let geminiIgnoredCount = 0;
+      let unipathIgnoredCount = 0;
 
       for (const absoluteFilePath of entries) {
         // Security check: ensure the glob library didn't return something outside the workspace.
@@ -282,12 +282,12 @@ ${finalExclusionPatternsForDescription
           continue;
         }
 
-        // Check if this file was filtered out by gemini ignore
+        // Check if this file was filtered out by unipath ignore
         if (
-          fileFilteringOptions.respectGeminiIgnore &&
+          fileFilteringOptions.respectUnipathIgnore &&
           !finalFilteredEntries.includes(absoluteFilePath)
         ) {
-          geminiIgnoredCount++;
+          unipathIgnoredCount++;
           continue;
         }
 
@@ -302,11 +302,11 @@ ${finalExclusionPatternsForDescription
         });
       }
 
-      // Add info about gemini-ignored files if any were filtered
-      if (geminiIgnoredCount > 0) {
+      // Add info about unipath-ignored files if any were filtered
+      if (unipathIgnoredCount > 0) {
         skippedFiles.push({
-          path: `${geminiIgnoredCount} file(s)`,
-          reason: 'gemini ignored',
+          path: `${unipathIgnoredCount} file(s)`,
+          reason: 'unipath ignored',
         });
       }
     } catch (error) {
@@ -570,7 +570,7 @@ export class ReadManyFilesTool extends BaseDeclarativeTool<
         },
         file_filtering_options: {
           description:
-            'Whether to respect ignore patterns from .gitignore or .geminiignore',
+            'Whether to respect ignore patterns from .gitignore or .unipathignore',
           type: 'object',
           properties: {
             respect_git_ignore: {
@@ -578,9 +578,9 @@ export class ReadManyFilesTool extends BaseDeclarativeTool<
                 'Optional: Whether to respect .gitignore patterns when listing files. Only available in git repositories. Defaults to true.',
               type: 'boolean',
             },
-            respect_gemini_ignore: {
+            respect_unipath_ignore: {
               description:
-                'Optional: Whether to respect .geminiignore patterns when listing files. Defaults to true.',
+                'Optional: Whether to respect .unipathignore patterns when listing files. Defaults to true.',
               type: 'boolean',
             },
           },

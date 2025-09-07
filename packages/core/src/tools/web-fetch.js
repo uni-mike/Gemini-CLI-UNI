@@ -6,7 +6,7 @@
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, ToolConfirmationOutcome, } from './tools.js';
 import { ToolErrorType } from './tool-error.js';
 import { getErrorMessage } from '../utils/errors.js';
-import { ApprovalMode, DEFAULT_GEMINI_FLASH_MODEL } from '../config/config.js';
+import { ApprovalMode, DEFAULT_UNIPATH_FLASH_MODEL } from '../config/config.js';
 import { getResponseText } from '../utils/partUtils.js';
 import { fetchWithTimeout, isPrivateIp } from '../utils/fetch.js';
 import { convert } from 'html-to-text';
@@ -56,7 +56,7 @@ I was unable to access the URL directly. Instead, I have fetched the raw content
 ${textContent}
 ---
 `;
-            const result = await unipathClient.generateContent([{ role: 'user', parts: [{ text: fallbackPrompt }] }], {}, signal, DEFAULT_GEMINI_FLASH_MODEL);
+            const result = await unipathClient.generateContent([{ role: 'user', parts: [{ text: fallbackPrompt }] }], {}, signal, DEFAULT_UNIPATH_FLASH_MODEL);
             const resultText = getResponseText(result) || '';
             return {
                 llmContent: resultText,
@@ -120,7 +120,7 @@ ${textContent}
         const unipathClient = this.config.getUnipathClient();
         try {
             const response = await unipathClient.generateContent([{ role: 'user', parts: [{ text: userPrompt }] }], { tools: [{ urlContext: {} }] }, signal, // Pass signal
-            DEFAULT_GEMINI_FLASH_MODEL);
+            DEFAULT_UNIPATH_FLASH_MODEL);
             console.debug(`[WebFetchTool] Full response for prompt "${userPrompt.substring(0, 50)}...":`, JSON.stringify(response, null, 2));
             let responseText = getResponseText(response) || '';
             const urlContextMeta = response.candidates?.[0]?.urlContextMetadata;

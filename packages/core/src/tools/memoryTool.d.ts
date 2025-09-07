@@ -6,12 +6,12 @@
 import type { ToolEditConfirmationDetails, ToolResult } from './tools.js';
 import { BaseDeclarativeTool, BaseToolInvocation } from './tools.js';
 import type { ModifiableDeclarativeTool, ModifyContext } from './modifiable-tool.js';
-export declare const GEMINI_CONFIG_DIR = ".gemini";
-export declare const DEFAULT_CONTEXT_FILENAME = "GEMINI.md";
-export declare const MEMORY_SECTION_HEADER = "## Gemini Added Memories";
-export declare function setGeminiMdFilename(newFilename: string | string[]): void;
-export declare function getCurrentGeminiMdFilename(): string;
-export declare function getAllGeminiMdFilenames(): string[];
+export declare const UNIPATH_CONFIG_DIR = ".unipath";
+export declare const DEFAULT_CONTEXT_FILENAME = "UNIPATH.md";
+export declare const MEMORY_SECTION_HEADER = "## UNIPATH Added Memories";
+export declare function setUnipathMdFilename(newFilename: string | string[]): void;
+export declare function getCurrentUnipathMdFilename(): string;
+export declare function getAllUnipathMdFilenames(): string[];
 interface SaveMemoryParams {
     fact: string;
     modified_by_user?: boolean;
