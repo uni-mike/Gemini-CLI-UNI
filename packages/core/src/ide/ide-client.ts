@@ -116,7 +116,7 @@ export class IdeClient {
     if (!this.currentIde || !this.currentIdeDisplayName) {
       this.setState(
         IDEConnectionStatus.Disconnected,
-        `IDE integration is not supported in your current environment. To use this feature, run Gemini CLI in one of these supported IDEs: VS Code or VS Code forks`,
+        `IDE integration is not supported in your current environment. To use this feature, run Gemini CLI in one of these supported IDEs: VS Code, PyCharm, WebStorm, IntelliJ IDEA, or other JetBrains IDEs`,
         false,
       );
       return;
