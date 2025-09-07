@@ -697,6 +697,9 @@ PROACTIVE BEHAVIOR:
       if (toolUseMatches.length > 0) {
         console.log(`📦 Found ${toolUseMatches.length} tool calls to execute`);
         
+        // Show progress to user immediately
+        process.stdout.write(`\n🔄 Processing ${toolUseMatches.length} tool${toolUseMatches.length > 1 ? 's' : ''}...\n`);
+        
         // Execute all tools and collect results
         const toolResults: string[] = [];
         
@@ -731,10 +734,13 @@ PROACTIVE BEHAVIOR:
           }
           
           console.log(`🔧 Executing shell command: ${functionName}`);
+          process.stdout.write(`  ⚡ ${args.command || args.cmd || 'shell command'}...\n`);
           try {
             const result = await this.executeToolDirectly(functionName, args);
+            process.stdout.write(`  ✅ Shell command completed\n`);
             toolResults.push(`${functionName}: ${result}`);
           } catch (error) {
+            process.stdout.write(`  ❌ Shell command failed\n`);
             console.error(`Error executing ${functionName}:`, error);
             toolResults.push(`${functionName}: Error - ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -760,10 +766,62 @@ PROACTIVE BEHAVIOR:
           }
           
           console.log(`🔧 Executing function: ${functionName}`);
+          
+          // Show specific progress based on tool type
+          if (functionName === 'web_search' || functionName === 'web-search') {
+            const query = args.query || args.q || 'unknown query';
+            process.stdout.write(`  🔍 Web search: "${query.substring(0, 45)}${query.length > 45 ? '...' : ''}"\n`);
+          } else if (functionName === 'read_file' || functionName === 'read-file') {
+            const file = args.file_path || args.absolute_path || 'file';
+            const filename = file.split('/').pop();
+            process.stdout.write(`  📖 Reading file: ${filename}\n`);
+          } else if (functionName === 'write_file' || functionName === 'write-file') {
+            const file = args.file_path || args.absolute_path || 'file';
+            const filename = file.split('/').pop();
+            const contentLength = (args.content || '').length;
+            process.stdout.write(`  📝 Creating file: ${filename} (${contentLength} chars)\n`);
+          } else if (functionName === 'edit') {
+            const file = args.file_path || args.absolute_path || 'file';
+            const filename = file.split('/').pop();
+            const oldText = (args.old_text || args.old_string || '').substring(0, 30);
+            process.stdout.write(`  ✏️  Editing: ${filename} (replacing "${oldText}...")\n`);
+          } else if (functionName === 'search_file_content') {
+            const pattern = args.regex || args.pattern || 'pattern';
+            const globPattern = args.globPattern || args.glob || '*';
+            process.stdout.write(`  🔎 Searching "${pattern}" in ${globPattern}\n`);
+          } else if (functionName === 'grep') {
+            const pattern = args.pattern || 'pattern';
+            const path = args.path || '.';
+            process.stdout.write(`  🔍 Grep search: "${pattern}" in ${path.split('/').pop() || path}\n`);
+          } else {
+            process.stdout.write(`  ⚡ ${functionName}...\n`);
+          }
+          
           try {
             const result = await this.executeToolDirectly(functionName, args);
+            
+            // Show completion with brief result info
+            if (functionName === 'web_search' || functionName === 'web-search') {
+              const lines = result.split('\n').length;
+              const hasAnswerBox = result.includes('Answer:');
+              process.stdout.write(`  ✅ Found ${lines} results${hasAnswerBox ? ' + answer box' : ''}\n`);
+            } else if (functionName === 'write_file' || functionName === 'write-file') {
+              process.stdout.write(`  ✅ File created successfully\n`);
+            } else if (functionName === 'read_file' || functionName === 'read-file') {
+              const lineCount = result.split('\n').length;
+              process.stdout.write(`  ✅ Read ${lineCount} lines\n`);
+            } else if (functionName === 'edit') {
+              process.stdout.write(`  ✅ Edit applied successfully\n`);
+            } else if (functionName === 'search_file_content' || functionName === 'grep') {
+              const matches = result.split('\n').filter(line => line.trim()).length;
+              process.stdout.write(`  ✅ Found ${matches} matches\n`);
+            } else {
+              process.stdout.write(`  ✅ Completed\n`);
+            }
+            
             toolResults.push(`${functionName}: ${result}`);
           } catch (error) {
+            process.stdout.write(`  ❌ ${functionName} failed: ${error instanceof Error ? error.message.substring(0, 50) : 'Unknown error'}\n`);
             console.error(`Error executing ${functionName}:`, error);
             toolResults.push(`${functionName}: Error - ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -781,6 +839,15 @@ PROACTIVE BEHAVIOR:
           role: 'user',
           content: combinedResults
         });
+        
+        // Show completion status
+        const successCount = toolResults.filter(r => !r.includes('Error -')).length;
+        const errorCount = toolResults.length - successCount;
+        process.stdout.write(`\n🎯 Completed ${successCount}/${toolResults.length} tools successfully`);
+        if (errorCount > 0) {
+          process.stdout.write(` (${errorCount} failed)`);
+        }
+        process.stdout.write(`\n`);
 
         // Check if the assistant's response suggests more work is needed
         const assistantContent = responseMessage.content || '';
@@ -791,6 +858,7 @@ PROACTIVE BEHAVIOR:
 
         if (needsContinuation) {
           console.log('📝 Task needs continuation, proceeding...');
+          process.stdout.write(`\n🔄 Moving to next phase...\n`);
           console.log('🔄 Bypassing next speaker check for Azure OpenAI');
           currentMessage = 'Please continue with the next steps based on the tool results above.';
           continue;
