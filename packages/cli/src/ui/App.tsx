@@ -1185,10 +1185,12 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
                 <RadioButtonSelect
                   isFocused={!!approvalConfirmationRequest}
                   items={[
-                    { label: '1️⃣ Approve', value: true },
-                    { label: '2️⃣ Deny', value: false },
+                    { label: '1️⃣ Approve this operation', value: 'approve' },
+                    { label: '2️⃣ Skip this operation', value: 'skip' },
+                    { label: '3️⃣ Approve all remaining operations (YOLO mode)', value: 'yolo' },
+                    { label: '4️⃣ Cancel operation', value: 'cancel' },
                   ]}
-                  onSelect={(value: boolean) => {
+                  onSelect={(value: string) => {
                     approvalConfirmationRequest.onConfirm(value);
                   }}
                 />

@@ -425,7 +425,10 @@ export async function createContentGenerator(
               
               if (result.status === 'accepted') {
                 console.log('✅ Changes approved in IDE');
-                sessionAutoApprove = true; // Enable session auto-approve after first manual approval
+                // Only enable session auto-approve for non-default approval modes
+                if (approvalMode !== ApprovalMode.DEFAULT) {
+                  sessionAutoApprove = true;
+                }
                 return true;
               } else {
                 console.log('❌ Changes rejected in IDE');
@@ -468,8 +471,11 @@ export async function createContentGenerator(
                   
                   if (response.approved) {
                     console.log('✅ Approved via CLI UI');
-                    // Enable session auto-approve after first manual approval
-                    sessionAutoApprove = true;
+                    // Only enable session auto-approve for non-default approval modes
+                    // In default mode, ask for each operation individually
+                    if (approvalMode !== ApprovalMode.DEFAULT) {
+                      sessionAutoApprove = true;
+                    }
                     return true;
                   } else {
                     console.log('❌ Denied via CLI UI');
@@ -482,7 +488,10 @@ export async function createContentGenerator(
                   
                   if (response.approved) {
                     console.log('✅ Approved');
-                    sessionAutoApprove = true;
+                    // Only enable session auto-approve for non-default approval modes
+                    if (approvalMode !== ApprovalMode.DEFAULT) {
+                      sessionAutoApprove = true;
+                    }
                     return true;
                   } else {
                     console.log('❌ Denied');
@@ -499,8 +508,10 @@ export async function createContentGenerator(
             }
           } catch (error) {
             console.error('❌ IDE integration error:', error);
-            // Fallback to auto-approve if IDE fails
-            sessionAutoApprove = true;
+            // Fallback to auto-approve if IDE fails, but respect approval mode
+            if (approvalMode !== ApprovalMode.DEFAULT) {
+              sessionAutoApprove = true;
+            }
             return true;
           }
         } else {
@@ -529,7 +540,10 @@ export async function createContentGenerator(
             
             if (response.approved) {
               console.log('✅ Approved via CLI UI');
-              sessionAutoApprove = true; // Enable session auto-approve after first manual approval
+              // Only enable session auto-approve for non-default approval modes
+              if (approvalMode !== ApprovalMode.DEFAULT) {
+                sessionAutoApprove = true;
+              }
               return true;
             } else {
               console.log('❌ Denied via CLI UI');

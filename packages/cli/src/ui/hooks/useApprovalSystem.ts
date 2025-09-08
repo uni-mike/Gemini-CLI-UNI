@@ -13,7 +13,7 @@ import type { ApprovalRequest } from '@unipath/unipath-cli-core';
 interface ApprovalConfirmationRequest {
   id: string;
   prompt: React.ReactNode;
-  onConfirm: (confirmed: boolean) => void;
+  onConfirm: (response: string) => void;
 }
 
 /**
@@ -50,12 +50,39 @@ export function useApprovalSystem() {
           const confirmationRequest: ApprovalConfirmationRequest = {
             id: request.id,
             prompt,
-            onConfirm: (confirmed: boolean) => {
-              // Respond to the approval request
-              console.log('🔗 Approval system hook: User responded with:', confirmed);
+            onConfirm: (response: string) => {
+              // Respond to the approval request based on user choice
+              console.log('🔗 Approval system hook: User responded with:', response);
+              
+              let approved: boolean;
+              let reason: string;
+              
+              switch(response) {
+                case 'approve':
+                  approved = true;
+                  reason = 'Approved via CLI UI';
+                  break;
+                case 'skip':
+                  approved = false;
+                  reason = 'Skipped via CLI UI';
+                  break;
+                case 'yolo':
+                  approved = true;
+                  reason = 'YOLO mode enabled via CLI UI';
+                  // TODO: Set global YOLO mode for future operations
+                  break;
+                case 'cancel':
+                  approved = false;
+                  reason = 'Cancelled via CLI UI';
+                  break;
+                default:
+                  approved = false;
+                  reason = 'Unknown response, denied via CLI UI';
+              }
+              
               approvalManager.respondToApproval(request.id, {
-                approved: confirmed,
-                reason: confirmed ? 'Approved via CLI' : 'Denied via CLI'
+                approved: approved,
+                reason: reason
               });
               
               // Clear the confirmation request from UI
