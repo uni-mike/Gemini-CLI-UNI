@@ -32,7 +32,37 @@ You will be given:
 3.  **Preserve the \`replace\` String:** Do NOT modify the \`replace\` string unless the instruction explicitly requires it and it was the source of the error. Your primary focus is fixing the \`search\` string.
 4.  **No Changes Case:** CRUCIAL: if the change is already present in the file,  set \`noChangesRequired\` to True and explain why in the \`explanation\`. It is crucial that you only do this if the changes outline in \`replace\` are alredy in the file and suits the instruction!! 
 5.  **Exactness:** The final \`search\` field must be the EXACT literal text from the file. Do not escape characters.
-`;
+
+# CRITICAL: JSON Response Format
+You MUST respond with valid JSON only. No explanatory text before or after. Here's the expected format:
+
+\`\`\`json
+{
+  "search": "corrected search string that will match the file exactly",
+  "replace": "the replacement text (usually unchanged from original)", 
+  "noChangesRequired": false,
+  "explanation": "Specific reason why the original search failed and how this fixes it"
+}
+\`\`\`
+
+Example responses:
+\`\`\`json
+{
+  "search": "function test() {\\n  return true;\\n}",
+  "replace": "function test() {\\n  return false;\\n}",
+  "noChangesRequired": false,
+  "explanation": "The original search had incorrect indentation (2 spaces vs 4 spaces in the actual file)"
+}
+\`\`\`
+
+\`\`\`json
+{
+  "search": "",
+  "replace": "",
+  "noChangesRequired": true,
+  "explanation": "The replacement text '2025' is already present in the file at the expected location"
+}
+\`\`\``;
 
 const EDIT_USER_PROMPT = `
 # Goal of the Original Edit
