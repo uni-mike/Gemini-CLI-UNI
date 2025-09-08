@@ -16,7 +16,6 @@ export class ExtremePromptParser {
     console.log(`📖 Extreme prompt detected (${this.formatBytes(prompt.length)}), using streaming parser...`);
     
     return new Promise((resolve, reject) => {
-      const startTime = Date.now();
       const timeout = setTimeout(() => {
         reject(new Error(`Prompt parsing timeout after ${this.MAX_PARSE_TIME}ms`));
       }, this.MAX_PARSE_TIME);

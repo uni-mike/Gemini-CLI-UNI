@@ -1,7 +1,7 @@
-import { Task, ExecutionContext, ToolCall } from '../../types';
+import type { Task, ExecutionContext } from '../../types.js';
 import { EventEmitter } from 'events';
-import { ToolMapper } from './ToolMapper';
-import { ToolExecutor } from './ToolExecutor';
+import { ToolMapper } from './ToolMapper.js';
+import { ToolExecutor } from './ToolExecutor.js';
 
 export class Executor extends EventEmitter {
   private toolMapper: ToolMapper;

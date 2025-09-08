@@ -1,15 +1,14 @@
 import { EventEmitter } from 'events';
-import { 
+import type { 
   Task, 
-  TaskStatus, 
   TaskPlan, 
   OrchestratorConfig, 
   Progress,
   ExecutionContext 
-} from './types';
-import { Planner } from './Planner';
-import { Executor } from './Executor';
-import { v4 as uuidv4 } from 'uuid';
+} from './types.js';
+import { TaskStatus } from './types.js';
+import { Planner } from './Planner.js';
+import { Executor } from './Executor.js';
 
 export class Orchestrator extends EventEmitter {
   private planner: Planner;

@@ -1,16 +1,14 @@
-import { Progress, Task, TaskStatus } from './types';
+import type { Progress, Task } from './types.js';
 import chalk from 'chalk';
 
 export class ProgressTracker {
   private startTime: number;
-  private lastUpdate: number;
   private spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
   private spinnerIndex = 0;
   private updateInterval?: NodeJS.Timeout;
 
   constructor() {
     this.startTime = Date.now();
-    this.lastUpdate = Date.now();
   }
 
   start(): void {

@@ -1,7 +1,7 @@
-import { Task, TaskPlan } from '../../types';
-import { TaskAnalyzer } from './TaskAnalyzer';
-import { TaskDecomposer } from './TaskDecomposer';
-import { TaskOptimizer } from './TaskOptimizer';
+import type { TaskPlan } from '../../types.js';
+import { TaskAnalyzer } from './TaskAnalyzer.js';
+import { TaskDecomposer } from './TaskDecomposer.js';
+import { TaskOptimizer } from './TaskOptimizer.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class Planner {

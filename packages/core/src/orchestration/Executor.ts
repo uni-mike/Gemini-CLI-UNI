@@ -1,4 +1,4 @@
-import { Task, ExecutionContext, ToolCall } from './types';
+import type { Task, ExecutionContext, ToolCall } from './types.js';
 import { EventEmitter } from 'events';
 
 export class Executor extends EventEmitter {

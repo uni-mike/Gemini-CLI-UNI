@@ -1,4 +1,4 @@
-import { ToolCall } from '../../types';
+import type { ToolCall } from '../../types.js';
 
 export class ToolExecutor {
   private toolRegistry: Map<string, any>;

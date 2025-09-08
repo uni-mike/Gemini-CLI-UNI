@@ -4,8 +4,8 @@
  */
 
 export class UnicodeEmojiParser {
-  // Unicode ranges for different character types
-  private static readonly EMOJI_RANGES = [
+  // Unicode ranges for different character types (preserved for future use)
+  /* private static readonly EMOJI_RANGES = [
     [0x1F600, 0x1F64F], // Emoticons
     [0x1F300, 0x1F5FF], // Symbols & Pictographs
     [0x1F680, 0x1F6FF], // Transport & Map
@@ -19,7 +19,7 @@ export class UnicodeEmojiParser {
     [0x2700, 0x27BF],   // Dingbats
     [0xFE00, 0xFE0F],   // Variation Selectors
     [0x1F1E6, 0x1F1FF], // Regional Indicators (flags)
-  ];
+  ]; */
 
   /**
    * Safely parse text containing complex Unicode and emoji sequences
@@ -240,7 +240,7 @@ export class UnicodeEmojiParser {
   } {
     try {
       // Use Intl.Segmenter if available for proper grapheme counting
-      const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
+      const segmenter = new (Intl as any).Segmenter('en', { granularity: 'grapheme' });
       const graphemes = [...segmenter.segment(text)].length;
       
       const codePoints = [...text].length;

@@ -1,4 +1,4 @@
-import { Task, Progress } from '../../types';
+import type { Task } from '../../types.js';
 import { EventEmitter } from 'events';
 
 export class HealthMonitor extends EventEmitter {

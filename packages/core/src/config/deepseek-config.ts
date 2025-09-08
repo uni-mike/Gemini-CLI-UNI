@@ -20,8 +20,8 @@ export interface DeepSeekConfig {
 }
 
 export const DEFAULT_DEEPSEEK_CONFIG: DeepSeekConfig = {
-  apiKey: process.env.DEEPSEEK_API_KEY || '',
-  baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1',
+  apiKey: process.env['DEEPSEEK_API_KEY'] || '',
+  baseUrl: process.env['DEEPSEEK_BASE_URL'] || 'https://api.deepseek.com/v1',
   model: 'deepseek-coder',
   temperature: 0.7,
   maxTokens: 4000,

@@ -1,9 +1,8 @@
-import { Orchestrator } from './Orchestrator';
-import { Planner } from './Planner';
-import { Executor } from './Executor';
-import { ProgressTracker } from './ProgressTracker';
-import { Progress, Task } from './types';
-import { DeepSeekWithTools } from '../core/deepSeekWithTools';
+import { Orchestrator } from './Orchestrator.js';
+import { Executor } from './Executor.js';
+import { ProgressTracker } from './ProgressTracker.js';
+import type { Progress, Task } from './types.js';
+import { DeepSeekWithTools } from '..//core/deepSeekWithTools.js';
 
 export class DeepSeekOrchestrator {
   private orchestrator: Orchestrator;
@@ -128,25 +127,25 @@ export class DeepSeekOrchestrator {
     // Map of tool names to DeepSeek tool implementations
     const toolMap = {
       'read_file': async (args: any) => {
-        return await this.deepSeek!.executeFunction('read_file', args);
+        return await (this.deepSeek as any).executeToolDirectly('read_file', args);
       },
       'write_file': async (args: any) => {
-        return await this.deepSeek!.executeFunction('write_file', args);
+        return await (this.deepSeek as any).executeToolDirectly('write_file', args);
       },
       'edit_file': async (args: any) => {
-        return await this.deepSeek!.executeFunction('edit', args);
+        return await (this.deepSeek as any).executeToolDirectly('edit', args);
       },
       'search_file_content': async (args: any) => {
-        return await this.deepSeek!.executeFunction('grep', args);
+        return await (this.deepSeek as any).executeToolDirectly('grep', args);
       },
       'shell': async (args: any) => {
-        return await this.deepSeek!.executeFunction('shell', args);
+        return await (this.deepSeek as any).executeToolDirectly('shell', args);
       },
       'web_search': async (args: any) => {
-        return await this.deepSeek!.executeFunction('web_search', args);
+        return await (this.deepSeek as any).executeToolDirectly('web_search', args);
       },
       'ls': async (args: any) => {
-        return await this.deepSeek!.executeFunction('ls', args);
+        return await (this.deepSeek as any).executeToolDirectly('ls', args);
       }
     };
 

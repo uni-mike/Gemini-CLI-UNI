@@ -260,26 +260,15 @@ export class DeepSeekWithTools {
             // Auto-approve in auto or yolo mode
             console.log(`🔄 Auto-approving change (${approvalMode} mode)`);
           } else {
-            // Need user confirmation
-            console.log('\n📋 Change Preview:');
-            console.log('─'.repeat(50));
-            
-            // Show diff or description
-            if ((confirmationDetails as any).diff) {
-              console.log((confirmationDetails as any).diff);
-            } else if ((confirmationDetails as any).description) {
-              console.log((confirmationDetails as any).description);
-            } else {
-              console.log(JSON.stringify(confirmationDetails, null, 2));
-            }
-            
-            console.log('─'.repeat(50));
+            // Need user confirmation - no preview shown per user request
             
             // If we have a confirmation callback, use it
             if (this.confirmationCallback) {
               const approved = await this.confirmationCallback(confirmationDetails);
               if (!approved) {
-                return 'Change rejected by user';
+                // Instead of rejecting immediately, throw a special error that 
+                // indicates approval is needed through the UI system
+                throw new Error('APPROVAL_NEEDED_UI: Operation requires approval through CLI UI system');
               }
             } else {
               // For now, log that approval is needed

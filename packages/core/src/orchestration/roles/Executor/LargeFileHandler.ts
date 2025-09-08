@@ -1,9 +1,7 @@
 import * as fs from 'fs';
-import * as path from 'path';
 
 export class LargeFileHandler {
   private readonly LARGE_FILE_THRESHOLD = 100 * 1024 * 1024; // 100MB
-  private readonly CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
 
   async handleLargeFileOperation(operation: string, filePath: string, options: any = {}): Promise<any> {
     const stats = await fs.promises.stat(filePath);
@@ -53,9 +51,10 @@ export class LargeFileHandler {
       let data = '';
       let lineCount = 0;
 
-      stream.on('data', (chunk) => {
-        data += chunk;
-        lineCount += (chunk.match(/\n/g) || []).length;
+      stream.on('data', (chunk: string | Buffer) => {
+        const chunkStr = typeof chunk === 'string' ? chunk : chunk.toString();
+        data += chunkStr;
+        lineCount += (chunkStr.match(/\n/g) || []).length;
         
         if (lineCount >= limit) {
           stream.destroy();
@@ -116,10 +115,11 @@ export class LargeFileHandler {
         size: 0
       };
 
-      stream.on('data', (chunk) => {
+      stream.on('data', (chunk: string | Buffer) => {
+        const chunkStr = typeof chunk === 'string' ? chunk : chunk.toString();
         stats.chars += chunk.length;
-        stats.words += (chunk.match(/\S+/g) || []).length;
-        stats.lines += (chunk.match(/\n/g) || []).length;
+        stats.words += (chunkStr.match(/\S+/g) || []).length;
+        stats.lines += (chunkStr.match(/\n/g) || []).length;
       });
 
       stream.on('end', async () => {

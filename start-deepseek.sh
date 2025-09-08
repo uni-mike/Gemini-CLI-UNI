@@ -14,6 +14,7 @@ if [ -f .env.deepseek ]; then
     export AZURE_OPENAI_API_VERSION=$(grep "^API_VERSION=" .env.deepseek | cut -d'=' -f2)
     export AZURE_MODEL=$(grep "^MODEL=" .env.deepseek | cut -d'=' -f2)
     export AZURE_DEPLOYMENT=$AZURE_MODEL
+    export APPROVAL_MODE=$(grep "^APPROVAL_MODE=" .env.deepseek | cut -d'=' -f2)
     echo "✅ Loaded configuration from .env.deepseek"
 else
     echo "⚠️  .env.deepseek not found, using inline configuration"
@@ -40,6 +41,14 @@ echo "   • API Version: ${AZURE_OPENAI_API_VERSION}"
 echo ""
 echo "💡 Note: DeepSeek R1 is known for strong reasoning and code capabilities"
 echo ""
+
+# Check for --non-interactive flag and set environment variable
+for arg in "$@"; do
+    if [ "$arg" = "--non-interactive" ]; then
+        export UNIPATH_NON_INTERACTIVE=true
+        break
+    fi
+done
 
 # Start the UNIPATH CLI with all arguments passed through
 echo "✨ Launching UNIPATH CLI with DeepSeek R1 backend..."

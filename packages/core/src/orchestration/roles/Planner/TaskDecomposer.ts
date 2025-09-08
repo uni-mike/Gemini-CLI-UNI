@@ -1,4 +1,5 @@
-import { Task, TaskStatus } from '../../types';
+import type { Task } from '../../types.js';
+import { TaskStatus } from '../../types.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class TaskDecomposer {

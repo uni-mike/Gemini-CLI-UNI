@@ -1,4 +1,5 @@
-import { Task, TaskPlan, TaskStatus } from './types';
+import type { Task, TaskPlan } from './types.js';
+import { TaskStatus } from './types.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class Planner {
@@ -84,18 +85,6 @@ export class Planner {
   }
 
   private async aiDecomposition(prompt: string): Promise<Task[]> {
-    const decompositionPrompt = `
-Analyze this task and break it down into specific, actionable steps:
-"${prompt}"
-
-Return a structured list of tasks with:
-1. Clear, specific descriptions
-2. Identified dependencies
-3. Estimated time for each
-4. Required tools/operations
-
-Format as JSON array with: description, tools, estimatedTime, dependencies`;
-
     try {
       // This would call the AI model
       // const response = await this.aiModel.complete(decompositionPrompt);
