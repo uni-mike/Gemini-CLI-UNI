@@ -386,6 +386,7 @@ export async function createContentGenerator(
       deepSeekClient.setConfirmationCallback(async (details: any) => {
         // Check config approval mode first
         const approvalMode = gcConfig.getApprovalMode();
+        console.log(`🔧 DEBUG: Approval mode check: ${approvalMode}`);
         if (approvalMode === ApprovalMode.AUTO_EDIT || approvalMode === ApprovalMode.YOLO) {
           console.log(`✅ AUTO-APPROVED (${approvalMode} mode)`);
           return true;

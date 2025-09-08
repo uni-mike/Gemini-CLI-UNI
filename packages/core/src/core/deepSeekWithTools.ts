@@ -256,9 +256,9 @@ export class DeepSeekWithTools {
           // Check approval mode
           const approvalMode = this.config.getApprovalMode();
           
-          if (approvalMode === 'autoEdit' && this.config.isTrustedFolder()) {
-            // Auto-approve in trusted folders with autoEdit mode
-            console.log('🔄 Auto-approving change (AUTO_EDIT mode in trusted folder)');
+          if (approvalMode === 'autoEdit' || approvalMode === 'yolo') {
+            // Auto-approve in auto or yolo mode
+            console.log(`🔄 Auto-approving change (${approvalMode} mode)`);
           } else {
             // Need user confirmation
             console.log('\n📋 Change Preview:');
@@ -1110,19 +1110,21 @@ PROACTIVE BEHAVIOR:
   /**
    * Detect if a task is too complex for DeepSeek and needs chunking
    */
-  // @ts-ignore - temporarily unused during debugging
   private detectComplexTask(message: string): boolean {
+    // Skip chunking for very short messages
     const wordCount = message.split(/\s+/).length;
+    if (wordCount < 100) {
+      console.log(`🧠 Complexity check: ${wordCount} words - too short to need chunking`);
+      return false;
+    }
     
-    // Only chunk if REALLY complex - not simple 3-5 step tasks
-    const isComplex = 
-      wordCount > 300 ||
-      (message.match(/\d+\.\s/g) || []).length > 6 ||
-      (/comprehensive/i.test(message) && wordCount > 150) ||
-      (/(phase|section).*\n.*\s*(phase|section)/is.test(message) && wordCount > 200);
+    // For longer messages, check for complexity indicators
+    const numberedSteps = (message.match(/\d+\.\s/g) || []).length;
     
-    // Debug output
-    console.log(`🧠 Complexity check: ${wordCount} words, complex=${isComplex}`);
+    // Only chunk if we have many numbered steps AND it's a comprehensive task
+    const isComplex = numberedSteps >= 6 && message.toLowerCase().includes('comprehensive');
+    
+    console.log(`🧠 Complexity check: ${wordCount} words, ${numberedSteps} steps, complex=${isComplex}`);
     
     return isComplex;
   }
@@ -1154,10 +1156,8 @@ Format as a numbered TODO list with tool requirements, then automatically begin 
       // Immediately show we're starting
       yield "🤖 Connecting to DeepSeek R1...\n\n";
       
-      // TEMPORARILY DISABLE AUTO-CHUNKING - it's making simple tasks complex
-      // TODO: Fix chunking logic to only trigger for truly mega prompts
-      const isComplexTask = false; // this.detectComplexTask(message);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // Auto-chunk only for truly massive prompts
+      const isComplexTask = this.detectComplexTask(message);
       if (isComplexTask) {
         yield "🧠 Complex task detected - using intelligent chunking...\n";
         message = this.chunkComplexTask(message);
