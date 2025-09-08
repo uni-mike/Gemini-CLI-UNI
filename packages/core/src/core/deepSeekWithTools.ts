@@ -762,8 +762,45 @@ PROACTIVE BEHAVIOR:
 
       // Check if the response contains our tool_use format - handle MULTIPLE tool calls
       const responseContent = responseMessage.content || '';
+      
+      // Primary regex for well-formed tool_use blocks
       const toolUseRegex = /<tool_use>\s*tool_name:\s*(\w+)\s*arguments:\s*({[\s\S]*?})\s*<\/tool_use>/gm;
-      const toolUseMatches = [...responseContent.matchAll(toolUseRegex)];
+      let toolUseMatches = [...responseContent.matchAll(toolUseRegex)];
+      
+      // ROBUST RECOVERY: If no matches found, try to extract from malformed responses
+      if (toolUseMatches.length === 0) {
+        console.log('🔧 Primary parsing failed, attempting recovery from malformed response...');
+        
+        // Look for patterns like: "function: web_search" followed by JSON
+        const fallbackRegex1 = /(?:function:\s*|tool_name:\s*)(\w+)[\s\S]*?({[^}]*(?:"[^"]*"[^}]*)*})/gm;
+        const fallbackMatches1 = [...responseContent.matchAll(fallbackRegex1)];
+        
+        if (fallbackMatches1.length > 0) {
+          console.log(`🔧 Recovery method 1: Found ${fallbackMatches1.length} tool calls`);
+          toolUseMatches = fallbackMatches1;
+        } else {
+          // Look for standalone JSON that might be function arguments
+          const jsonPattern = /"query":\s*"[^"]+"|"content":\s*"[^"]+"|"file_path":\s*"[^"]+"/g;
+          const jsonMatches = responseContent.match(jsonPattern);
+          
+          if (jsonMatches && jsonMatches.length > 0) {
+            console.log('🔧 Recovery method 2: Found potential tool arguments, inferring tool type...');
+            
+            // Infer tool type from arguments
+            let inferredTool = 'unknown';
+            if (responseContent.includes('"query"') || responseContent.includes('search')) {
+              inferredTool = 'web_search';
+            } else if (responseContent.includes('"content"') || responseContent.includes('write')) {
+              inferredTool = 'write_file';
+            }
+            
+            // Create a synthetic match
+            const syntheticArgs = `{${jsonMatches.join(', ')}}`;
+            toolUseMatches = [[null, inferredTool, syntheticArgs]];
+            console.log(`🔧 Inferred tool: ${inferredTool} with args: ${syntheticArgs}`);
+          }
+        }
+      }
       
       if (toolUseMatches.length > 0) {
         // Show progress messages to user immediately via console.log for visibility
@@ -880,7 +917,7 @@ PROACTIVE BEHAVIOR:
           
           try {
             // Add timeout to prevent hanging (except for approval operations)
-            const isApprovalTool = ['replace', 'write_file', 'edit'].includes(functionName);
+            const isApprovalTool = ['replace', 'write_file', 'edit', 'run_shell_command', 'shell'].includes(functionName);
             
             let result: string;
             if (isApprovalTool) {
@@ -1208,7 +1245,7 @@ For multiple operations, structure your response as:
             
             try {
               // Add timeout protection but skip for approval tools
-              const isApprovalTool = ['replace', 'write_file', 'edit'].includes(functionName);
+              const isApprovalTool = ['replace', 'write_file', 'edit', 'run_shell_command', 'shell'].includes(functionName);
               
               let result: string;
               if (isApprovalTool) {
