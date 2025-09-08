@@ -1,13 +1,13 @@
-# Dependency Audit Report
+# Dependency Audit
 
-## Production Dependencies
+## Dependencies
 - @lvce-editor/ripgrep: ^2.3.0
 - dotenv: ^17.2.2
 - openai: ^5.19.1
 - simple-git: ^3.28.0
 - strip-ansi: ^7.1.0
 
-## Development Dependencies
+## Dev Dependencies
 - @types/mime-types: ^3.0.1
 - @types/mock-fs: ^4.13.4
 - @types/shell-quote: ^1.7.5
@@ -46,7 +46,5 @@
 - @lydell/node-pty-win32-x64: 1.1.0
 - node-pty: ^1.0.0
 
-## Audit Findings
-- All dependencies are up-to-date
-- No known security vulnerabilities
-- No deprecated packages found
+## Notes
+- All dependencies are specified with version range. Consider checking for updates using `npm outdated`

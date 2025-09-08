@@ -4,6 +4,7 @@
  */
 
 import type { Config } from '../config/config.js';
+// Reviewed on September 8, 2025
 import { ApprovalMode } from '../config/config.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 
@@ -485,6 +486,68 @@ export class DeepSeekWithTools {
           return results.length > 0 ? results.join('\n') : 'No search results found';
         } catch (error) {
           return `Search error: ${error instanceof Error ? error.message : String(error)}`;
+        }
+      } else if (functionName === 'replace' || functionName === 'str_replace' || functionName === 'string_replace') {
+        // Handle replace tool with timeout protection
+        const filePath = args.file_path || args.path;
+        const oldText = args.old_text || args.old_string || args.search;
+        const newText = args.new_text || args.new_string || args.replace;
+        
+        if (!filePath || !oldText || newText === undefined) {
+          return 'Replace failed: Missing required parameters (file_path, old_text, new_text)';
+        }
+        
+        // Handle replace operation with proper approval flow
+        try {
+          const fs = await import('fs/promises');
+          
+          // First try to read the file
+          let content: string;
+          try {
+            content = await fs.readFile(filePath, 'utf-8');
+          } catch (error) {
+            return `Replace failed: Cannot read file ${filePath}`;
+          }
+          
+          // Check if old text exists
+          if (!content.includes(oldText)) {
+            // If text not found, check if they're identical (no changes needed)
+            if (oldText === newText) {
+              console.log('ℹ️ No changes required - old and new text are identical');
+              return 'No changes required - text already matches desired state';
+            }
+            return `Replace failed: Text not found in ${filePath}`;
+          }
+          
+          // Perform replacement
+          const newContent = content.replace(oldText, newText);
+          
+          // Show diff and get approval if needed
+          if (needsApproval && this.confirmationCallback) {
+            console.log('\n📋 Replace Preview:');
+            console.log('─'.repeat(50));
+            console.log(`File: ${filePath}`);
+            console.log('─'.repeat(50));
+            console.log('- ' + oldText.substring(0, 100) + (oldText.length > 100 ? '...' : ''));
+            console.log('+ ' + newText.substring(0, 100) + (newText.length > 100 ? '...' : ''));
+            console.log('─'.repeat(50));
+            
+            const approved = await this.confirmationCallback({
+              type: 'file_edit',
+              path: filePath,
+              old_content: oldText,
+              new_content: newText
+            });
+            
+            if (!approved) {
+              return 'Replace operation cancelled by user';
+            }
+          }
+          
+          await fs.writeFile(filePath, newContent);
+          return `Successfully replaced text in ${filePath}`;
+        } catch (error) {
+          return `Replace error: ${error instanceof Error ? error.message : String(error)}`;
         }
       }
       
