@@ -1,9 +1,0 @@
-Please help me with a comprehensive task that involves multiple steps:
-
-1. Search the web for "React performance tips 2025"
-2. Read the package.json file 
-3. Create a summary report called REACT_PERFORMANCE.md
-4. Run a shell command to check npm version
-5. Search for any files containing "optimization" in the codebase
-
-This should test the auto-execution flow after chunking.
