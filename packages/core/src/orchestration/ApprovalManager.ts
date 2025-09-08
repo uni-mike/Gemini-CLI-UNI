@@ -158,7 +158,26 @@ export class ApprovalManager extends EventEmitter {
     // Store the approval request
     this.pendingApprovals.set(approvalRequest.id, approvalRequest);
     
-    // Emit approval needed event for the CLI UI to handle
+    // Wait for UI listeners to be ready, with fallback
+    const maxWaitTime = 5000; // 5 seconds max wait
+    const checkInterval = 100; // Check every 100ms
+    let waitedTime = 0;
+    
+    while (this.listenerCount('approvalNeeded') === 0 && waitedTime < maxWaitTime) {
+      console.log(`⏳ Waiting for CLI UI to initialize... (${waitedTime}ms)`);
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      waitedTime += checkInterval;
+    }
+    
+    const listenerCount = this.listenerCount('approvalNeeded');
+    console.log(`🔗 ApprovalManager: Emitting approvalNeeded event for ${approvalRequest.id}, listeners:`, listenerCount);
+    
+    if (listenerCount === 0) {
+      console.log('⚠️  No UI listeners found, falling back to console approval');
+      // Fall back to console approval if no UI listeners
+      return this.requestConsoleApproval(request);
+    }
+    
     this.emit('approvalNeeded', approvalRequest);
 
     // Return a promise that resolves when approval is given via UI

@@ -68,6 +68,7 @@ export function useApprovalSystem() {
         };
 
         approvalManager.on('approvalNeeded', handleApprovalNeeded);
+        console.log('🔗 Approval system hook: Event listener registered, total listeners:', approvalManager.listenerCount('approvalNeeded'));
 
         return () => {
           if (approvalManager) {
