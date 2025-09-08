@@ -20,7 +20,10 @@ interface ApprovalConfirmationRequest {
  * Hook to integrate ApprovalManager with the CLI's React Ink UI system
  * Listens for approval events and creates confirmation requests for the UI
  */
-export function useApprovalSystem() {
+export function useApprovalSystem(operationTracker?: {
+  addApprovalOperation: (description: string) => string;
+  updateOperation: (update: { id: string; status?: 'pending' | 'running' | 'completed' | 'failed'; details?: string }) => void;
+}) {
   const [approvalConfirmationRequest, setApprovalConfirmationRequest] = 
     useState<ApprovalConfirmationRequest | null>(null);
 
@@ -37,6 +40,12 @@ export function useApprovalSystem() {
         // Listen for approval needed events
         const handleApprovalNeeded = (request: ApprovalRequest) => {
           console.log('🔗 Approval system hook: Received approval request:', request.id);
+          
+          // Track the approval operation if tracker is available
+          let operationId: string | null = null;
+          if (operationTracker) {
+            operationId = operationTracker.addApprovalOperation(request.description);
+          }
           // Create a prompt for the CLI UI using React.createElement
           const prompt = React.createElement(Box, { flexDirection: 'column' },
             React.createElement(Text, { color: Colors.AccentYellow }, '🔐 Approval Required'),
@@ -78,6 +87,15 @@ export function useApprovalSystem() {
                 default:
                   approved = false;
                   reason = 'Unknown response, denied via CLI UI';
+              }
+              
+              // Update operation status if tracker is available
+              if (operationTracker && operationId) {
+                operationTracker.updateOperation({
+                  id: operationId,
+                  status: approved ? 'completed' : 'failed',
+                  details: reason
+                });
               }
               
               approvalManager.respondToApproval(request.id, {
