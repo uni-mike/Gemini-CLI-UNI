@@ -1,0 +1,12 @@
+Please help me with this multi-step task that needs several tools:
+
+1. Search the web for "JavaScript testing best practices 2025"
+2. Read our package.json file to see what testing tools we have
+3. Create a new file called TESTING_REPORT.md with:
+   - Summary of the web search findings
+   - Analysis of our current testing setup from package.json
+   - 3 recommendations for improvement
+4. Edit the README.md file to add a new section "## Testing Strategy" with a brief note about our approach
+5. Run the shell command "npm --version" to check our npm version
+
+This should trigger both file creation (no approval) and file editing (approval required), plus use multiple tool types.

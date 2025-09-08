@@ -1110,25 +1110,21 @@ PROACTIVE BEHAVIOR:
   /**
    * Detect if a task is too complex for DeepSeek and needs chunking
    */
+  // @ts-ignore - temporarily unused during debugging
   private detectComplexTask(message: string): boolean {
-    const complexityIndicators = [
-      // Multiple numbered steps
-      /\d+\.\s.*\d+\.\s.*\d+\./s,
-      // Multiple bullets with sub-items
-      /-.*-.*-.*-/s,
-      // Multiple "Create" or "Update" or "Search" operations
-      /(create|update|search|run|execute|find|generate|analyze).*\n.*\s*(create|update|search|run|execute|find|generate|analyze)/is,
-      // Word count over 200 words
-      message.split(/\s+/).length > 200,
-      // Multiple tool types mentioned
-      /(web search|file|shell|documentation|code|edit).*\n.*\s*(web search|file|shell|documentation|code|edit)/is,
-      // Contains "comprehensive" or "complete" with multiple verbs
-      /(comprehensive|complete).*\s*(create|update|search|run|execute|find|generate|analyze).*\s*(create|update|search|run|execute|find|generate|analyze)/is
-    ];
-
-    return complexityIndicators.some(indicator => 
-      typeof indicator === 'boolean' ? indicator : indicator.test(message)
-    );
+    const wordCount = message.split(/\s+/).length;
+    
+    // Only chunk if REALLY complex - not simple 3-5 step tasks
+    const isComplex = 
+      wordCount > 300 ||
+      (message.match(/\d+\.\s/g) || []).length > 6 ||
+      (/comprehensive/i.test(message) && wordCount > 150) ||
+      (/(phase|section).*\n.*\s*(phase|section)/is.test(message) && wordCount > 200);
+    
+    // Debug output
+    console.log(`🧠 Complexity check: ${wordCount} words, complex=${isComplex}`);
+    
+    return isComplex;
   }
 
   /**
@@ -1158,8 +1154,10 @@ Format as a numbered TODO list with tool requirements, then automatically begin 
       // Immediately show we're starting
       yield "🤖 Connecting to DeepSeek R1...\n\n";
       
-      // Auto-detect complex tasks and chunk them
-      const isComplexTask = this.detectComplexTask(message);
+      // TEMPORARILY DISABLE AUTO-CHUNKING - it's making simple tasks complex
+      // TODO: Fix chunking logic to only trigger for truly mega prompts
+      const isComplexTask = false; // this.detectComplexTask(message);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       if (isComplexTask) {
         yield "🧠 Complex task detected - using intelligent chunking...\n";
         message = this.chunkComplexTask(message);
@@ -1206,33 +1204,79 @@ For multiple operations, structure your response as:
           this.conversation.push({ role: 'user', content: currentMessage });
         }
         
-        // Make API call
+        // Make API call with timeout
         yield "🔍 Analyzing request...\n";
+        
+        // Debug logging
+        console.log(`🔧 DEBUG: Iteration ${iterations}, conversation length: ${this.conversation.length}`);
+        console.log(`🔧 DEBUG: Current message: ${currentMessage.substring(0, 100)}...`);
+        
         const url = `${this.endpoint}/chat/completions?api-version=${this.apiVersion}`;
         const functions = this.getAvailableFunctions();
         
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify({
+        console.log(`🔧 DEBUG: Functions available: ${functions.length}`);
+        console.log(`🔧 DEBUG: API URL: ${url}`);
+        
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.log("🔧 DEBUG: Request timeout triggered!");
+          controller.abort();
+        }, 120000); // 2 minute timeout for complex prompts
+        
+        let response;
+        try {
+          console.log("🔧 DEBUG: Making fetch request...");
+          const requestBody = {
             messages: this.conversation,
             model: this.model,
             temperature: 0.7,
             functions: functions.length > 0 ? functions : undefined,
             function_call: functions.length > 0 ? 'auto' : undefined,
-          }),
-        });
+          };
+          
+          console.log(`🔧 DEBUG: Request body: ${JSON.stringify(requestBody, null, 2).substring(0, 500)}...`);
+          
+          response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.apiKey}`,
+            },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal,
+          });
+          
+          console.log(`🔧 DEBUG: Response received: ${response.status} ${response.statusText}`);
+          clearTimeout(timeoutId);
+        } catch (error: any) {
+          clearTimeout(timeoutId);
+          if (error?.name === 'AbortError') {
+            yield "⏰ Request timed out after 2 minutes - DeepSeek is not responding\n";
+            yield "🔄 Trying simplified approach...\n";
+            // Fallback to direct tool execution
+            return `I apologize, but I'm experiencing delays with the analysis. Let me help you with a direct approach:
+
+1. For web searches, I'll use the web_search tool
+2. For file operations, I'll use read_file and write_file tools  
+3. For file edits, I'll use the replace tool with approval prompts
+
+Please try running your request again, or break it into smaller individual tasks.`;
+          }
+          throw error;
+        }
         
         if (!response.ok) {
           yield `❌ API Error: ${response.status}\n`;
           throw new Error(`DeepSeek API error: ${response.status}`);
         }
         
+        console.log("🔧 DEBUG: Parsing JSON response...");
         const data = await response.json();
+        console.log(`🔧 DEBUG: JSON parsed, choices: ${data.choices?.length || 0}`);
+        
         const responseMessage = data.choices?.[0]?.message;
+        console.log(`🔧 DEBUG: Response message exists: ${!!responseMessage}`);
         
         if (!responseMessage) {
           yield "❌ No response from DeepSeek\n";
@@ -1241,11 +1285,21 @@ For multiple operations, structure your response as:
         
         // Check for tool calls
         const responseContent = responseMessage.content || '';
+        console.log(`🔧 DEBUG: Response content length: ${responseContent.length}`);
+        console.log(`🔧 DEBUG: First 200 chars: ${responseContent.substring(0, 200)}...`);
+        
+        // Handle empty responses from DeepSeek
+        if (responseContent.length === 0) {
+          console.log("🔧 DEBUG: Empty response from DeepSeek - ending iteration");
+          yield "⚠️ DeepSeek returned empty response - task may be complete or needs simplification\n";
+          break;
+        }
         
         // Check for both formats DeepSeek might use
         const toolUseRegex = /<tool_use>\s*tool_name:\s*(\w+)\s*arguments:\s*({[\s\S]*?})\s*<\/tool_use>/gm;
         const functionRegex = /function:\s*(\w+)\s*\n\s*\d+\s+({[^}]+})/gm;
         
+        console.log("🔧 DEBUG: Checking for tool matches...");
         let toolUseMatches = [...responseContent.matchAll(toolUseRegex)];
         
         // If no tool_use format, check for function format

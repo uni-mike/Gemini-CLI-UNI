@@ -19,6 +19,7 @@ import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
 import { IdeClient } from '../ide/ide-client.js';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_AZURE_MODEL } from '../config/models.js';
 import type { Config } from '../config/config.js';
+import { ApprovalMode } from '../config/config.js';
 
 import type { UserTierId } from '../code_assist/types.js';
 import { LoggingContentGenerator } from './loggingContentGenerator.js';
@@ -383,6 +384,13 @@ export async function createContentGenerator(
       
       // Set up approval flow callback for IDE integration  
       deepSeekClient.setConfirmationCallback(async (details: any) => {
+        // Check config approval mode first
+        const approvalMode = gcConfig.getApprovalMode();
+        if (approvalMode === ApprovalMode.AUTO_EDIT || approvalMode === ApprovalMode.YOLO) {
+          console.log(`✅ AUTO-APPROVED (${approvalMode} mode)`);
+          return true;
+        }
+        
         // Check if global auto-approve is enabled
         if (globalAutoApprove) {
           console.log('⚡ AUTO-APPROVED (YOLO mode)');

@@ -90,7 +90,8 @@
       "Bash(./fix-pycharm-ide-now.sh:*)",
       "Read(//private/var/folders/k2/w0bcbbmx61nblrl4vf2tzns00000gp/T/**)",
       "Read(//var/folders/k2/w0bcbbmx61nblrl4vf2tzns00000gp/T/**)",
-      "Bash(./task-chunker.sh:*)"
+      "Bash(./task-chunker.sh:*)",
+      "Bash(./debug-stuck-deepseek.sh:*)"
     ],
     "deny": [],
     "ask": []
