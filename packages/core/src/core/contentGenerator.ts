@@ -375,6 +375,11 @@ export async function createContentGenerator(
       // Session-based approval state
       let sessionAutoApprove = false;
       
+      // Set up progress callback to show tool execution progress in real-time
+      deepSeekClient.setProgressCallback((message: string) => {
+        console.log(message);
+      });
+      
       // Set up approval flow callback for IDE integration  
       deepSeekClient.setConfirmationCallback(async (details: any) => {
         // Check if session auto-approve is enabled

@@ -36,6 +36,7 @@ export class DeepSeekWithTools {
   private config: Config;
   private conversation: DeepSeekMessage[] = [];
   private confirmationCallback?: (details: any) => Promise<boolean>;
+  private progressCallback?: (message: string) => void;
 
   constructor(config: Config) {
     this.apiKey = process.env['AZURE_API_KEY'] || process.env['API_KEY'] || '';
@@ -56,6 +57,13 @@ export class DeepSeekWithTools {
    */
   setConfirmationCallback(callback: (details: any) => Promise<boolean>) {
     this.confirmationCallback = callback;
+  }
+
+  /**
+   * Set a callback for showing progress messages to the user
+   */
+  setProgressCallback(callback: (message: string) => void) {
+    this.progressCallback = callback;
   }
 
   /**
@@ -518,18 +526,18 @@ export class DeepSeekWithTools {
     // First clean DeepSeek tokens
     textContent = this.cleanDeepSeekTokens(textContent);
     
-    // SINGLE SIMPLE CHECK: Only process raw <think> tags, skip everything else
-    if (!textContent.includes('<think>') || textContent.includes('```thinking')) {
-      return textContent;
+    // Process and hide thinking tags
+    if (textContent.includes('<think>')) {
+      // Replace <think>...</think> blocks completely
+      const formatted = textContent.replace(
+        /<think>([\s\S]*?)<\/think>/gm, 
+        ''  // Remove thinking content entirely
+      ).trim();
+      
+      return formatted;
     }
     
-    // Replace <think>...</think> with minimal format - MUCH SIMPLER
-    const formatted = textContent.replace(
-      /<think>([\s\S]*?)<\/think>/g, 
-      '🤔 Processing request...'
-    );
-    
-    return formatted;
+    return textContent;
   }
 
 
@@ -688,27 +696,14 @@ PROACTIVE BEHAVIOR:
       const toolUseMatches = [...responseContent.matchAll(toolUseRegex)];
       
       if (toolUseMatches.length > 0) {
-        console.log(`📦 Found ${toolUseMatches.length} tool calls to execute`);
+        // Show progress messages to user immediately via console.log for visibility
+        console.log(`\n📦 Found ${toolUseMatches.length} tool call${toolUseMatches.length > 1 ? 's' : ''} to execute`);
+        console.log(`🔄 Processing ${toolUseMatches.length} tool${toolUseMatches.length > 1 ? 's' : ''}...\n`);
         
-        // Show progress to user immediately - try multiple output methods
-        const progressMsg = `🔄 Processing ${toolUseMatches.length} tool${toolUseMatches.length > 1 ? 's' : ''}...`;
-        
-        // Try different output approaches
-        console.log(progressMsg);
-        console.error(progressMsg);
-        process.stderr.write('\n' + progressMsg + '\n');
-        process.stdout.write('\n' + progressMsg + '\n');
-        
-        // Force flush if available
-        try {
-          if (typeof (process.stdout as any).flush === 'function') {
-            (process.stdout as any).flush();
-          }
-          if (typeof (process.stderr as any).flush === 'function') {
-            (process.stderr as any).flush();
-          }
-        } catch (e) {
-          // Ignore flush errors
+        // Also call callback if set
+        if (this.progressCallback) {
+          this.progressCallback(`📦 Found ${toolUseMatches.length} tool call${toolUseMatches.length > 1 ? 's' : ''} to execute`);
+          this.progressCallback(`🔄 Processing ${toolUseMatches.length} tool${toolUseMatches.length > 1 ? 's' : ''}...`);
         }
         
         // Execute all tools and collect results
@@ -745,7 +740,12 @@ PROACTIVE BEHAVIOR:
           }
           
           console.log(`🔧 Executing shell command: ${functionName}`);
-          console.error(`  ⚡ ${args.command || args.cmd || 'shell command'}...`);
+          console.log(`  ⚡ ${args.command || args.cmd || 'shell command'}...`);
+          
+          if (this.progressCallback) {
+            this.progressCallback(`🔧 Executing shell command: ${functionName}`);
+            this.progressCallback(`  ⚡ ${args.command || args.cmd || 'shell command'}...`);
+          }
           try {
             const result = await this.executeToolDirectly(functionName, args);
             console.error(`  ✅ Shell command completed`);
@@ -781,31 +781,31 @@ PROACTIVE BEHAVIOR:
           // Show specific progress based on tool type
           if (functionName === 'web_search' || functionName === 'web-search') {
             const query = args.query || args.q || 'unknown query';
-            console.error(`  🔍 Web search: "${query.substring(0, 45)}${query.length > 45 ? '...' : ''}"`);
+            console.log(`  🔍 Web search: "${query.substring(0, 45)}${query.length > 45 ? '...' : ''}"`);
           } else if (functionName === 'read_file' || functionName === 'read-file') {
             const file = args.file_path || args.absolute_path || 'file';
             const filename = file.split('/').pop();
-            console.error(`  📖 Reading file: ${filename}`);
+            console.log(`  📖 Reading file: ${filename}`);
           } else if (functionName === 'write_file' || functionName === 'write-file') {
             const file = args.file_path || args.absolute_path || 'file';
             const filename = file.split('/').pop();
             const contentLength = (args.content || '').length;
-            console.error(`  📝 Creating file: ${filename} (${contentLength} chars)`);
+            console.log(`  📝 Creating file: ${filename} (${contentLength} chars)`);
           } else if (functionName === 'edit') {
             const file = args.file_path || args.absolute_path || 'file';
             const filename = file.split('/').pop();
             const oldText = (args.old_text || args.old_string || '').substring(0, 30);
-            console.error(`  ✏️  Editing: ${filename} (replacing "${oldText}...")`);
+            console.log(`  ✏️  Editing: ${filename} (replacing "${oldText}...")`);
           } else if (functionName === 'search_file_content') {
             const pattern = args.regex || args.pattern || 'pattern';
             const globPattern = args.globPattern || args.glob || '*';
-            console.error(`  🔎 Searching "${pattern}" in ${globPattern}`);
+            console.log(`  🔎 Searching "${pattern}" in ${globPattern}`);
           } else if (functionName === 'grep') {
             const pattern = args.pattern || 'pattern';
             const path = args.path || '.';
-            console.error(`  🔍 Grep search: "${pattern}" in ${path.split('/').pop() || path}`);
+            console.log(`  🔍 Grep search: "${pattern}" in ${path.split('/').pop() || path}`);
           } else {
-            console.error(`  ⚡ ${functionName}...`);
+            console.log(`  ⚡ ${functionName}...`);
           }
           
           try {
@@ -823,19 +823,19 @@ PROACTIVE BEHAVIOR:
             if (functionName === 'web_search' || functionName === 'web-search') {
               const lines = result.split('\n').length;
               const hasAnswerBox = result.includes('Answer:');
-              console.error(`  ✅ Found ${lines} results${hasAnswerBox ? ' + answer box' : ''}`);
+              console.log(`  ✅ Found ${lines} results${hasAnswerBox ? ' + answer box' : ''}`);
             } else if (functionName === 'write_file' || functionName === 'write-file') {
-              console.error(`  ✅ File created successfully`);
+              console.log(`  ✅ File created successfully`);
             } else if (functionName === 'read_file' || functionName === 'read-file') {
               const lineCount = result.split('\n').length;
-              console.error(`  ✅ Read ${lineCount} lines`);
+              console.log(`  ✅ Read ${lineCount} lines`);
             } else if (functionName === 'edit') {
-              console.error(`  ✅ Edit applied successfully`);
+              console.log(`  ✅ Edit applied successfully`);
             } else if (functionName === 'search_file_content' || functionName === 'grep') {
               const matches = result.split('\n').filter(line => line.trim()).length;
-              console.error(`  ✅ Found ${matches} matches`);
+              console.log(`  ✅ Found ${matches} matches`);
             } else {
-              console.error(`  ✅ Completed`);
+              console.log(`  ✅ Completed`);
             }
             
             toolResults.push(`${functionName}: ${result}`);
@@ -863,7 +863,7 @@ PROACTIVE BEHAVIOR:
         // Show completion status
         const successCount = toolResults.filter(r => !r.includes('Error -')).length;
         const errorCount = toolResults.length - successCount;
-        console.error(`\n🎯 Completed ${successCount}/${toolResults.length} tools successfully${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
+        console.log(`\n🎯 Completed ${successCount}/${toolResults.length} tools successfully${errorCount > 0 ? ` (${errorCount} failed)` : ''}\n`);
 
         // Check if the assistant's response suggests more work is needed
         const assistantContent = responseMessage.content || '';
@@ -900,6 +900,15 @@ PROACTIVE BEHAVIOR:
 
         const finalData = await finalApiResponse.json();
         let finalMessage = finalData.choices?.[0]?.message?.content || '';
+        
+        // Check if the final response itself contains more tool calls
+        const finalToolUseMatches = [...finalMessage.matchAll(toolUseRegex)];
+        if (finalToolUseMatches.length > 0 && iterations < maxIterations) {
+          console.log('📝 Model wants to execute more tools, continuing...');
+          this.conversation.push({ role: 'assistant', content: finalMessage });
+          currentMessage = 'Continue';
+          continue; // Loop back to process more tools
+        }
         
         this.conversation.push({ role: 'assistant', content: finalMessage });
         return this.formatThinkingProcess(finalMessage);
@@ -984,17 +993,198 @@ PROACTIVE BEHAVIOR:
   }
 
   /**
-   * Stream messages with tool support
+   * Stream messages with tool support - TRUE streaming implementation
    */
   async *sendMessageStreamWithTools(message: string): AsyncGenerator<string> {
     try {
-      // For now, use non-streaming with tools
-      // Streaming with function calls is complex and may not be supported
-      const response = await this.sendMessageWithTools(message);
-      yield response;
+      // Immediately show we're starting
+      yield "🤖 Connecting to DeepSeek R1...\n\n";
+      
+      let iterations = 0;
+      const maxIterations = 5;
+      let currentMessage = message;
+      
+      // Add system message if needed
+      if (this.conversation.length === 0) {
+        const systemPrompt = `You are an advanced AI assistant integrated into the UNIPATH CLI with full access to ALL tools.
+
+Available tools:
+${this.getToolDescriptions()}
+
+To use a tool, respond with:
+<tool_use>
+tool_name: [name]
+arguments: {"arg1": "value1"}
+</tool_use>`;
+        this.conversation.push({ role: 'system', content: systemPrompt });
+      }
+      
+      while (iterations < maxIterations) {
+        iterations++;
+        yield `📍 Round ${iterations}/${maxIterations}\n`;
+        
+        if (iterations === 1) {
+          this.conversation.push({ role: 'user', content: currentMessage });
+        }
+        
+        // Make API call
+        yield "🔍 Analyzing request...\n";
+        const url = `${this.endpoint}/chat/completions?api-version=${this.apiVersion}`;
+        const functions = this.getAvailableFunctions();
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`,
+          },
+          body: JSON.stringify({
+            messages: this.conversation,
+            model: this.model,
+            temperature: 0.7,
+            functions: functions.length > 0 ? functions : undefined,
+            function_call: functions.length > 0 ? 'auto' : undefined,
+          }),
+        });
+        
+        if (!response.ok) {
+          yield `❌ API Error: ${response.status}\n`;
+          throw new Error(`DeepSeek API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const responseMessage = data.choices?.[0]?.message;
+        
+        if (!responseMessage) {
+          yield "❌ No response from DeepSeek\n";
+          break;
+        }
+        
+        // Check for tool calls
+        const responseContent = responseMessage.content || '';
+        
+        // Check for both formats DeepSeek might use
+        const toolUseRegex = /<tool_use>\s*tool_name:\s*(\w+)\s*arguments:\s*({[\s\S]*?})\s*<\/tool_use>/gm;
+        const functionRegex = /function:\s*(\w+)\s*\n\s*\d+\s+({[^}]+})/gm;
+        
+        let toolUseMatches = [...responseContent.matchAll(toolUseRegex)];
+        
+        // If no tool_use format, check for function format
+        if (toolUseMatches.length === 0) {
+          toolUseMatches = [...responseContent.matchAll(functionRegex)];
+        }
+        
+        if (toolUseMatches.length > 0) {
+          // Don't yield the raw planning text - just show we found tools
+          yield `\n📦 Found ${toolUseMatches.length} tool${toolUseMatches.length > 1 ? 's' : ''} to execute\n\n`;
+          
+          const toolResults: string[] = [];
+          
+          // Execute each tool and yield progress
+          for (let i = 0; i < toolUseMatches.length; i++) {
+            const match = toolUseMatches[i];
+            const functionName = match[1];
+            let args;
+            
+            try {
+              args = JSON.parse(match[2]);
+            } catch (e) {
+              try {
+                const fixedJson = match[2]
+                  .replace(/\n/g, '\\n')
+                  .replace(/\r/g, '\\r')
+                  .replace(/\t/g, '\\t');
+                args = JSON.parse(fixedJson);
+              } catch (e2) {
+                yield `  ❌ [${i+1}/${toolUseMatches.length}] Invalid arguments for ${functionName}\n`;
+                continue;
+              }
+            }
+            
+            // Show what we're executing
+            yield `  🔧 [${i+1}/${toolUseMatches.length}] ${functionName}`;
+            
+            if (functionName === 'web_search' || functionName === 'web-search') {
+              const query = args.query || args.q || '';
+              yield `: "${query.substring(0, 40)}${query.length > 40 ? '...' : ''}"\n`;
+            } else if (functionName.includes('file')) {
+              const file = args.file_path || args.absolute_path || '';
+              yield `: ${file.split('/').pop() || 'file'}\n`;
+            } else {
+              yield `\n`;
+            }
+            
+            try {
+              const result = await Promise.race([
+                this.executeToolDirectly(functionName, args),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
+              ]) as string;
+              
+              yield `      ✅ Done\n`;
+              toolResults.push(`${functionName}: ${result}`);
+            } catch (error) {
+              yield `      ❌ Failed: ${error instanceof Error ? error.message : 'Unknown'}\n`;
+              toolResults.push(`${functionName}: Error`);
+            }
+          }
+          
+          yield `\n✨ All tools executed\n\n`;
+          
+          // Add to conversation
+          this.conversation.push({
+            role: 'assistant',
+            content: responseMessage.content || ''
+          });
+          this.conversation.push({
+            role: 'user',
+            content: `Tool results:\n${toolResults.join('\n')}`
+          });
+          
+          // Check if we need more
+          if (responseContent.includes('<needs_continuation/>')) {
+            yield "🔄 Continuing with next steps...\n\n";
+            currentMessage = 'Continue';
+            continue;
+          }
+          
+          // Get final response
+          yield "💭 Generating final response...\n\n";
+          const finalResponse = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.apiKey}`,
+            },
+            body: JSON.stringify({
+              messages: this.conversation,
+              model: this.model,
+              temperature: 0.7,
+            }),
+          });
+          
+          if (finalResponse.ok) {
+            const finalData = await finalResponse.json();
+            const finalMessage = finalData.choices?.[0]?.message?.content || '';
+            
+            // Check if final response has more tools
+            const moreTools = [...finalMessage.matchAll(toolUseRegex)];
+            if (moreTools.length > 0 && iterations < maxIterations) {
+              this.conversation.push({ role: 'assistant', content: finalMessage });
+              currentMessage = 'Continue';
+              continue;
+            }
+            
+            yield this.formatThinkingProcess(finalMessage);
+          }
+          break;
+        } else {
+          // No tools, just yield response
+          yield this.formatThinkingProcess(responseContent);
+          break;
+        }
+      }
     } catch (error) {
-      console.error('DeepSeek stream error:', error);
-      yield `Error: ${error instanceof Error ? error.message : String(error)}`;
+      yield `\n❌ Error: ${error instanceof Error ? error.message : String(error)}\n`;
     }
   }
 
