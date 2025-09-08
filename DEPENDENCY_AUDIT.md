@@ -1,25 +1,23 @@
 # Dependency Audit Report
 
 ## Core Dependencies
-- Node.js: >=20.0.0
-- TypeScript: 5.0+
-- React: Used extensively in UI components
+- @lvce-editor/ripgrep: Used for fast file searching
+- dotenv: Environment variable management
+- openai: Official OpenAI client library
+- simple-git: Git command abstraction
+- strip-ansi: Remove ANSI escape codes
 
-## Key Packages
-- **Production**:
-  - @lvce-editor/ripgrep (v2.3.0): Fast file search
-  - openai (v5.19.1): AI API client
-  - simple-git (v3.28.0): Git operations
+## Development Dependencies
+- @types/*: Type definitions
+- vitest: Testing framework
+- eslint: Code linting
+- prettier: Code formatting
+- esbuild: JavaScript bundler
 
-- **Development**:
-  - vitest (v3.2.4): Testing framework
-  - eslint (v9.34.0): Code linting
-  - prettier (v3.6.2): Code formatting
-
-## Security Notes
-- All dependencies are up-to-date
-- No known vulnerabilities in package-lock.json
+## Optional Dependencies
+- node-pty: Terminal emulation (platform-specific)
 
 ## Recommendations
-- Monitor for updates to `node-pty` optional dependencies
-- Consider replacing `lodash` with native methods where possible
+- Review optional node-pty usage
+- Update all dependencies to latest versions
+- Consider replacing simple-git with isomorphic-git for pure JS

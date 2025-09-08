@@ -332,37 +332,15 @@ export class DeepSeekWithTools {
       } else if (functionName === 'write_file' || functionName === 'write-file') {
         const filePath = args.absolute_path || args.file_path;
         
-        // Check if file exists and show diff if it does
-        if (needsApproval) {
-          const fs = await import('fs/promises');
-          try {
-            const existingContent = await fs.readFile(filePath, 'utf-8');
-            console.log('\n📋 File Change Preview:');
-            console.log('─'.repeat(50));
-            console.log(`File: ${filePath}`);
-            console.log('─'.repeat(50));
-            console.log('--- Current Content ---');
-            console.log(existingContent.substring(0, 500));
-            console.log('\n+++ New Content +++');
-            console.log(args.content.substring(0, 500));
-            console.log('─'.repeat(50));
-            
-            if (this.confirmationCallback) {
-              const approved = await this.confirmationCallback({ 
-                type: 'file_write',
-                path: filePath,
-                content: args.content 
-              });
-              if (!approved) {
-                return 'Write operation cancelled by user';
-              }
-            } else {
-              console.log('⚠️  Approval needed - proceeding (fix needed for proper approval)');
-            }
-          } catch {
-            // New file - just show what will be created
-            console.log(`\n📝 Creating new file: ${filePath}`);
-            console.log(`Content preview: ${args.content.substring(0, 200)}...`);
+        // The approval UI is handled by confirmationCallback
+        if (needsApproval && this.confirmationCallback) {
+          const approved = await this.confirmationCallback({ 
+            type: 'file_write',
+            path: filePath,
+            content: args.content 
+          });
+          if (!approved) {
+            return 'Write operation cancelled by user';
           }
         }
         
@@ -371,23 +349,14 @@ export class DeepSeekWithTools {
         return `File written successfully to ${filePath}`;
         
       } else if (functionName === 'shell') {
-        // Shell commands should always ask for approval unless in auto mode
-        if (needsApproval) {
-          console.log('\n⚠️  Shell Command Approval:');
-          console.log('─'.repeat(50));
-          console.log(`Command: ${args.command}`);
-          console.log('─'.repeat(50));
-          
-          if (this.confirmationCallback) {
-            const approved = await this.confirmationCallback({
-              type: 'shell_command',
-              command: args.command
-            });
-            if (!approved) {
-              return 'Shell command cancelled by user';
-            }
-          } else {
-            console.log('⚠️  Approval needed - proceeding (fix needed for proper approval)');
+        // The approval UI is handled by confirmationCallback
+        if (needsApproval && this.confirmationCallback) {
+          const approved = await this.confirmationCallback({
+            type: 'shell_command',
+            command: args.command
+          });
+          if (!approved) {
+            return 'Shell command cancelled by user';
           }
         }
         
@@ -416,28 +385,16 @@ export class DeepSeekWithTools {
         const content = await fs.readFile(filePath, 'utf-8');
         const newContent = content.replace(args.old_text || args.old_string, args.new_text || args.new_string);
         
-        // Show diff for edits
-        if (needsApproval) {
-          console.log('\n📋 Edit Preview:');
-          console.log('─'.repeat(50));
-          console.log(`File: ${filePath}`);
-          console.log('─'.repeat(50));
-          console.log(`- ${args.old_text || args.old_string}`);
-          console.log(`+ ${args.new_text || args.new_string}`);
-          console.log('─'.repeat(50));
-          
-          if (this.confirmationCallback) {
-            const approved = await this.confirmationCallback({
-              type: 'file_edit',
-              path: filePath,
-              oldText: args.old_text || args.old_string,
-              newText: args.new_text || args.new_string
-            });
-            if (!approved) {
-              return 'Edit cancelled by user';
-            }
-          } else {
-            console.log('⚠️  Approval needed - proceeding (fix needed for proper approval)');
+        // The approval UI is handled by confirmationCallback
+        if (needsApproval && this.confirmationCallback) {
+          const approved = await this.confirmationCallback({
+            type: 'file_edit',
+            path: filePath,
+            oldText: args.old_text || args.old_string,
+            newText: args.new_text || args.new_string
+          });
+          if (!approved) {
+            return 'Edit cancelled by user';
           }
         }
         
@@ -500,9 +457,6 @@ export class DeepSeekWithTools {
         }
         
         // Handle replace operation with proper approval flow
-        console.log(`🔧 DEBUG: Replace operation started for ${filePath}`);
-        console.log(`🔧 DEBUG: needsApproval=${needsApproval}, confirmationCallback=${!!this.confirmationCallback}`);
-        
         try {
           const fs = await import('fs/promises');
           
@@ -527,18 +481,8 @@ export class DeepSeekWithTools {
           // Perform replacement
           const newContent = content.replace(oldText, newText);
           
-          // Show diff and get approval if needed
-          console.log(`🔧 DEBUG: About to check approval: needsApproval=${needsApproval}, callback=${!!this.confirmationCallback}`);
+          // The approval UI is handled by confirmationCallback
           if (needsApproval && this.confirmationCallback) {
-            console.log(`🔧 DEBUG: Requesting approval for replace operation`);
-            console.log('\n📋 Replace Preview:');
-            console.log('─'.repeat(50));
-            console.log(`File: ${filePath}`);
-            console.log('─'.repeat(50));
-            console.log('- ' + oldText.substring(0, 100) + (oldText.length > 100 ? '...' : ''));
-            console.log('+ ' + newText.substring(0, 100) + (newText.length > 100 ? '...' : ''));
-            console.log('─'.repeat(50));
-            
             const approved = await this.confirmationCallback({
               type: 'file_edit',
               path: filePath,
@@ -1416,35 +1360,41 @@ Please try running your request again, or break it into smaller individual tasks
               }
             }
             
-            // Show what we're executing
-            yield `  🔧 [${i+1}/${toolUseMatches.length}] ${functionName}`;
+            // Check if this is an approval tool
+            const isApprovalTool = ['replace', 'write_file', 'edit', 'run_shell_command', 'shell'].includes(functionName);
             
-            if (functionName === 'web_search' || functionName === 'web-search') {
-              const query = args.query || args.q || '';
-              yield `: "${query.substring(0, 40)}${query.length > 40 ? '...' : ''}"\n`;
-            } else if (functionName.includes('file')) {
-              const file = args.file_path || args.absolute_path || '';
-              yield `: ${file.split('/').pop() || 'file'}\n`;
-            } else {
-              yield `\n`;
+            // Only show execution details for non-approval tools
+            // For approval tools, the approval UI will show instead
+            if (!isApprovalTool) {
+              // Show what we're executing
+              yield `  🔧 [${i+1}/${toolUseMatches.length}] ${functionName}`;
+              
+              if (functionName === 'web_search' || functionName === 'web-search') {
+                const query = args.query || args.q || '';
+                yield `: "${query.substring(0, 40)}${query.length > 40 ? '...' : ''}"\n`;
+              } else if (functionName.includes('file')) {
+                const file = args.file_path || args.absolute_path || '';
+                yield `: ${file.split('/').pop() || 'file'}\n`;
+              } else {
+                yield `\n`;
+              }
             }
             
             try {
-              // Add timeout protection but skip for approval tools
-              const isApprovalTool = ['replace', 'write_file', 'edit', 'run_shell_command', 'shell'].includes(functionName);
-              
               let result: string;
               if (isApprovalTool) {
                 // No timeout for approval tools - user needs time to respond
+                // Clear any partial output before showing approval UI
+                yield '\n';
                 result = await this.executeToolDirectly(functionName, args) as string;
+                yield `  ✅ [${i+1}/${toolUseMatches.length}] ${functionName} completed\n`;
               } else {
                 result = await Promise.race([
                   this.executeToolDirectly(functionName, args),
                   new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
                 ]) as string;
+                yield `      ✅ Done\n`;
               }
-              
-              yield `      ✅ Done\n`;
               toolResults.push(`${functionName}: ${result}`);
             } catch (error) {
               yield `      ❌ Failed: ${error instanceof Error ? error.message : 'Unknown'}\n`;

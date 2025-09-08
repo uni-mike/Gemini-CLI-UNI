@@ -407,7 +407,7 @@ export async function createContentGenerator(
         // For file operations, try to open diff in IDE
         if (details.type === 'file_write' || details.type === 'file_edit') {
           const filePath = details.path || details.file_path;
-          const content = details.content;
+          const content = details.content || details.new_content;
           
           try {
             const ideClient = await IdeClient.getInstance();
@@ -430,25 +430,22 @@ export async function createContentGenerator(
               }
             } else {
               // Fallback to console UI when IDE not connected - use process.stdout.write for immediate display
-              process.stdout.write('\n🔒 APPROVAL REQUIRED (IDE not connected)\n');
+              process.stdout.write('\n🔒 APPROVAL REQUIRED\n');
               process.stdout.write('═'.repeat(80) + '\n');
-              process.stdout.write(`📄 File: ${filePath}\n`);
               
-              if (content) {
-                const preview = content.length > 500 
-                  ? content.substring(0, 500) + '...'
-                  : content;
-                process.stdout.write(`\n📝 Content Preview:\n${preview}\n`);
+              if (details.type === 'file_edit') {
+                process.stdout.write(`📝 File Edit: ${filePath}\n`);
+              } else {
+                process.stdout.write(`📄 File Write: ${filePath}\n`);
               }
               
               process.stdout.write('═'.repeat(80) + '\n');
-              process.stdout.write('🎯 Approval Options:\n');
-              process.stdout.write('  [1] Approve this change\n');
-              process.stdout.write('  [2] Approve all similar actions in this session\n');
-              process.stdout.write('  [3] Approve all similar actions for all sessions (global approval)\n');  
-              process.stdout.write('  [4] Decline and tell how to do differently\n');
-              process.stdout.write('═'.repeat(80) + '\n');
-              process.stdout.write('💡 To enable IDE integration: run `/ide enable`\n');
+              process.stdout.write('\nOptions:\n');
+              process.stdout.write('  1️⃣  Approve this change\n');
+              process.stdout.write('  2️⃣  Skip this change\n');
+              process.stdout.write('  3️⃣  Approve all remaining changes (YOLO mode)\n');
+              process.stdout.write('  4️⃣  Cancel operation\n');
+              process.stdout.write('\n' + '═'.repeat(80) + '\n');
               
               // Force flush stdout to ensure UI is displayed
               if (process.stdout.write) {
@@ -470,25 +467,20 @@ export async function createContentGenerator(
                   
                   switch(choice) {
                     case '1':
-                    case 'y':
                       console.log('✅ Change approved');
                       resolve(true);
                       break;
                     case '2':
-                    case 'a':
-                      console.log('✅ Approved - all similar actions in this session will be auto-approved');
-                      sessionAutoApprove = true;
-                      resolve(true);
+                      console.log('⏭️  Skipping this change');
+                      resolve(false);
                       break;
                     case '3':
-                    case 'A':
-                      console.log('⚡ Global approval enabled - all similar actions for all sessions will be auto-approved!');
+                      console.log('⚡ YOLO mode enabled - approving all remaining changes!');
                       globalAutoApprove = true;
                       resolve(true);
                       break;
                     case '4':
-                    case 'n':
-                      console.log('❌ Declined - please provide alternative approach');
+                      console.log('❌ Operation cancelled');
                       resolve(false);
                       break;
                     default:
@@ -512,17 +504,16 @@ export async function createContentGenerator(
           if (details.type === 'shell_command') {
             process.stdout.write(`💻 Shell Command: ${details.command}\n`);
           } else {
-            process.stdout.write(`🔧 Action: ${JSON.stringify(details, null, 2)}\n`);
+            process.stdout.write(`🔧 Action: ${details.operation || details.type}\n`);
           }
           
           process.stdout.write('═'.repeat(80) + '\n');
-          process.stdout.write('🎯 Approval Options:\n');
-          process.stdout.write('  [1] Approve this change\n');
-          process.stdout.write('  [2] Approve all similar actions in this session\n');
-          process.stdout.write('  [3] Approve all similar actions for all sessions (global approval)\n');  
-          process.stdout.write('  [4] Decline and tell how to do differently\n');
-          process.stdout.write('═'.repeat(80) + '\n');
-          process.stdout.write('💡 To enable IDE integration: run `/ide enable`\n');
+          process.stdout.write('\nOptions:\n');
+          process.stdout.write('  1️⃣  Approve this action\n');
+          process.stdout.write('  2️⃣  Skip this action\n');
+          process.stdout.write('  3️⃣  Approve all remaining actions (YOLO mode)\n');
+          process.stdout.write('  4️⃣  Cancel operation\n');
+          process.stdout.write('\n' + '═'.repeat(80) + '\n');
           
           // Force flush stdout to ensure UI is displayed
           if (process.stdout.write) {
@@ -544,29 +535,24 @@ export async function createContentGenerator(
               
               switch(choice) {
                 case '1':
-                case 'y':
-                  console.log('✅ Change approved');
+                  console.log('✅ Action approved');
                   resolve(true);
                   break;
                 case '2':
-                case 'a':
-                  console.log('✅ Approved - all similar actions in this session will be auto-approved');
-                  sessionAutoApprove = true;
-                  resolve(true);
+                  console.log('⏭️  Skipping this action');
+                  resolve(false);
                   break;
                 case '3':
-                case 'A':
-                  console.log('⚡ Global approval enabled - all similar actions for all sessions will be auto-approved!');
+                  console.log('⚡ YOLO mode enabled - approving all remaining actions!');
                   globalAutoApprove = true;
                   resolve(true);
                   break;
                 case '4':
-                case 'n':
-                  console.log('❌ Declined - please provide alternative approach');
+                  console.log('❌ Operation cancelled');
                   resolve(false);
                   break;
                 default:
-                  console.log('⚠️  Invalid choice, rejecting change');
+                  console.log('⚠️  Invalid choice, rejecting action');
                   resolve(false);
               }
             });
