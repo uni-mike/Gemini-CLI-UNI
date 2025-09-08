@@ -1,0 +1,1 @@
+Search the web for "TypeScript 5.0 new features" and then create a file called TEST_OUTPUT.md with a summary of what you found.
