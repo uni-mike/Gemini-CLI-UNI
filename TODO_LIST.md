@@ -1,22 +1,22 @@
-# TODO List
+# TODO List in Codebase
 
-## Found 26 TODO items in TypeScript files:
+## Found 26 TODO items across TypeScript files:
 
-File: packages/cli/src/config/config.ts
-- Line 340: Consider if App.tsx should get memory via a server call
-- Line 412: This is a bit of a hack. The contextFileName should ideally be passed
+1. **packages/cli/src/config/config.ts**
+   - Line 340: Consider if App.tsx should get memory via server call
+   - Line 412: ContextFileName passing needs refactoring
 
-File: packages/cli/src/config/extension.ts
-- Line 335: Download the archive instead to avoid unnecessary .git info
+2. **packages/cli/src/config/extension.ts**
+   - Line 335: Download archive instead of cloning to avoid .git info
 
-File: packages/cli/src/ui/commands/initCommand.ts
-- Line 78: Document key commands from package.json scripts
+3. **packages/cli/src/ui/commands/initCommand.ts**
+   - Line 78: Document build/run commands from package.json
 
-File: packages/cli/src/ui/commands/types.ts
-- Line 28: Ensure config is never null
-- Line 183: Remove args parameter
+4. **packages/cli/src/ui/commands/types.ts**
+   - Line 28: Ensure config is never null
+   - Line 183: Remove args parameter
 
-File: packages/core/src/config/config.ts
-- Line 665: Placeholder implementation needs future enhancement
+5. **packages/core/src/config/config.ts**
+   - Line 665: Placeholder implementation for future enhancement
 
-... (full list in search results)
+[Full list truncated for brevity - see previous search results]

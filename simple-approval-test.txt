@@ -1,1 +1,7 @@
-Create a new file called APPROVAL_DEMO.md with the content "This is a test file" and then edit it to replace "test" with "approval demo".
+Please help me test the approval system by doing these simple tasks:
+
+1. Read the README.md file
+2. Edit the README.md file to add "## Test Section" at the end
+3. Create a new file called TEST_APPROVAL.md with content "# Approval Test Complete"
+
+This should trigger the approval system for the edit operation.

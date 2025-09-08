@@ -1,0 +1,48 @@
+I have a complex multi-step task that needs to be broken down into smaller, manageable chunks. Please help me create a clear TODO list with 5-7 focused steps.
+
+ORIGINAL COMPLEX TASK:
+Please complete the following comprehensive task that requires multiple tools and operations:
+
+1. **Research Phase** (Web Search):
+   - Search for "best practices for React hooks 2025"
+   - Search for "TypeScript 5.0 new features"
+   - Search for "Node.js performance optimization techniques"
+
+2. **File Analysis Phase** (Read/Search):
+   - Read the package.json file to understand project dependencies
+   - Search for all TypeScript files containing "TODO" comments
+   - Find all files that import React
+   - Check if there are any files with "deprecated" in their content
+
+3. **Documentation Creation** (Write/Create):
+   - Create a new file called `TECH_RESEARCH_REPORT.md` with:
+     - Summary of the React hooks best practices found
+     - List of TypeScript 5.0 features
+     - Node.js optimization tips
+   - Create a `TODO_LIST.md` file listing all TODOs found in the codebase
+   - Create a `DEPENDENCY_AUDIT.md` analyzing the current dependencies
+
+4. **Code Modification** (Edit - triggers approvals):
+   - Edit the main README.md to add a section "## Latest Updates" with today's date
+   - Find and update any file containing "2024" to "2025" 
+   - Add a comment "// Reviewed on [today's date]" to the top of deepSeekWithTools.ts
+
+5. **Shell Operations** (Shell commands):
+   - Run `ls -la packages/` to list all packages
+   - Check Node version with `node --version`
+   - Run `npm list --depth=0` to see direct dependencies
+   - Create a backup directory with `mkdir -p backups/$(date +%Y%m%d)`
+
+6. **Final Analysis**:
+   - Search the web for "UNIPATH CLI alternatives comparison"
+   - Create a final `ANALYSIS_COMPLETE.md` summarizing everything done
+
+Please execute all these tasks, showing the approval prompts for edits, and handle multiple parallel tool executions where possible. Make sure to use the web_search tool multiple times and trigger the approval flow for file modifications.
+
+Please:
+1. Break this down into 5-7 smaller, focused tasks
+2. Identify specific tools needed for each step  
+3. Create a clear execution order
+4. Make each step simple enough that it won't overwhelm the system
+
+Format as a numbered TODO list with tool requirements for each step.

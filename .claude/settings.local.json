@@ -89,7 +89,8 @@
       "Bash(./enable-pycharm-ide.sh:*)",
       "Bash(./fix-pycharm-ide-now.sh:*)",
       "Read(//private/var/folders/k2/w0bcbbmx61nblrl4vf2tzns00000gp/T/**)",
-      "Read(//var/folders/k2/w0bcbbmx61nblrl4vf2tzns00000gp/T/**)"
+      "Read(//var/folders/k2/w0bcbbmx61nblrl4vf2tzns00000gp/T/**)",
+      "Bash(./task-chunker.sh:*)"
     ],
     "deny": [],
     "ask": []

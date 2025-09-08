@@ -1108,12 +1108,62 @@ PROACTIVE BEHAVIOR:
   }
 
   /**
+   * Detect if a task is too complex for DeepSeek and needs chunking
+   */
+  private detectComplexTask(message: string): boolean {
+    const complexityIndicators = [
+      // Multiple numbered steps
+      /\d+\.\s.*\d+\.\s.*\d+\./s,
+      // Multiple bullets with sub-items
+      /-.*-.*-.*-/s,
+      // Multiple "Create" or "Update" or "Search" operations
+      /(create|update|search|run|execute|find|generate|analyze).*\n.*\s*(create|update|search|run|execute|find|generate|analyze)/is,
+      // Word count over 200 words
+      message.split(/\s+/).length > 200,
+      // Multiple tool types mentioned
+      /(web search|file|shell|documentation|code|edit).*\n.*\s*(web search|file|shell|documentation|code|edit)/is,
+      // Contains "comprehensive" or "complete" with multiple verbs
+      /(comprehensive|complete).*\s*(create|update|search|run|execute|find|generate|analyze).*\s*(create|update|search|run|execute|find|generate|analyze)/is
+    ];
+
+    return complexityIndicators.some(indicator => 
+      typeof indicator === 'boolean' ? indicator : indicator.test(message)
+    );
+  }
+
+  /**
+   * Transform complex task into a chunking request
+   */
+  private chunkComplexTask(originalMessage: string): string {
+    return `I have a complex multi-step task that needs to be broken down into smaller, manageable chunks. Please help me create a clear TODO list with 5-7 focused steps, then immediately start executing the first step.
+
+ORIGINAL COMPLEX TASK:
+${originalMessage}
+
+Please:
+1. Break this down into 5-7 smaller, focused tasks
+2. Identify specific tools needed for each step
+3. Create a clear execution order
+4. Make each step simple enough that it won't overwhelm the system
+5. **IMMEDIATELY after showing the plan, start executing step 1 using the appropriate tools**
+
+Format as a numbered TODO list with tool requirements, then automatically begin execution of the first step.`;
+  }
+
+  /**
    * Stream messages with tool support - TRUE streaming implementation
    */
   async *sendMessageStreamWithTools(message: string): AsyncGenerator<string> {
     try {
       // Immediately show we're starting
       yield "🤖 Connecting to DeepSeek R1...\n\n";
+      
+      // Auto-detect complex tasks and chunk them
+      const isComplexTask = this.detectComplexTask(message);
+      if (isComplexTask) {
+        yield "🧠 Complex task detected - using intelligent chunking...\n";
+        message = this.chunkComplexTask(message);
+      }
       
       let iterations = 0;
       const maxIterations = 5;

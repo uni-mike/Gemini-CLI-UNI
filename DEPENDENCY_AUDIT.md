@@ -1,26 +1,24 @@
-# Dependency Audit
+# Dependency Audit Report
 
-## Dependencies
-- @lvce-editor/ripgrep: ^2.3.0
-- dotenv: ^17.2.2
-- openai: ^5.19.1
-- simple-git: ^3.28.0
-- strip-ansi: ^7.1.0
+## Direct Dependencies
+- @lvce-editor/ripgrep: Text search utility
+- dotenv: Environment variable loader
+- openai: OpenAI API client
+- simple-git: Git command interface
+- strip-ansi: Remove ANSI escape codes
 
-## Dev Dependencies
-- @types/mime-types: ^3.0.1
-- @types/mock-fs: ^4.13.4
-- @types/shell-quote: ^1.7.5
-- @vitest/coverage-v8: ^3.2.4
-- @vitest/eslint-plugin: ^1.3.8
-- concurrently: ^9.2.1
-- cross-env: ^10.0.0
-- esbuild: ^0.25.9
-- eslint: ^9.34.0
-- ... (full list in package.json)
+## Development Dependencies
+- @types/*: Type definitions
+- eslint: JavaScript linter
+- prettier: Code formatter
+- vitest: Testing framework
+- tsx: TypeScript execution
 
-## Deprecated Findings
-- Workspace-level extensions marked as deprecated
-- Direct history item updates discouraged
-- Deprecated 'UserAPI' references found in code
-- 8 deprecated references identified overall
+## Optional Dependencies
+- @lydell/node-pty: Terminal interface
+- node-pty: Pseudoterminal handling
+
+## Recommendations
+- Update TypeScript to latest version (current: 5.0)
+- Audit openai@5.19.1 for security compliance
+- Evaluate simple-git for potential replacement with native implementation

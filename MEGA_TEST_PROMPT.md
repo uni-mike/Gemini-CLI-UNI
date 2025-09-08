@@ -1,4 +1,4 @@
-# UNIPATH CLI Mega Test Prompt
+~~# UNIPATH CLI Mega Test Prompt
 ## Multi-Tool, Multi-Instance Test with Approvals
 
 Copy and paste this entire prompt into UNIPATH CLI to test multiple tools, file operations, and approval flows:
@@ -108,4 +108,4 @@ If the CLI hangs:
 If approvals aren't showing:
 - Verify approval mode with `--approval-mode manual`
 - Check if folder is trusted with `--trusted-folder` flag
-- Look for "AUTO_EDIT mode" messages in output
+- Look for "AUTO_EDIT mode" messages in output~~

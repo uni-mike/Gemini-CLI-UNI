@@ -1,0 +1,14 @@
+I have a complex multi-step task. Please help me break it down into smaller, manageable chunks and create a TODO list. Here's the full task:
+
+TASK: Complete comprehensive testing that involves:
+1. Web searches for React hooks, TypeScript 5.0, and Node.js optimization
+2. File analysis of package.json, TODO comments, React imports, and deprecated content  
+3. Create documentation files: TECH_RESEARCH_REPORT.md, TODO_LIST.md, DEPENDENCY_AUDIT.md
+4. Edit README.md to add Latest Updates section
+5. Update 2024 to 2025 in files
+6. Add review comment to deepSeekWithTools.ts
+7. Run shell commands: ls packages/, node --version, npm list, mkdir backups
+8. Final web search for UNIPATH alternatives
+9. Create ANALYSIS_COMPLETE.md summary
+
+Please break this down into 5-7 smaller, focused tasks that I can execute one at a time. Create a clear TODO list.
