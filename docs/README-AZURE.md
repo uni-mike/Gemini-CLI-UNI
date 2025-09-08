@@ -31,7 +31,7 @@ The CLI automatically uses these Azure OpenAI settings:
 - **Endpoint**: `https://mike-mazsz1c6-eastus2.openai.azure.com/`
 - **Deployment**: `gpt-5` 
 - **Model**: `gpt-5`
-- **API Version**: `2024-12-01-preview`
+- **API Version**: `2025-12-01-preview`
 
 ## 📊 Performance Comparison
 

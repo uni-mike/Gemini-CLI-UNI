@@ -1008,14 +1008,28 @@ PROACTIVE BEHAVIOR:
       if (this.conversation.length === 0) {
         const systemPrompt = `You are an advanced AI assistant integrated into the UNIPATH CLI with full access to ALL tools.
 
+CRITICAL INSTRUCTIONS FOR TOOL EXECUTION:
+1. Execute tools ONE AT A TIME in sequence
+2. For complex tasks with multiple steps, break them down:
+   - First, list all required tools
+   - Execute 3-5 tools per response maximum
+   - End with <needs_continuation/> if more tools are needed
+   - Wait for results before continuing
+3. ALWAYS use this exact format for EACH tool:
+   <tool_use>
+   tool_name: [exact_tool_name]
+   arguments: {"param": "value"}
+   </tool_use>
+4. Do NOT include explanatory text with tool calls
+5. Do NOT use function: format, only use <tool_use> format
+
 Available tools:
 ${this.getToolDescriptions()}
 
-To use a tool, respond with:
-<tool_use>
-tool_name: [name]
-arguments: {"arg1": "value1"}
-</tool_use>`;
+For multiple operations, structure your response as:
+- Execute first batch of tools (3-5 max)
+- Include <needs_continuation/> at the end
+- Continue in next iteration`;
         this.conversation.push({ role: 'system', content: systemPrompt });
       }
       
@@ -1140,10 +1154,17 @@ arguments: {"arg1": "value1"}
             content: `Tool results:\n${toolResults.join('\n')}`
           });
           
-          // Check if we need more
-          if (responseContent.includes('<needs_continuation/>')) {
-            yield "🔄 Continuing with next steps...\n\n";
-            currentMessage = 'Continue';
+          // Check if we need more - be more aggressive about continuing
+          const needsContinuation = 
+            responseContent.includes('<needs_continuation/>') ||
+            toolResults.length >= 3 || // If we executed 3+ tools, likely more to do
+            responseContent.toLowerCase().includes('next') ||
+            responseContent.toLowerCase().includes('continue') ||
+            responseContent.toLowerCase().includes('proceed');
+            
+          if (needsContinuation && iterations < maxIterations) {
+            yield "🔄 Continuing with next batch of tools...\n\n";
+            currentMessage = 'Please continue with the remaining tasks. Execute the next batch of tools.';
             continue;
           }
           

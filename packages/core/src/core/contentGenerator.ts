@@ -374,6 +374,7 @@ export async function createContentGenerator(
       
       // Session-based approval state
       let sessionAutoApprove = false;
+      let globalAutoApprove = false;
       
       // Set up progress callback to show tool execution progress in real-time
       deepSeekClient.setProgressCallback((message: string) => {
@@ -382,6 +383,12 @@ export async function createContentGenerator(
       
       // Set up approval flow callback for IDE integration  
       deepSeekClient.setConfirmationCallback(async (details: any) => {
+        // Check if global auto-approve is enabled
+        if (globalAutoApprove) {
+          console.log('⚡ AUTO-APPROVED (YOLO mode)');
+          return true;
+        }
+        
         // Check if session auto-approve is enabled
         if (sessionAutoApprove) {
           console.log('✅ AUTO-APPROVED (session setting)');
@@ -427,17 +434,54 @@ export async function createContentGenerator(
               
               console.log('═'.repeat(80));
               console.log('🎯 Approval Options:');
-              console.log('  [y] Approve this change');
-              console.log('  [a] Auto-approve edit tools for this session (AUTO_EDIT mode)');
-              console.log('  [A] Auto-approve ALL tools for this session (YOLO mode)');  
-              console.log('  [n] Reject this change');
+              console.log('  [1] Approve this change');
+              console.log('  [2] Auto-approve edit tools for this session (AUTO_EDIT mode)');
+              console.log('  [3] Auto-approve ALL tools for this session (YOLO mode)');  
+              console.log('  [4] Reject this change');
               console.log('═'.repeat(80));
               console.log('💡 To enable IDE integration: run `/ide enable`');
               
-              // Auto-approve for now since we don't have interactive input yet
-              console.log('⚠️  AUTO-APPROVING (implement interactive input)');
-              sessionAutoApprove = true;
-              return true;
+              // Interactive prompt for user input
+              const readline = require('readline');
+              const rl = readline.createInterface({
+                input: process.stdin,
+                output: process.stdout
+              });
+              
+              return new Promise<boolean>((resolve) => {
+                rl.question('👉 Enter your choice (1-4): ', (answer: string) => {
+                  rl.close();
+                  const choice = answer.trim();
+                  
+                  switch(choice) {
+                    case '1':
+                    case 'y':
+                      console.log('✅ Change approved');
+                      resolve(true);
+                      break;
+                    case '2':
+                    case 'a':
+                      console.log('✅ AUTO_EDIT mode enabled for this session');
+                      sessionAutoApprove = true;
+                      resolve(true);
+                      break;
+                    case '3':
+                    case 'A':
+                      console.log('⚡ YOLO mode enabled - all tools auto-approved!');
+                      globalAutoApprove = true;
+                      resolve(true);
+                      break;
+                    case '4':
+                    case 'n':
+                      console.log('❌ Change rejected');
+                      resolve(false);
+                      break;
+                    default:
+                      console.log('⚠️  Invalid choice, rejecting change');
+                      resolve(false);
+                  }
+                });
+              });
             }
           } catch (error) {
             console.error('❌ IDE integration error:', error);

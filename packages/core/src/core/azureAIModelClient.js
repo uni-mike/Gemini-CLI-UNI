@@ -11,7 +11,7 @@ export class AzureAIModelClient {
         this.apiKey = process.env['AZURE_API_KEY'] || process.env['API_KEY'] || '';
         this.endpoint = process.env['AZURE_ENDPOINT_URL'] || process.env['ENDPOINT'] || '';
         this.model = process.env['AZURE_MODEL'] || process.env['MODEL'] || 'DeepSeek-R1-rkcob';
-        this.apiVersion = process.env['AZURE_OPENAI_API_VERSION'] || process.env['API_VERSION'] || '2024-05-01-preview';
+        this.apiVersion = process.env['AZURE_OPENAI_API_VERSION'] || process.env['API_VERSION'] || '2025-05-01-preview';
         if (!this.apiKey || !this.endpoint) {
             throw new Error('Azure AI Model configuration missing: API_KEY and ENDPOINT are required');
         }

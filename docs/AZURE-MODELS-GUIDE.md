@@ -14,7 +14,7 @@ export AZURE_API_KEY=your-azure-api-key-here
 export AZURE_ENDPOINT_URL=https://mike-mazsz1c6-eastus2.openai.azure.com/
 export AZURE_DEPLOYMENT=gpt-5
 export AZURE_MODEL=gpt-5
-export AZURE_OPENAI_API_VERSION=2024-12-01-preview
+export AZURE_OPENAI_API_VERSION=2025-12-01-preview
 export UNIPATH_DEFAULT_AUTH_TYPE=azure-openai
 export UNIPATH_CLI_DISABLE_NEXT_SPEAKER_CHECK=true
 
@@ -49,7 +49,7 @@ AZURE_API_KEY=9c5d0679299045e9bd3513baf6ae0e86
 AZURE_ENDPOINT_URL=https://unipathai7556217047.cognitiveservices.azure.com/
 AZURE_DEPLOYMENT=gpt-4o-mini
 AZURE_MODEL=gpt-4o-mini
-AZURE_OPENAI_API_VERSION=2024-12-01-preview
+AZURE_OPENAI_API_VERSION=2025-12-01-preview
 ```
 
 **Characteristics:**

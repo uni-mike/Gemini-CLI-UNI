@@ -11,7 +11,7 @@ export class AzureOpenAIClient {
     constructor(config) {
         const apiKey = process.env['AZURE_API_KEY'];
         const endpoint = process.env['AZURE_ENDPOINT_URL'];
-        const apiVersion = process.env['AZURE_OPENAI_API_VERSION'] || '2024-12-01-preview';
+        const apiVersion = process.env['AZURE_OPENAI_API_VERSION'] || '2025-12-01-preview';
         const deployment = process.env['AZURE_DEPLOYMENT'];
         if (!apiKey || !endpoint || !deployment) {
             throw new Error('Azure OpenAI configuration missing: AZURE_API_KEY, AZURE_ENDPOINT_URL, and AZURE_DEPLOYMENT are required');
