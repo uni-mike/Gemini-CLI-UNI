@@ -435,15 +435,15 @@ export async function createContentGenerator(
               console.log('═'.repeat(80));
               console.log('🎯 Approval Options:');
               console.log('  [1] Approve this change');
-              console.log('  [2] Auto-approve edit tools for this session (AUTO_EDIT mode)');
-              console.log('  [3] Auto-approve ALL tools for this session (YOLO mode)');  
-              console.log('  [4] Reject this change');
+              console.log('  [2] Approve all similar actions in this session');
+              console.log('  [3] Approve all similar actions for all sessions (global approval)');  
+              console.log('  [4] Decline and tell how to do differently');
               console.log('═'.repeat(80));
               console.log('💡 To enable IDE integration: run `/ide enable`');
               
               // Interactive prompt for user input
-              const readline = require('readline');
-              const rl = readline.createInterface({
+              const { createInterface } = await import('readline');
+              const rl = createInterface({
                 input: process.stdin,
                 output: process.stdout
               });
@@ -461,19 +461,19 @@ export async function createContentGenerator(
                       break;
                     case '2':
                     case 'a':
-                      console.log('✅ AUTO_EDIT mode enabled for this session');
+                      console.log('✅ Approved - all similar actions in this session will be auto-approved');
                       sessionAutoApprove = true;
                       resolve(true);
                       break;
                     case '3':
                     case 'A':
-                      console.log('⚡ YOLO mode enabled - all tools auto-approved!');
+                      console.log('⚡ Global approval enabled - all similar actions for all sessions will be auto-approved!');
                       globalAutoApprove = true;
                       resolve(true);
                       break;
                     case '4':
                     case 'n':
-                      console.log('❌ Change rejected');
+                      console.log('❌ Declined - please provide alternative approach');
                       resolve(false);
                       break;
                     default:
@@ -490,7 +490,7 @@ export async function createContentGenerator(
             return true;
           }
         } else {
-          // For non-file operations (shell commands etc), use console approval
+          // For non-file operations (shell commands etc), use the same interactive approval
           console.log('\n🔒 APPROVAL REQUIRED');
           console.log('═'.repeat(80));
           
@@ -501,9 +501,55 @@ export async function createContentGenerator(
           }
           
           console.log('═'.repeat(80));
-          console.log('🎯 Options: [y] Approve  [n] Reject');
-          console.log('⚠️  AUTO-APPROVING shell command');
-          return true;
+          console.log('🎯 Approval Options:');
+          console.log('  [1] Approve this change');
+          console.log('  [2] Approve all similar actions in this session');
+          console.log('  [3] Approve all similar actions for all sessions (global approval)');  
+          console.log('  [4] Decline and tell how to do differently');
+          console.log('═'.repeat(80));
+          console.log('💡 To enable IDE integration: run `/ide enable`');
+          
+          // Interactive prompt for user input
+          const { createInterface } = await import('readline');
+          const rl = createInterface({
+            input: process.stdin,
+            output: process.stdout
+          });
+          
+          return new Promise<boolean>((resolve) => {
+            rl.question('👉 Enter your choice (1-4): ', (answer: string) => {
+              rl.close();
+              const choice = answer.trim();
+              
+              switch(choice) {
+                case '1':
+                case 'y':
+                  console.log('✅ Change approved');
+                  resolve(true);
+                  break;
+                case '2':
+                case 'a':
+                  console.log('✅ Approved - all similar actions in this session will be auto-approved');
+                  sessionAutoApprove = true;
+                  resolve(true);
+                  break;
+                case '3':
+                case 'A':
+                  console.log('⚡ Global approval enabled - all similar actions for all sessions will be auto-approved!');
+                  globalAutoApprove = true;
+                  resolve(true);
+                  break;
+                case '4':
+                case 'n':
+                  console.log('❌ Declined - please provide alternative approach');
+                  resolve(false);
+                  break;
+                default:
+                  console.log('⚠️  Invalid choice, rejecting change');
+                  resolve(false);
+              }
+            });
+          });
         }
       });
       
