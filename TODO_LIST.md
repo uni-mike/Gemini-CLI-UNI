@@ -1,22 +1,22 @@
-# TODO List in Codebase
+# Pending TODOs in Codebase
 
-## Found 26 TODO items across TypeScript files:
+## packages/cli/src/config/config.ts
+- Line 340: Consider if App.tsx should get memory via server call
+- Line 412: ContextFileName handling needs refactor
 
-1. **packages/cli/src/config/config.ts**
-   - Line 340: Consider if App.tsx should get memory via server call
-   - Line 412: ContextFileName passing needs refactoring
+## packages/cli/src/config/extension.ts
+- Line 335: Download archives instead of cloning to avoid .git info
 
-2. **packages/cli/src/config/extension.ts**
-   - Line 335: Download archive instead of cloning to avoid .git info
+## packages/cli/src/ui/commands/initCommand.ts
+- Line 78: Add placeholder for build commands if missing
 
-3. **packages/cli/src/ui/commands/initCommand.ts**
-   - Line 78: Document build/run commands from package.json
+## packages/cli/src/ui/commands/types.ts
+- Line 28: Ensure config is never null
+- Line 183: Remove args parameter
 
-4. **packages/cli/src/ui/commands/types.ts**
-   - Line 28: Ensure config is never null
-   - Line 183: Remove args parameter
+## packages/core/src/core/deepSeekWithTools.ts
+- Line 687: Implement search for TODOs
+- Line 1136: Task breakdown logic
+- Line 1148: Auto-execution flow
 
-5. **packages/core/src/config/config.ts**
-   - Line 665: Placeholder implementation for future enhancement
-
-[Full list truncated for brevity - see previous search results]
+(28 total TODOs found - see full search results for complete list)

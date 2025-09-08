@@ -1108,25 +1108,104 @@ PROACTIVE BEHAVIOR:
   }
 
   /**
-   * Detect if a task is too complex for DeepSeek and needs chunking
+   * Extract user message from full message with context
    */
-  private detectComplexTask(message: string): boolean {
-    // Skip chunking for very short messages
+  private extractUserMessage(fullMessage: string): string {
+    // Context starts with "This is the Gemini CLI" and ends before actual user input
+    const contextMarker = 'This is the Gemini CLI';
+    if (fullMessage.includes(contextMarker)) {
+      // Find where context ends - usually after directory listing
+      const parts = fullMessage.split('\n\n');
+      // Return last part which is usually the user's actual message
+      return parts[parts.length - 1] || fullMessage;
+    }
+    return fullMessage;
+  }
+
+  /**
+   * Detect if a task is too complex for DeepSeek and needs chunking
+   * Uses AI to intelligently analyze task complexity
+   */
+  private async detectComplexTask(message: string): Promise<boolean> {
+    // Skip chunking for short messages (under 50 words)
     const wordCount = message.split(/\s+/).length;
-    if (wordCount < 100) {
+    if (wordCount < 50) {
       console.log(`🧠 Complexity check: ${wordCount} words - too short to need chunking`);
       return false;
     }
     
-    // For longer messages, check for complexity indicators
-    const numberedSteps = (message.match(/\d+\.\s/g) || []).length;
+    // For longer messages, let AI decide if chunking is needed
+    console.log(`🤖 Using AI to analyze task complexity...`);
     
-    // Only chunk if we have many numbered steps AND it's a comprehensive task
-    const isComplex = numberedSteps >= 6 && message.toLowerCase().includes('comprehensive');
+    const analysisPrompt = `Analyze this task and determine if it needs to be broken down into smaller chunks.
     
-    console.log(`🧠 Complexity check: ${wordCount} words, ${numberedSteps} steps, complex=${isComplex}`);
+A task needs chunking if it has:
+- More than 5 distinct major steps/phases
+- Multiple different types of operations (search, create, edit, analyze)
+- Complex dependencies between steps
+- Would take more than 3 rounds to complete
+
+Reply with ONLY "CHUNK" if it needs chunking, or "DIRECT" if it can be executed directly.
+
+Task to analyze:
+${message}`;
+
+    try {
+      // Quick AI analysis with short timeout
+      const response = await this.analyzeWithAI(analysisPrompt, 5000); // 5 second timeout
+      const decision = response.trim().toUpperCase();
+      const needsChunking = decision.includes('CHUNK');
+      
+      console.log(`🧠 AI complexity analysis: ${decision} - needs chunking: ${needsChunking}`);
+      return needsChunking;
+    } catch (error) {
+      // Fallback to heuristic if AI fails
+      console.log(`⚠️ AI analysis failed, using heuristic fallback`);
+      const numberedSteps = (message.match(/\d+\.\s/g) || []).length;
+      const isComplex = numberedSteps >= 6 && message.toLowerCase().includes('comprehensive');
+      console.log(`🧠 Heuristic check: ${wordCount} words, ${numberedSteps} steps, complex=${isComplex}`);
+      return isComplex;
+    }
+  }
+  
+  /**
+   * Quick AI analysis helper
+   */
+  private async analyzeWithAI(prompt: string, timeout: number): Promise<string> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
     
-    return isComplex;
+    try {
+      const response = await fetch(`${this.endpoint}/chat/completions?api-version=${this.apiVersion}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: 'You are a task complexity analyzer. Reply concisely.' },
+            { role: 'user', content: prompt }
+          ],
+          model: this.model,
+          temperature: 0.3,
+          max_tokens: 10
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || 'DIRECT';
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
   }
 
   /**
@@ -1156,8 +1235,11 @@ Format as a numbered TODO list with tool requirements, then automatically begin 
       // Immediately show we're starting
       yield "🤖 Connecting to DeepSeek R1...\n\n";
       
-      // Auto-chunk only for truly massive prompts
-      const isComplexTask = this.detectComplexTask(message);
+      // Extract just the user's actual message (remove context)
+      const userMessage = this.extractUserMessage(message);
+      
+      // Auto-chunk only for truly complex user prompts (AI-powered decision)
+      const isComplexTask = await this.detectComplexTask(userMessage);
       if (isComplexTask) {
         yield "🧠 Complex task detected - using intelligent chunking...\n";
         message = this.chunkComplexTask(message);
