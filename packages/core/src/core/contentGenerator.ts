@@ -463,7 +463,8 @@ export async function createContentGenerator(
               });
               
               return new Promise<boolean>((resolve) => {
-                rl.question('👉 Enter your choice (1-4): ', (answer: string) => {
+                process.stdout.write('\n👉 Enter your choice (1-4): ');
+                rl.question('', (answer: string) => {
                   rl.close();
                   const choice = answer.trim();
                   
@@ -536,7 +537,8 @@ export async function createContentGenerator(
           });
           
           return new Promise<boolean>((resolve) => {
-            rl.question('👉 Enter your choice (1-4): ', (answer: string) => {
+            process.stdout.write('\n👉 Enter your choice (1-4): ');
+            rl.question('', (answer: string) => {
               rl.close();
               const choice = answer.trim();
               
