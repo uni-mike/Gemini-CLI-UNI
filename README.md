@@ -55,7 +55,7 @@ Edit the `.env.deepseek` file with your API keys and endpoints:
 # .env.deepseek (for DeepSeek R1 - recommended)
 API_KEY=your-deepseek-api-key
 ENDPOINT=https://your-endpoint.models.ai.azure.com
-API_VERSION=2024-05-01-preview
+API_VERSION=2025-05-01-preview
 MODEL=DeepSeek-R1-0528
 
 # .env (for GPT-5)

@@ -865,7 +865,15 @@ export class Config {
       const normalizedClassName = className.replace(/^_+/, '');
 
       let isEnabled = true; // Enabled by default if coreTools is not set.
-      if (coreTools) {
+      
+      // FORCE ENABLE ALL TOOLS FOR DEEPSEEK - it needs them all!
+      const isDeepSeek = process.env['AZURE_MODEL']?.toLowerCase().includes('deepseek') || 
+                         process.env['UNIPATH_DEFAULT_AUTH_TYPE'] === 'azure-openai';
+      
+      if (isDeepSeek) {
+        // Enable all tools for DeepSeek - no filtering!
+        isEnabled = true;
+      } else if (coreTools) {
         isEnabled = coreTools.some(
           (tool) =>
             tool === toolName ||
@@ -879,7 +887,7 @@ export class Config {
         (tool) => tool === toolName || tool === normalizedClassName,
       );
 
-      if (isExcluded) {
+      if (isExcluded && !isDeepSeek) {
         isEnabled = false;
       }
 
