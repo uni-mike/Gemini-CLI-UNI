@@ -24,25 +24,52 @@ export interface ApprovalResponse {
 }
 
 export class ApprovalManager extends EventEmitter {
+  private static instance: ApprovalManager | null = null;
   private pendingApprovals: Map<string, ApprovalRequest> = new Map();
   private approvalCallbacks: Map<string, (response: ApprovalResponse) => void> = new Map();
+  
+  /**
+   * Get the singleton instance of ApprovalManager
+   */
+  public static getInstance(): ApprovalManager {
+    if (!ApprovalManager.instance) {
+      ApprovalManager.instance = new ApprovalManager();
+    }
+    return ApprovalManager.instance;
+  }
   
   /**
    * Request approval for an operation - NEVER times out
    * Users must have unlimited time to review and decide
    */
   async requestApproval(request: Omit<ApprovalRequest, 'id' | 'timestamp'>): Promise<ApprovalResponse> {
+    // Check if we're in non-interactive mode
+    const isNonInteractive = process.argv.includes('--non-interactive') || 
+                            process.env['UNIPATH_NON_INTERACTIVE'] === 'true' ||
+                            process.env['NODE_ENV'] === 'test';
+    
+    if (isNonInteractive) {
+      // Use console-based approval for non-interactive mode
+      return this.requestConsoleApproval(request);
+    }
+    
+    // Use event-based approval for interactive mode (with CLI UI)
+    return this.requestUIApproval(request);
+  }
+  
+  /**
+   * Request approval using console prompts (for non-interactive mode)
+   */
+  private async requestConsoleApproval(request: Omit<ApprovalRequest, 'id' | 'timestamp'>): Promise<ApprovalResponse> {
     const approvalRequest: ApprovalRequest = {
       ...request,
       id: `approval-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: Date.now()
     };
 
-    console.log(`\n🔐 APPROVAL REQUIRED (ID: ${approvalRequest.id})`);
-    console.log('━'.repeat(60));
-    console.log(`Operation: ${approvalRequest.type}`);
+    console.log(`\n🔐 APPROVAL REQUIRED: ${approvalRequest.description}`);
+    console.log('━'.repeat(80));
     console.log(`Risk Level: ${approvalRequest.riskLevel.toUpperCase()}`);
-    console.log(`Description: ${approvalRequest.description}`);
     
     if (approvalRequest.details.filePath) {
       console.log(`File: ${approvalRequest.details.filePath}`);
@@ -50,33 +77,98 @@ export class ApprovalManager extends EventEmitter {
     if (approvalRequest.details.command) {
       console.log(`Command: ${approvalRequest.details.command}`);
     }
-    if (approvalRequest.details.content) {
-      const preview = approvalRequest.details.content.substring(0, 100);
-      console.log(`Content: ${preview}${approvalRequest.details.content.length > 100 ? '...' : ''}`);
-    }
-    if (approvalRequest.details.oldText && approvalRequest.details.newText) {
-      console.log(`Change: "${approvalRequest.details.oldText.substring(0, 50)}..." → "${approvalRequest.details.newText.substring(0, 50)}..."`);
-    }
     
-    console.log('━'.repeat(60));
-    console.log('⏳ Waiting for user approval (no timeout)...');
-    console.log('   This operation is paused until you approve or deny it.');
+    console.log('━'.repeat(80));
+    console.log('Options:');
+    console.log('  1️⃣  Approve this operation');
+    console.log('  2️⃣  Skip this operation');
+    console.log('  3️⃣  Approve all remaining operations (YOLO mode)');
+    console.log('  4️⃣  Cancel operation');
+    console.log('━'.repeat(80));
 
+    const { createInterface } = await import('readline');
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    return new Promise<ApprovalResponse>((resolve) => {
+      rl.question('Enter your choice (1-4): ', (answer: string) => {
+        rl.close();
+        const choice = answer.trim();
+        
+        switch(choice) {
+          case '1':
+            console.log('✅ Operation approved');
+            resolve({
+              approved: true,
+              reason: 'Approved via console',
+              timestamp: Date.now()
+            });
+            break;
+          case '2':
+            console.log('⏭️  Skipping this operation');
+            resolve({
+              approved: false,
+              reason: 'Skipped via console',
+              timestamp: Date.now()
+            });
+            break;
+          case '3':
+            console.log('⚡ YOLO mode enabled - approving all remaining operations!');
+            resolve({
+              approved: true,
+              reason: 'YOLO mode enabled via console',
+              timestamp: Date.now()
+            });
+            break;
+          case '4':
+            console.log('❌ Operation cancelled');
+            resolve({
+              approved: false,
+              reason: 'Cancelled via console',
+              timestamp: Date.now()
+            });
+            break;
+          default:
+            console.log('⚠️ Invalid choice, denying operation');
+            resolve({
+              approved: false,
+              reason: 'Invalid choice, denied',
+              timestamp: Date.now()
+            });
+            break;
+        }
+      });
+    });
+  }
+  
+  /**
+   * Request approval using event system (for interactive mode with CLI UI)
+   */
+  private async requestUIApproval(request: Omit<ApprovalRequest, 'id' | 'timestamp'>): Promise<ApprovalResponse> {
+    const approvalRequest: ApprovalRequest = {
+      ...request,
+      id: `approval-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: Date.now()
+    };
+
+    console.log(`\n🔗 Requesting approval via CLI UI for: ${approvalRequest.description}`);
+    
     // Store the approval request
     this.pendingApprovals.set(approvalRequest.id, approvalRequest);
     
-    // Emit approval needed event
+    // Emit approval needed event for the CLI UI to handle
     this.emit('approvalNeeded', approvalRequest);
 
-    // Return a promise that resolves when approval is given
-    // CRITICAL: No timeout - user has unlimited time to decide
+    // Return a promise that resolves when approval is given via UI
     return new Promise<ApprovalResponse>((resolve) => {
       this.approvalCallbacks.set(approvalRequest.id, resolve);
       
-      // Periodically remind user about pending approval
+      // Periodically remind user about pending approval (shorter interval for UI)
       const reminderInterval = setInterval(() => {
-        console.log(`⏳ Still waiting for approval: ${approvalRequest.id} (${approvalRequest.description})`);
-      }, 30000); // Remind every 30 seconds
+        console.log(`⏳ Still waiting for UI approval: ${approvalRequest.description}`);
+      }, 10000); // Remind every 10 seconds for UI mode
 
       // Clean up reminder when resolved
       const originalCallback = resolve;
@@ -154,7 +246,7 @@ export class ApprovalManager extends EventEmitter {
     }
 
     // Auto-approve operations in trusted folders (if medium risk or below)
-    if (request.details.filePath && request.riskLevel !== 'high') {
+    if (request.details.filePath && (request.riskLevel === 'low' || request.riskLevel === 'medium')) {
       const isInTrustedFolder = trustedFolders.some(folder => 
         request.details.filePath?.startsWith(folder)
       );
@@ -264,7 +356,7 @@ export class ApprovalManager extends EventEmitter {
     console.warn(`🚨 EMERGENCY APPROVAL: Approving all ${count} pending operations`);
     console.warn(`Reason: ${reason}`);
     
-    for (const [id, request] of this.pendingApprovals) {
+    for (const [id] of this.pendingApprovals) {
       this.respondToApproval(id, {
         approved: true,
         reason: `Emergency approval: ${reason}`

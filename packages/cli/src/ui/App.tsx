@@ -110,6 +110,7 @@ import { isNarrowWidth } from './utils/isNarrowWidth.js';
 import { useWorkspaceMigration } from './hooks/useWorkspaceMigration.js';
 import { WorkspaceMigrationDialog } from './components/WorkspaceMigrationDialog.js';
 import { isWorkspaceTrusted } from '../config/trustedFolders.js';
+import { useApprovalSystem } from './hooks/useApprovalSystem.js';
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 // Maximum number of queued messages to display in UI to prevent performance issues
@@ -242,6 +243,8 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     onWorkspaceMigrationDialogOpen,
     onWorkspaceMigrationDialogClose,
   } = useWorkspaceMigration(settings);
+
+  const { approvalConfirmationRequest } = useApprovalSystem();
 
   const [isProQuotaDialogOpen, setIsProQuotaDialogOpen] = useState(false);
   const [proQuotaDialogResolver, setProQuotaDialogResolver] = useState<
@@ -1164,6 +1167,29 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
                   ]}
                   onSelect={(value: boolean) => {
                     confirmationRequest.onConfirm(value);
+                  }}
+                />
+              </Box>
+            </Box>
+          ) : approvalConfirmationRequest ? (
+            <Box flexDirection="column">
+              <Box
+                borderStyle="round"
+                borderColor={Colors.AccentYellow}
+                paddingX={1}
+                marginBottom={1}
+              >
+                {approvalConfirmationRequest.prompt}
+              </Box>
+              <Box paddingY={1}>
+                <RadioButtonSelect
+                  isFocused={!!approvalConfirmationRequest}
+                  items={[
+                    { label: '1️⃣ Approve', value: true },
+                    { label: '2️⃣ Deny', value: false },
+                  ]}
+                  onSelect={(value: boolean) => {
+                    approvalConfirmationRequest.onConfirm(value);
                   }}
                 />
               </Box>

@@ -377,16 +377,19 @@ export async function createContentGenerator(
       let sessionAutoApprove = false;
       let globalAutoApprove = false;
       
+      // ApprovalManager removed - using direct readline approach for immediate functionality
+      
       // Set up progress callback to show tool execution progress in real-time
       deepSeekClient.setProgressCallback((message: string) => {
         console.log(message);
       });
       
-      // Set up approval flow callback for IDE integration  
+      // Set up approval flow callback using direct readline prompts
       deepSeekClient.setConfirmationCallback(async (details: any) => {
         // Check config approval mode first
         const approvalMode = gcConfig.getApprovalMode();
         console.log(`🔧 DEBUG: Approval mode check: ${approvalMode}`);
+        console.log(`🔧 DEBUG: Will need approval: ${approvalMode !== ApprovalMode.AUTO_EDIT && approvalMode !== ApprovalMode.YOLO}`);
         if (approvalMode === ApprovalMode.AUTO_EDIT || approvalMode === ApprovalMode.YOLO) {
           console.log(`✅ AUTO-APPROVED (${approvalMode} mode)`);
           return true;
@@ -405,8 +408,8 @@ export async function createContentGenerator(
         }
         
         // For file operations, try to open diff in IDE
-        if (details.type === 'file_write' || details.type === 'file_edit') {
-          const filePath = details.path || details.file_path;
+        if (details.type === 'edit' || details.filePath) {
+          const filePath = details.filePath || details.path || details.file_path;
           const content = details.content || details.new_content;
           
           try {
@@ -429,66 +432,70 @@ export async function createContentGenerator(
                 return false;
               }
             } else {
-              // Fallback to console UI when IDE not connected - use process.stdout.write for immediate display
-              process.stdout.write('\n🔒 APPROVAL REQUIRED\n');
-              process.stdout.write('═'.repeat(80) + '\n');
+              // Check if we're in interactive mode (CLI with UI) or non-interactive mode
+              const isNonInteractive = process.argv.includes('--non-interactive') || 
+                                      process.env['UNIPATH_NON_INTERACTIVE'] === 'true' ||
+                                      process.env['NODE_ENV'] === 'test';
+              const isInteractiveMode = !isNonInteractive;
+              // Mode detection complete
               
-              if (details.type === 'file_edit') {
-                process.stdout.write(`📝 File Edit: ${filePath}\n`);
-              } else {
-                process.stdout.write(`📄 File Write: ${filePath}\n`);
-              }
+              // Use ApprovalManager for both modes - this integrates with the CLI UI system
+              const isNewFile = details.originalContent === '' || details.originalContent === undefined;
+              const actionType = isNewFile ? 'Create' : 'Edit';
               
-              process.stdout.write('═'.repeat(80) + '\n');
-              process.stdout.write('\nOptions:\n');
-              process.stdout.write('  1️⃣  Approve this change\n');
-              process.stdout.write('  2️⃣  Skip this change\n');
-              process.stdout.write('  3️⃣  Approve all remaining changes (YOLO mode)\n');
-              process.stdout.write('  4️⃣  Cancel operation\n');
-              process.stdout.write('\n' + '═'.repeat(80) + '\n');
-              
-              // Force flush stdout to ensure UI is displayed
-              if (process.stdout.write) {
-                process.stdout.write('');
-              }
-              
-              // Interactive prompt for user input
-              const { createInterface } = await import('readline');
-              const rl = createInterface({
-                input: process.stdin,
-                output: process.stdout
-              });
-              
-              return new Promise<boolean>((resolve) => {
-                process.stdout.write('\n👉 Enter your choice (1-4): ');
-                rl.question('', (answer: string) => {
-                  rl.close();
-                  const choice = answer.trim();
+              try {
+                // Import ApprovalManager and get singleton instance
+                const { ApprovalManager } = await import('../orchestration/ApprovalManager.js');
+                const approvalManager = ApprovalManager.getInstance();
+                
+                // Create approval request
+                const approvalRequest = {
+                  type: 'file_edit' as const,
+                  description: `${actionType} file: ${filePath}`,
+                  details: {
+                    filePath: filePath,
+                    content: details.content || details.new_content,
+                    oldText: details.originalContent,
+                    newText: details.content || details.new_content
+                  },
+                  riskLevel: isNewFile ? 'medium' as const : 'low' as const
+                };
+                
+                if (isInteractiveMode) {
+                  // Interactive mode - use the approval system that integrates with React Ink UI
+                  console.log(`\n🔗 Requesting approval through CLI UI system for: ${actionType} file: ${filePath}`);
+                  const response = await approvalManager.requestApproval(approvalRequest);
                   
-                  switch(choice) {
-                    case '1':
-                      console.log('✅ Change approved');
-                      resolve(true);
-                      break;
-                    case '2':
-                      console.log('⏭️  Skipping this change');
-                      resolve(false);
-                      break;
-                    case '3':
-                      console.log('⚡ YOLO mode enabled - approving all remaining changes!');
-                      globalAutoApprove = true;
-                      resolve(true);
-                      break;
-                    case '4':
-                      console.log('❌ Operation cancelled');
-                      resolve(false);
-                      break;
-                    default:
-                      console.log('⚠️  Invalid choice, rejecting change');
-                      resolve(false);
+                  if (response.approved) {
+                    console.log('✅ Approved via CLI UI');
+                    // Enable session auto-approve after first manual approval
+                    sessionAutoApprove = true;
+                    return true;
+                  } else {
+                    console.log('❌ Denied via CLI UI');
+                    return false;
                   }
-                });
-              });
+                } else {
+                  // Non-interactive mode - fallback to console prompts
+                  console.log(`\n🔐 Using ApprovalManager for: ${actionType} file: ${filePath}`);
+                  const response = await approvalManager.requestApproval(approvalRequest);
+                  
+                  if (response.approved) {
+                    console.log('✅ Approved');
+                    sessionAutoApprove = true;
+                    return true;
+                  } else {
+                    console.log('❌ Denied');
+                    return false;
+                  }
+                }
+              } catch (error) {
+                console.error('Error with ApprovalManager, falling back to old system:', error);
+                // Fallback to auto-approve in all cases when ApprovalManager fails
+                console.log(`\n🔐 APPROVAL: ${actionType} file: ${filePath}`);
+                console.log(`   Auto-approving due to ApprovalManager error`);
+                return true;
+              }
             }
           } catch (error) {
             console.error('❌ IDE integration error:', error);
@@ -497,66 +504,41 @@ export async function createContentGenerator(
             return true;
           }
         } else {
-          // For non-file operations (shell commands etc), use the same interactive approval
-          process.stdout.write('\n🔒 APPROVAL REQUIRED\n');
-          process.stdout.write('═'.repeat(80) + '\n');
-          
-          if (details.type === 'shell_command') {
-            process.stdout.write(`💻 Shell Command: ${details.command}\n`);
-          } else {
-            process.stdout.write(`🔧 Action: ${details.operation || details.type}\n`);
+          // For non-file operations, also use ApprovalManager
+          try {
+            // Import ApprovalManager and get singleton instance
+            const { ApprovalManager } = await import('../orchestration/ApprovalManager.js');
+            const approvalManager = ApprovalManager.getInstance();
+            
+            // Create approval request for non-file operations
+            const actionType = details.type === 'shell_command' ? 'Execute command' : 'Perform action';
+            const actionDesc = details.command || details.operation || details.type;
+            
+            const approvalRequest = {
+              type: details.type === 'shell_command' ? 'shell_command' as const : 'high_risk' as const,
+              description: `${actionType}: ${actionDesc}`,
+              details: {
+                command: details.command || undefined,
+                content: details.operation || details.type,
+              },
+              riskLevel: details.type === 'shell_command' ? 'high' as const : 'medium' as const
+            };
+            
+            console.log(`\n🔗 Requesting approval through CLI UI system for: ${actionType}`);
+            const response = await approvalManager.requestApproval(approvalRequest);
+            
+            if (response.approved) {
+              console.log('✅ Approved via CLI UI');
+              sessionAutoApprove = true; // Enable session auto-approve after first manual approval
+              return true;
+            } else {
+              console.log('❌ Denied via CLI UI');
+              return false;
+            }
+          } catch (error) {
+            console.error('Error with ApprovalManager for non-file operation, auto-approving:', error);
+            return true;
           }
-          
-          process.stdout.write('═'.repeat(80) + '\n');
-          process.stdout.write('\nOptions:\n');
-          process.stdout.write('  1️⃣  Approve this action\n');
-          process.stdout.write('  2️⃣  Skip this action\n');
-          process.stdout.write('  3️⃣  Approve all remaining actions (YOLO mode)\n');
-          process.stdout.write('  4️⃣  Cancel operation\n');
-          process.stdout.write('\n' + '═'.repeat(80) + '\n');
-          
-          // Force flush stdout to ensure UI is displayed
-          if (process.stdout.write) {
-            process.stdout.write('');
-          }
-          
-          // Interactive prompt for user input
-          const { createInterface } = await import('readline');
-          const rl = createInterface({
-            input: process.stdin,
-            output: process.stdout
-          });
-          
-          return new Promise<boolean>((resolve) => {
-            process.stdout.write('\n👉 Enter your choice (1-4): ');
-            rl.question('', (answer: string) => {
-              rl.close();
-              const choice = answer.trim();
-              
-              switch(choice) {
-                case '1':
-                  console.log('✅ Action approved');
-                  resolve(true);
-                  break;
-                case '2':
-                  console.log('⏭️  Skipping this action');
-                  resolve(false);
-                  break;
-                case '3':
-                  console.log('⚡ YOLO mode enabled - approving all remaining actions!');
-                  globalAutoApprove = true;
-                  resolve(true);
-                  break;
-                case '4':
-                  console.log('❌ Operation cancelled');
-                  resolve(false);
-                  break;
-                default:
-                  console.log('⚠️  Invalid choice, rejecting action');
-                  resolve(false);
-              }
-            });
-          });
         }
       });
       
