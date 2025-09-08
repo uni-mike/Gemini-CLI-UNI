@@ -1,0 +1,262 @@
+import { Task, TaskPlan, TaskStatus } from './types';
+import { v4 as uuidv4 } from 'uuid';
+
+export class Planner {
+  private aiModel: any; // Will be injected
+
+  constructor(aiModel?: any) {
+    this.aiModel = aiModel;
+  }
+
+  async createPlan(prompt: string): Promise<TaskPlan> {
+    console.log('📝 Planner: Analyzing prompt for task decomposition');
+    
+    // Analyze complexity
+    const complexity = this.analyzeComplexity(prompt);
+    
+    // Decompose into tasks
+    const tasks = await this.decomposeTasks(prompt, complexity);
+    
+    // Identify dependencies
+    this.identifyDependencies(tasks);
+    
+    // Optimize execution order
+    const optimizedTasks = this.optimizeTaskOrder(tasks);
+    
+    const plan: TaskPlan = {
+      id: uuidv4(),
+      originalPrompt: prompt,
+      tasks: optimizedTasks,
+      totalEstimatedTime: this.estimateTotalTime(optimizedTasks),
+      complexity,
+      parallelizable: this.canParallelize(optimizedTasks)
+    };
+
+    console.log(`📋 Plan created: ${tasks.length} tasks, complexity: ${complexity}`);
+    return plan;
+  }
+
+  private analyzeComplexity(prompt: string): 'simple' | 'moderate' | 'complex' {
+    const wordCount = prompt.split(/\s+/).length;
+    const hasMultipleSteps = /\d+\.|step|first|then|next|finally/i.test(prompt);
+    const hasTechnicalTerms = /api|database|deploy|test|implement|refactor/i.test(prompt);
+    const hasFileOperations = /read|write|edit|create|delete|file/i.test(prompt);
+    
+    let complexityScore = 0;
+    
+    if (wordCount > 100) complexityScore += 2;
+    else if (wordCount > 50) complexityScore += 1;
+    
+    if (hasMultipleSteps) complexityScore += 2;
+    if (hasTechnicalTerms) complexityScore += 1;
+    if (hasFileOperations) complexityScore += 1;
+    
+    if (complexityScore >= 4) return 'complex';
+    if (complexityScore >= 2) return 'moderate';
+    return 'simple';
+  }
+
+  private async decomposeTasks(prompt: string, complexity: string): Promise<Task[]> {
+    if (complexity === 'simple') {
+      return this.createSimpleTasks(prompt);
+    }
+    
+    // For complex tasks, use AI to decompose if available
+    if (this.aiModel) {
+      return await this.aiDecomposition(prompt);
+    }
+    
+    // Fallback to heuristic decomposition
+    return this.heuristicDecomposition(prompt);
+  }
+
+  private createSimpleTasks(prompt: string): Task[] {
+    return [{
+      id: uuidv4(),
+      description: prompt,
+      dependencies: [],
+      status: TaskStatus.PENDING,
+      retryCount: 0,
+      maxRetries: 2,
+      timeoutMs: 30000,
+      toolCalls: []
+    }];
+  }
+
+  private async aiDecomposition(prompt: string): Promise<Task[]> {
+    const decompositionPrompt = `
+Analyze this task and break it down into specific, actionable steps:
+"${prompt}"
+
+Return a structured list of tasks with:
+1. Clear, specific descriptions
+2. Identified dependencies
+3. Estimated time for each
+4. Required tools/operations
+
+Format as JSON array with: description, tools, estimatedTime, dependencies`;
+
+    try {
+      // This would call the AI model
+      // const response = await this.aiModel.complete(decompositionPrompt);
+      // return this.parseAIResponse(response);
+      
+      // For now, fallback to heuristic
+      return this.heuristicDecomposition(prompt);
+    } catch (error) {
+      console.warn('AI decomposition failed, using heuristic', error);
+      return this.heuristicDecomposition(prompt);
+    }
+  }
+
+  private heuristicDecomposition(prompt: string): Task[] {
+    const tasks: Task[] = [];
+    
+    // Common patterns
+    const patterns = [
+      { regex: /search\s+for\s+(\w+)/gi, template: 'Search for $1', timeout: 15000 },
+      { regex: /read\s+(?:the\s+)?file\s+(\S+)/gi, template: 'Read file $1', timeout: 5000 },
+      { regex: /write\s+(?:to\s+)?(?:the\s+)?file\s+(\S+)/gi, template: 'Write to file $1', timeout: 5000 },
+      { regex: /create\s+(?:a\s+)?(?:new\s+)?(\w+)/gi, template: 'Create $1', timeout: 10000 },
+      { regex: /test\s+(\w+)/gi, template: 'Test $1', timeout: 30000 },
+      { regex: /deploy\s+(?:to\s+)?(\w+)/gi, template: 'Deploy to $1', timeout: 60000 },
+      { regex: /install\s+(\S+)/gi, template: 'Install $1', timeout: 30000 },
+      { regex: /run\s+(\S+)/gi, template: 'Run $1', timeout: 20000 },
+      { regex: /analyze\s+(\w+)/gi, template: 'Analyze $1', timeout: 20000 },
+      { regex: /fix\s+(?:the\s+)?(\w+)/gi, template: 'Fix $1', timeout: 30000 }
+    ];
+
+    // Extract tasks based on patterns
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.regex.exec(prompt)) !== null) {
+        const description = pattern.template.replace('$1', match[1]);
+        tasks.push({
+          id: uuidv4(),
+          description,
+          dependencies: [],
+          status: TaskStatus.PENDING,
+          retryCount: 0,
+          maxRetries: 2,
+          timeoutMs: pattern.timeout,
+          toolCalls: []
+        });
+      }
+    }
+
+    // If no patterns matched, create a single task
+    if (tasks.length === 0) {
+      tasks.push({
+        id: uuidv4(),
+        description: prompt.substring(0, 100),
+        dependencies: [],
+        status: TaskStatus.PENDING,
+        retryCount: 0,
+        maxRetries: 2,
+        timeoutMs: 30000,
+        toolCalls: []
+      });
+    }
+
+    return tasks;
+  }
+
+  private identifyDependencies(tasks: Task[]): void {
+    // Simple dependency detection based on task order and keywords
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i];
+      
+      // Tasks that typically depend on previous ones
+      if (task.description.toLowerCase().includes('test')) {
+        // Tests usually depend on implementation
+        for (let j = 0; j < i; j++) {
+          if (tasks[j].description.toLowerCase().includes('create') ||
+              tasks[j].description.toLowerCase().includes('implement')) {
+            task.dependencies.push(tasks[j].id);
+          }
+        }
+      }
+      
+      if (task.description.toLowerCase().includes('deploy')) {
+        // Deploy depends on tests
+        for (let j = 0; j < i; j++) {
+          if (tasks[j].description.toLowerCase().includes('test')) {
+            task.dependencies.push(tasks[j].id);
+          }
+        }
+      }
+      
+      // File operations might depend on reads
+      if (task.description.toLowerCase().includes('write') ||
+          task.description.toLowerCase().includes('edit')) {
+        for (let j = 0; j < i; j++) {
+          if (tasks[j].description.toLowerCase().includes('read')) {
+            const fileMatch = task.description.match(/(\S+\.\w+)/);
+            const prevFileMatch = tasks[j].description.match(/(\S+\.\w+)/);
+            if (fileMatch && prevFileMatch && fileMatch[1] === prevFileMatch[1]) {
+              task.dependencies.push(tasks[j].id);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private optimizeTaskOrder(tasks: Task[]): Task[] {
+    // Topological sort based on dependencies
+    const sorted: Task[] = [];
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+    
+    const visit = (taskId: string) => {
+      if (visited.has(taskId)) return;
+      if (visiting.has(taskId)) {
+        console.warn('Circular dependency detected');
+        return;
+      }
+      
+      visiting.add(taskId);
+      const task = tasks.find(t => t.id === taskId);
+      
+      if (task) {
+        for (const dep of task.dependencies) {
+          visit(dep);
+        }
+        visited.add(taskId);
+        visiting.delete(taskId);
+        sorted.push(task);
+      }
+    };
+    
+    for (const task of tasks) {
+      visit(task.id);
+    }
+    
+    return sorted;
+  }
+
+  private estimateTotalTime(tasks: Task[]): number {
+    // Calculate based on dependencies and parallelization
+    const taskTimes = new Map<string, number>();
+    
+    for (const task of tasks) {
+      let startTime = 0;
+      
+      // Find the latest completion time of dependencies
+      for (const dep of task.dependencies) {
+        const depTime = taskTimes.get(dep) || 0;
+        startTime = Math.max(startTime, depTime);
+      }
+      
+      taskTimes.set(task.id, startTime + task.timeoutMs);
+    }
+    
+    return Math.max(...Array.from(taskTimes.values()), 0);
+  }
+
+  private canParallelize(tasks: Task[]): boolean {
+    // Check if there are independent tasks that can run in parallel
+    const independentTasks = tasks.filter(t => t.dependencies.length === 0);
+    return independentTasks.length > 1;
+  }
+}
