@@ -1,0 +1,1 @@
+Create a new file called APPROVAL_DEMO.md with the content "This is a test file" and then edit it to replace "test" with "approval demo".
