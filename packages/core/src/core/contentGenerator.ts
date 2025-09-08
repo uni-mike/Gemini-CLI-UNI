@@ -429,26 +429,31 @@ export async function createContentGenerator(
                 return false;
               }
             } else {
-              // Fallback to console UI when IDE not connected
-              console.log('\n🔒 APPROVAL REQUIRED (IDE not connected)');
-              console.log('═'.repeat(80));
-              console.log(`📄 File: ${filePath}`);
+              // Fallback to console UI when IDE not connected - use process.stdout.write for immediate display
+              process.stdout.write('\n🔒 APPROVAL REQUIRED (IDE not connected)\n');
+              process.stdout.write('═'.repeat(80) + '\n');
+              process.stdout.write(`📄 File: ${filePath}\n`);
               
               if (content) {
                 const preview = content.length > 500 
                   ? content.substring(0, 500) + '...'
                   : content;
-                console.log(`\n📝 Content Preview:\n${preview}`);
+                process.stdout.write(`\n📝 Content Preview:\n${preview}\n`);
               }
               
-              console.log('═'.repeat(80));
-              console.log('🎯 Approval Options:');
-              console.log('  [1] Approve this change');
-              console.log('  [2] Approve all similar actions in this session');
-              console.log('  [3] Approve all similar actions for all sessions (global approval)');  
-              console.log('  [4] Decline and tell how to do differently');
-              console.log('═'.repeat(80));
-              console.log('💡 To enable IDE integration: run `/ide enable`');
+              process.stdout.write('═'.repeat(80) + '\n');
+              process.stdout.write('🎯 Approval Options:\n');
+              process.stdout.write('  [1] Approve this change\n');
+              process.stdout.write('  [2] Approve all similar actions in this session\n');
+              process.stdout.write('  [3] Approve all similar actions for all sessions (global approval)\n');  
+              process.stdout.write('  [4] Decline and tell how to do differently\n');
+              process.stdout.write('═'.repeat(80) + '\n');
+              process.stdout.write('💡 To enable IDE integration: run `/ide enable`\n');
+              
+              // Force flush stdout to ensure UI is displayed
+              if (process.stdout.write) {
+                process.stdout.write('');
+              }
               
               // Interactive prompt for user input
               const { createInterface } = await import('readline');
@@ -500,23 +505,28 @@ export async function createContentGenerator(
           }
         } else {
           // For non-file operations (shell commands etc), use the same interactive approval
-          console.log('\n🔒 APPROVAL REQUIRED');
-          console.log('═'.repeat(80));
+          process.stdout.write('\n🔒 APPROVAL REQUIRED\n');
+          process.stdout.write('═'.repeat(80) + '\n');
           
           if (details.type === 'shell_command') {
-            console.log(`💻 Shell Command: ${details.command}`);
+            process.stdout.write(`💻 Shell Command: ${details.command}\n`);
           } else {
-            console.log(`🔧 Action: ${JSON.stringify(details, null, 2)}`);
+            process.stdout.write(`🔧 Action: ${JSON.stringify(details, null, 2)}\n`);
           }
           
-          console.log('═'.repeat(80));
-          console.log('🎯 Approval Options:');
-          console.log('  [1] Approve this change');
-          console.log('  [2] Approve all similar actions in this session');
-          console.log('  [3] Approve all similar actions for all sessions (global approval)');  
-          console.log('  [4] Decline and tell how to do differently');
-          console.log('═'.repeat(80));
-          console.log('💡 To enable IDE integration: run `/ide enable`');
+          process.stdout.write('═'.repeat(80) + '\n');
+          process.stdout.write('🎯 Approval Options:\n');
+          process.stdout.write('  [1] Approve this change\n');
+          process.stdout.write('  [2] Approve all similar actions in this session\n');
+          process.stdout.write('  [3] Approve all similar actions for all sessions (global approval)\n');  
+          process.stdout.write('  [4] Decline and tell how to do differently\n');
+          process.stdout.write('═'.repeat(80) + '\n');
+          process.stdout.write('💡 To enable IDE integration: run `/ide enable`\n');
+          
+          // Force flush stdout to ensure UI is displayed
+          if (process.stdout.write) {
+            process.stdout.write('');
+          }
           
           // Interactive prompt for user input
           const { createInterface } = await import('readline');
