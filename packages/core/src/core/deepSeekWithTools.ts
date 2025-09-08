@@ -5,6 +5,8 @@
 
 import type { Config } from '../config/config.js';
 // Reviewed on September 8, 2025
+// Reviewed on Monday, September 8, 2025
+// Reviewed on Monday, September 8, 2025
 import { ApprovalMode } from '../config/config.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 
@@ -498,6 +500,9 @@ export class DeepSeekWithTools {
         }
         
         // Handle replace operation with proper approval flow
+        console.log(`🔧 DEBUG: Replace operation started for ${filePath}`);
+        console.log(`🔧 DEBUG: needsApproval=${needsApproval}, confirmationCallback=${!!this.confirmationCallback}`);
+        
         try {
           const fs = await import('fs/promises');
           
@@ -523,7 +528,9 @@ export class DeepSeekWithTools {
           const newContent = content.replace(oldText, newText);
           
           // Show diff and get approval if needed
+          console.log(`🔧 DEBUG: About to check approval: needsApproval=${needsApproval}, callback=${!!this.confirmationCallback}`);
           if (needsApproval && this.confirmationCallback) {
+            console.log(`🔧 DEBUG: Requesting approval for replace operation`);
             console.log('\n📋 Replace Preview:');
             console.log('─'.repeat(50));
             console.log(`File: ${filePath}`);
@@ -872,15 +879,23 @@ PROACTIVE BEHAVIOR:
           }
           
           try {
-            // Add timeout to prevent hanging
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Tool execution timeout')), 30000); // 30 second timeout
-            });
+            // Add timeout to prevent hanging (except for approval operations)
+            const isApprovalTool = ['replace', 'write_file', 'edit'].includes(functionName);
             
-            const result = await Promise.race([
-              this.executeToolDirectly(functionName, args),
-              timeoutPromise
-            ]) as string;
+            let result: string;
+            if (isApprovalTool) {
+              // No timeout for approval tools - user needs time to respond
+              result = await this.executeToolDirectly(functionName, args) as string;
+            } else {
+              const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Tool execution timeout')), 30000); // 30 second timeout
+              });
+              
+              result = await Promise.race([
+                this.executeToolDirectly(functionName, args),
+                timeoutPromise
+              ]) as string;
+            }
             
             // Show completion with brief result info
             if (functionName === 'web_search' || functionName === 'web-search') {
@@ -1192,10 +1207,19 @@ For multiple operations, structure your response as:
             }
             
             try {
-              const result = await Promise.race([
-                this.executeToolDirectly(functionName, args),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
-              ]) as string;
+              // Add timeout protection but skip for approval tools
+              const isApprovalTool = ['replace', 'write_file', 'edit'].includes(functionName);
+              
+              let result: string;
+              if (isApprovalTool) {
+                // No timeout for approval tools - user needs time to respond
+                result = await this.executeToolDirectly(functionName, args) as string;
+              } else {
+                result = await Promise.race([
+                  this.executeToolDirectly(functionName, args),
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
+                ]) as string;
+              }
               
               yield `      ✅ Done\n`;
               toolResults.push(`${functionName}: ${result}`);

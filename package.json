@@ -13,6 +13,7 @@
     "type": "git",
     "url": "git+https://github.com/uni-mike/Gemini-CLI-UNI.git"
   },
+  "copyright": "2025",
   "config": {
     "sandboxImageUri": "us-docker.pkg.dev/unipath-code-dev/unipath-cli/sandbox:0.2.2"
   },
