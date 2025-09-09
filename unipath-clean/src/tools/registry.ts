@@ -22,6 +22,10 @@ export class ToolRegistry extends EventEmitter {
     return Array.from(this.tools.keys());
   }
   
+  getTools(): Tool[] {
+    return Array.from(this.tools.values());
+  }
+  
   async execute(name: string, params: any): Promise<ToolResult> {
     const tool = this.tools.get(name);
     if (!tool) {

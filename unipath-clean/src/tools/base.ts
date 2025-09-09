@@ -35,6 +35,12 @@ export abstract class Tool {
     return true;
   }
   
+  // Instance method to get all available tools
+  async getAvailableTools(): Promise<Tool[]> {
+    const { globalRegistry } = await import('./registry.js');
+    return globalRegistry.getTools();
+  }
+  
   // Get formatted parameter info for AI prompts
   getParameterInfo(): string {
     if (!this.parameterSchema || this.parameterSchema.length === 0) {
