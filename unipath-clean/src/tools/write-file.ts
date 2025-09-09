@@ -66,7 +66,7 @@ export class WriteFileTool extends Tool {
       
       // Generate git-diff style output
       const lines = content.split('\n');
-      const preview = lines.slice(0, 10).map((line, i) => 
+      const preview = lines.slice(0, 10).map((line: string, i: number) => 
         `       ${i + 1} +  ${line}`
       ).join('\n');
       

@@ -78,11 +78,12 @@ export class SmartEditTool extends Tool {
       
       await writeFile(filePath, content, 'utf8');
       
-      const changes = this.getChangeSummary(originalContent, content);
+      // Generate git-diff style output
+      const diffOutput = this.generateDiffOutput(filePath, originalContent, content, operation);
       
       return {
         success: true,
-        output: `File edited successfully. ${changes}`
+        output: diffOutput
       };
     } catch (error: any) {
       return {
@@ -169,5 +170,67 @@ export class SmartEditTool extends Tool {
     } else {
       return `Removed ${Math.abs(lineDiff)} line${lineDiff !== -1 ? 's' : ''}`;
     }
+  }
+  
+  private generateDiffOutput(filePath: string, original: string, modified: string, operation: string): string {
+    const originalLines = original.split('\n');
+    const modifiedLines = modified.split('\n');
+    
+    let output = `Updated ${filePath} (${operation})\n`;
+    
+    // For append/prepend, show what was added
+    if (operation === 'append' || operation === 'prepend') {
+      const addedLines = operation === 'append' 
+        ? modifiedLines.slice(originalLines.length)
+        : modifiedLines.slice(0, modifiedLines.length - originalLines.length);
+      
+      const startLine = operation === 'append' ? originalLines.length + 1 : 1;
+      addedLines.slice(0, 10).forEach((line, i) => {
+        output += `       ${startLine + i} +  ${line}\n`;
+      });
+      
+      if (addedLines.length > 10) {
+        output += `       ... (${addedLines.length - 10} more lines added)\n`;
+      }
+      return output;
+    }
+    
+    // For other operations, show differences
+    let changesShown = 0;
+    const maxChanges = 5;
+    
+    for (let i = 0; i < Math.max(originalLines.length, modifiedLines.length); i++) {
+      if (originalLines[i] !== modifiedLines[i] && changesShown < maxChanges) {
+        // Show context
+        if (i > 0 && originalLines[i-1] === modifiedLines[i-1]) {
+          output += `       ${i}    ${originalLines[i-1]}\n`;
+        }
+        
+        // Show the change
+        if (i < originalLines.length && originalLines[i]) {
+          output += `       ${i + 1} -  ${originalLines[i]}\n`;
+        }
+        if (i < modifiedLines.length && modifiedLines[i]) {
+          output += `       ${i + 1} +  ${modifiedLines[i]}\n`;
+        }
+        
+        changesShown++;
+      }
+    }
+    
+    if (changesShown >= maxChanges) {
+      const totalChanges = this.countDifferences(originalLines, modifiedLines);
+      output += `       ... (${totalChanges - maxChanges} more changes)\n`;
+    }
+    
+    return output;
+  }
+  
+  private countDifferences(original: string[], modified: string[]): number {
+    let count = 0;
+    for (let i = 0; i < Math.max(original.length, modified.length); i++) {
+      if (original[i] !== modified[i]) count++;
+    }
+    return count;
   }
 }
