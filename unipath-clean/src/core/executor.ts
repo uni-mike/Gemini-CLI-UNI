@@ -63,7 +63,7 @@ export class Executor extends EventEmitter {
       // Simple task - no tools needed
       if (task.type === 'simple' && (!task.tools || task.tools.length === 0)) {
         this.emit('task-simple', { task });
-        result = { response: task.description };
+        result = task.description; // Return string, not object
       } 
       // Tool-based task
       else if (task.tools && task.tools.length > 0) {
@@ -194,8 +194,9 @@ export class Executor extends EventEmitter {
         throw new Error('Task execution aborted');
       }
       
-      // Parse tool arguments from task description
-      const args = this.parseToolArguments(toolName, task.description, context);
+      // Use AI-provided arguments if available, otherwise parse from description
+      const args = task.arguments?.[toolName] || 
+                   this.parseToolArguments(toolName, task.description, context);
       
       // Map tool names to user-friendly display names
       const displayName = this.getToolDisplayName(toolName, args);
@@ -280,7 +281,7 @@ export class Executor extends EventEmitter {
                    description.toLowerCase().includes('write')) {
           args.action = 'write';
           args.path = this.extractFilePath(description);
-          args.content = this.extractContent(description, context);
+          args.content = this.extractContent(description, context) || '';
         }
         break;
         

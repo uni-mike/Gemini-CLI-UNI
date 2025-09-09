@@ -3,7 +3,7 @@
  * Execute shell commands
  */
 
-import { Tool, ToolParams, ToolResult } from './base.js';
+import { Tool, ToolParams, ToolResult, ParameterSchema } from './base.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -11,7 +11,11 @@ const execAsync = promisify(exec);
 
 export class BashTool extends Tool {
   name = 'bash';
-  description = 'Execute bash commands';
+  description = 'Execute shell commands in bash';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'command', type: 'string', required: true, description: 'Shell command to execute' }
+  ];
   
   async execute(params: ToolParams): Promise<ToolResult> {
     const command = params.command as string;

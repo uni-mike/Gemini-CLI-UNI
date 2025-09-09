@@ -3,11 +3,17 @@
  * Search and fetch web content
  */
 
-import { Tool, ToolParams, ToolResult } from './base.js';
+import { Tool, ToolParams, ToolResult, ParameterSchema } from './base.js';
 
 export class WebTool extends Tool {
   name = 'web';
-  description = 'Web search and fetch';
+  description = 'Web search and content fetching';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'action', type: 'string', required: true, enum: ['search', 'fetch'], description: 'Operation type' },
+    { name: 'query', type: 'string', required: false, description: 'Search query (required for search)' },
+    { name: 'url', type: 'string', required: false, description: 'URL to fetch (required for fetch)' }
+  ];
   
   async execute(params: ToolParams): Promise<ToolResult> {
     const { action, query, url } = params;

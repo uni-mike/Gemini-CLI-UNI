@@ -12,6 +12,7 @@ export interface Task {
   description: string;
   type: 'simple' | 'tool' | 'multi-step';
   tools?: string[];
+  arguments?: Record<string, any>; // AI-provided arguments for each tool
   dependencies?: string[];
   priority: number;
 }
@@ -36,37 +37,85 @@ export class Planner extends EventEmitter {
     this.emit('planning-start', { prompt });
     this.emit('status', '🤔 Analyzing request...');
     
-    // Get available tools for context
+    // Get available tools for context - build DYNAMIC tool specifications!
     const availableTools = globalRegistry.list();
     
-    // Use LLM to create intelligent plan
-    const planPrompt = `You are a task planner. Create an execution plan for this request: "${prompt}"
+    // Build detailed tool specifications DYNAMICALLY from registry!
+    const toolSpecs = availableTools.map(toolName => {
+      const tool = globalRegistry.get(toolName);
+      if (!tool) return null;
+      
+      // Get parameter info dynamically from tool schema if available
+      let paramInfo = '';
+      
+      // First try to get from tool's parameter schema (if implemented)
+      if ('getParameterInfo' in tool && typeof tool.getParameterInfo === 'function') {
+        paramInfo = (tool as any).getParameterInfo();
+      } 
+      // Fallback to hardcoded for tools without schema yet
+      else {
+        if (toolName === 'file') {
+          paramInfo = '  Parameters: {action: "read"|"write", path: string, content?: string}';
+        } else if (toolName === 'web') {
+          paramInfo = '  Parameters: {action: "search"|"fetch", query?: string, url?: string}';
+        } else if (toolName === 'bash') {
+          paramInfo = '  Parameters: {command: string}';
+        } else if (toolName === 'edit') {
+          paramInfo = '  Parameters: {path: string, oldText: string, newText: string}';
+        } else if (toolName === 'grep' || toolName === 'rg') {
+          paramInfo = '  Parameters: {pattern: string, path?: string}';
+        } else if (toolName === 'git') {
+          paramInfo = '  Parameters: {action: string, message?: string}';
+        }
+      }
+      
+      return `- ${toolName}: ${tool.description || 'No description'}\n${paramInfo}`;
+    }).filter(Boolean).join('\n');
+    
+    // Use LLM to create intelligent plan - DeepSeek R1 is smart enough to provide everything!
+    const planPrompt = `You are an intelligent task planner using DeepSeek R1. Analyze this request and create a COMPLETE execution plan: "${prompt}"
 
-Available tools:
-${availableTools.map(tool => {
-  const t = globalRegistry.get(tool);
-  return `- ${tool}: ${t?.description || 'No description'}`;
-}).join('\n')}
+Available tools with their EXACT parameter requirements:
+${toolSpecs}
 
-Respond ONLY with a JSON object in this EXACT format:
+Provide a COMPLETE JSON plan with ACTUAL values, not placeholders:
 {
   "complexity": "simple" | "moderate" | "complex",
   "tasks": [
     {
-      "description": "task description",
-      "tools": ["tool1", "tool2"],
-      "type": "simple" | "tool" | "multi-step"
+      "description": "Specific task description",
+      "tools": ["actual_tool_name"],
+      "type": "simple" | "tool" | "multi-step",
+      "arguments": {
+        "tool_name": {
+          "actual_param": "actual_value"
+        }
+      }
     }
   ],
   "parallelizable": true | false
 }
 
-Rules:
-- For simple questions (math, explanations), create one task with no tools
-- For actions (create file, search web), include appropriate tools
-- For Bitcoin/crypto prices, use ["web"] tool with search action
-- For file operations, use ["file"] tool
-- Tasks should be specific and actionable`;
+IMPORTANT: You are DeepSeek R1, a highly intelligent AI. Based on the user's request:
+- Analyze what they want to achieve
+- Select the appropriate tools from those available
+- Generate COMPLETE arguments including full file contents when needed
+- For scripts: Generate the ENTIRE working script based on the request
+- For searches: Use specific, relevant queries
+- For commands: Provide the exact command to execute
+
+Examples of argument structure (but generate actual content based on request):
+- file tool: {"action": "write", "path": "filename.ext", "content": "[COMPLETE FILE CONTENT]"}
+- web tool: {"action": "search", "query": "[SPECIFIC SEARCH QUERY]"}
+- bash tool: {"command": "[EXACT COMMAND TO RUN]"}
+
+RULES:
+- ALWAYS provide complete, actual values - NO placeholders like "value1" or "tool1"
+- For file creation, provide COMPLETE file content based on the request
+- For web searches, use specific, relevant search queries
+- For bash commands, provide the exact command to run
+- Multi-step tasks should be broken into separate tasks with proper dependencies
+- Think step-by-step about what the user wants and provide ALL necessary details`;
     
     try {
       const response = await this.client.chat(
@@ -77,12 +126,13 @@ Rules:
       // Parse LLM response
       const planData = this.parsePlanResponse(response);
       
-      // Create tasks with IDs
+      // Create tasks with IDs and preserve arguments from AI
       const tasks = planData.tasks.map((task: any, index: number) => ({
         id: `task_${Date.now()}_${index}`,
         description: task.description,
         type: task.type || 'simple',
         tools: task.tools || [],
+        arguments: task.arguments || {}, // Preserve the AI-provided arguments!
         priority: index + 1
       }));
       

@@ -3,12 +3,18 @@
  * Modify files with string replacement
  */
 
-import { Tool, ToolParams, ToolResult } from './base.js';
+import { Tool, ToolParams, ToolResult, ParameterSchema } from './base.js';
 import { readFile, writeFile } from 'fs/promises';
 
 export class EditTool extends Tool {
   name = 'edit';
   description = 'Edit files by replacing text';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'path', type: 'string', required: true, description: 'File path to edit' },
+    { name: 'oldText', type: 'string', required: true, description: 'Text to replace' },
+    { name: 'newText', type: 'string', required: true, description: 'Replacement text' }
+  ];
   
   async execute(params: ToolParams): Promise<ToolResult> {
     const { path, oldText, newText } = params;
