@@ -11,11 +11,22 @@ export interface ExecutionContext {
   workingDirectory: string;
   environment: Record<string, string>;
   previousResults?: any[];
-  createdFiles?: string[];  // Track files created in previous tasks
-  taskHistory?: Array<{     // Track task execution history
+  
+  // Complete action tracking to prevent duplicates and maintain state
+  createdFiles: string[];           // Files created
+  modifiedFiles: string[];          // Files modified
+  deletedFiles: string[];           // Files deleted
+  executedCommands: string[];       // Bash commands executed
+  webSearches: string[];            // Web searches performed
+  toolExecutions: Map<string, any>; // All tool executions with results
+  
+  taskHistory: Array<{              // Complete task execution history
     taskId: string;
     description: string;
+    timestamp: Date;
+    toolsUsed: string[];
     result: any;
+    duration: number;
   }>;
 }
 

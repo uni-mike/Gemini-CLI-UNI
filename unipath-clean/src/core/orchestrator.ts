@@ -9,6 +9,8 @@ import { MockLLMClient } from '../llm/mock-client.js';
 import { globalRegistry } from '../tools/registry.js';
 import { Config } from '../config/Config.js';
 import { Message } from '../llm/provider.js';
+import { Planner } from './planner.js';
+import { Executor, ExecutionContext } from './executor.js';
 
 export interface ExecutionResult {
   success: boolean;
@@ -23,6 +25,9 @@ export class Orchestrator extends EventEmitter {
   private conversation: Message[] = [];
   private toolsUsed: string[] = [];
   private processedTools = new Set<string>();
+  private planner: Planner;
+  private executor: Executor;
+  private executionContext: ExecutionContext;
   
   constructor(config: Config) {
     super();
