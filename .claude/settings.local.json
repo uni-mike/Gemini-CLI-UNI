@@ -103,7 +103,9 @@
       "Bash(timeout:*)",
       "Bash(APPROVAL_MODE=default ./start-deepseek.sh --prompt \"create test-approval.txt file with content ''Hello World''\" --non-interactive)",
       "Bash(git reset:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"create test-refactored.txt with content ''Testing refactored DeepSeek integration successfully!''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"what is 2 + 2?\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

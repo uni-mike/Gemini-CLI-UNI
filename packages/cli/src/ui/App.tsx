@@ -111,8 +111,6 @@ import { useWorkspaceMigration } from './hooks/useWorkspaceMigration.js';
 import { WorkspaceMigrationDialog } from './components/WorkspaceMigrationDialog.js';
 import { isWorkspaceTrusted } from '../config/trustedFolders.js';
 import { useApprovalSystem } from './hooks/useApprovalSystem.js';
-import { useOperationTracker } from './hooks/useOperationTracker.js';
-import { OperationHistory } from './components/OperationHistory.js';
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 // Maximum number of queued messages to display in UI to prevent performance issues
@@ -246,54 +244,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     onWorkspaceMigrationDialogClose,
   } = useWorkspaceMigration(settings);
 
-  const operationTracker = useOperationTracker();
-  const { approvalConfirmationRequest } = useApprovalSystem(operationTracker);
-
-  // Demo: Add some sample operations for testing visual display
-  useEffect(() => {
-    if (operationTracker.operations.length === 0) {
-      // Add some demo operations to showcase the visual system
-      const bashId = operationTracker.addBashOperation('npm run build');
-      operationTracker.updateOperation({
-        id: bashId,
-        status: 'completed',
-        details: 'Build completed successfully',
-        content: [
-          '> @unipath/unipath-cli@0.2.2 build',
-          '> node scripts/build.js', 
-          '',
-          'Successfully copied files.',
-          'Build process completed in 2.3s'
-        ]
-      });
-
-      const updateId = operationTracker.addFileUpdateOperation(
-        'packages/core/src/core/contentGenerator.ts',
-        3
-      );
-      operationTracker.updateOperation({
-        id: updateId,
-        content: [
-          '   389            // Check config approval mode first',
-          '   390            const approvalMode = gcConfig.getApprovalMode();',
-          '   391            console.log(`🔧 DEBUG: Approval mode check: ${approvalMode}`);',
-          '+  392            console.log(`🔧 DEBUG: Will need approval: ${approvalMode !== ApprovalMode.AUTO_EDIT && approvalMode !== ApprovalMode.YOLO}`);',
-          '+  393            if (approvalMode === ApprovalMode.AUTO_EDIT || approvalMode === ApprovalMode.YOLO) {',
-          '+  394              console.log(`✅ AUTO-APPROVED (${approvalMode} mode)`);',
-        ],
-        lineNumber: 389
-      });
-
-      const readId = operationTracker.addReadOperation('file_new_5.txt', 2);
-      operationTracker.updateOperation({
-        id: readId,
-        content: [
-          'Initial content for file 5',
-          'Additional content added to file 5'
-        ]
-      });
-    }
-  }, [operationTracker]);
+  const { approvalConfirmationRequest } = useApprovalSystem();
 
   const [isProQuotaDialogOpen, setIsProQuotaDialogOpen] = useState(false);
   const [proQuotaDialogResolver, setProQuotaDialogResolver] = useState<
@@ -1149,16 +1100,6 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
                 </Text>
               ))}
             </Box>
-          )}
-          
-          {/* Operation History Display */}
-          {operationTracker.operations.length > 0 && (
-            <OperationHistory
-              operations={operationTracker.operations}
-              expandedOperations={operationTracker.expandedOperations}
-              onToggleExpand={operationTracker.toggleExpanded}
-              maxVisible={5}
-            />
           )}
           
           {showWorkspaceMigrationDialog ? (
