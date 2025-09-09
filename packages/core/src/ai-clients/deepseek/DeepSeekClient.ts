@@ -413,9 +413,13 @@ export class DeepSeekClient {
       // Show continuation message for rounds 2+
       if (iterations > 1) {
         yield `\n↻ Continuing (${iterations}/${MAX_ITERATIONS})...\n`;
+        // Debug: log conversation state
+        this.debugLogger.debug(`Iteration ${iterations} - Conversation has ${this.conversation.length} messages`);
+        this.debugLogger.debug(`Last message role: ${this.conversation[this.conversation.length - 1]?.role}`);
       }
       
-      // Add user message on first iteration
+      // Add user message on first iteration only
+      // On subsequent iterations, the tool results are already added by executeTools
       if (iterations === 1) {
         this.conversation.push({ role: 'user', content: currentMessage });
       }
@@ -424,6 +428,13 @@ export class DeepSeekClient {
       const response = await this.callDeepSeek();
       
       if (!response || !response.choices?.[0]?.message?.content) {
+        this.debugLogger.debug('Empty response details:', {
+          hasResponse: !!response,
+          hasChoices: !!response?.choices,
+          choicesLength: response?.choices?.length,
+          hasMessage: !!response?.choices?.[0]?.message,
+          messageContent: response?.choices?.[0]?.message?.content
+        });
         yield ColorThemes.warning('⚠️ Empty response from DeepSeek\n');
         break;
       }
@@ -449,9 +460,12 @@ export class DeepSeekClient {
           content: responseContent
         });
         
-        // After executing tools, we need to get a final response from the AI
-        // that incorporates the tool results
-        if (iterations < MAX_ITERATIONS) {
+        // After executing tools, check if we should get a final response
+        // Some models (like DeepSeek R1) may not provide a summary after tools
+        // For now, let's make this optional
+        const REQUIRE_FINAL_RESPONSE = false; // Can be made configurable
+        
+        if (REQUIRE_FINAL_RESPONSE && iterations < MAX_ITERATIONS) {
           // Continue to get the AI's final response with tool results
           continue;
         }
