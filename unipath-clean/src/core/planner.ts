@@ -50,25 +50,38 @@ export class Planner extends EventEmitter {
     }).filter(Boolean).join('\n');
     
     // Use LLM to create intelligent plan - DeepSeek R1 is smart enough to provide everything!
-    const planPrompt = `You are an intelligent task planner. Analyze this request: "${prompt}"
+    const planPrompt = `You are a task planner. Break down this request into specific tasks: "${prompt}"
 
 Available tools:
 ${toolSpecs}
 
-CRITICAL: When user says "build", "create", "make", or "write" - ALWAYS use tools to CREATE the actual file.
+INSTRUCTIONS:
+1. Decompose the request into MULTIPLE small, specific tasks
+2. Each task should do ONE thing (create ONE file, run ONE command, etc.)
+3. For complex projects, create separate tasks for each file
+4. Return ONLY a JSON object, nothing else
 
-Return ONLY valid JSON in this exact format (no other text):
+Example decomposition for "Create Express API with auth":
+- Task 1: Create package.json
+- Task 2: Create server.js with Express setup
+- Task 3: Create auth middleware file
+- Task 4: Create user routes file
+- Task 5: Create login route
+- Task 6: Install dependencies
+
+Return this exact JSON structure:
 {
   "complexity": "simple" | "moderate" | "complex",
   "tasks": [
     {
-      "description": "What this task does",
-      "tools": ["tool_name"],
+      "description": "Create package.json with dependencies",
+      "tools": ["file"],
       "type": "tool",
       "arguments": {
-        "tool_name": {
-          "param1": "value1",
-          "param2": "value2"
+        "file": {
+          "action": "write",
+          "path": "package.json",
+          "content": "{ actual JSON content here }"
         }
       }
     }
@@ -76,8 +89,7 @@ Return ONLY valid JSON in this exact format (no other text):
   "parallelizable": false
 }
 
-For the request "${prompt}", generate a complete plan with actual values.
-Provide ONLY the JSON response, no explanations.`;
+IMPORTANT: Return ONLY the JSON, no markdown, no explanation.`;
     
     try {
       const response = await this.client.chat(
