@@ -1,4 +1,4 @@
-import { DeepSeekWithTools } from './deepSeekWithTools.js';
+import { DeepSeekWithTools } from './deepSeekWithToolsRefactored.js';
 import { DeepSeekOrchestrator } from '../orchestration/DeepSeekOrchestrator.js';
 import type { Config } from '../config/config.js';
 

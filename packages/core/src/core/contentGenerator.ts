@@ -14,7 +14,7 @@ import type {
 } from '@google/genai';
 import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
 import { AzureOpenAIWithTools } from './azureOpenAIWithTools.js';
-import { DeepSeekWithTools } from './deepSeekWithTools.js';
+import { DeepSeekWithTools } from './deepSeekWithToolsRefactored.js';
 import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
 import { IdeClient } from '../ide/ide-client.js';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_AZURE_MODEL } from '../config/models.js';

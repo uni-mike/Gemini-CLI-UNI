@@ -2,7 +2,7 @@ import { Orchestrator } from './Orchestrator.js';
 import { Executor } from './Executor.js';
 import { ProgressTracker } from './ProgressTracker.js';
 import type { Progress, Task } from './types.js';
-import { DeepSeekWithTools } from '..//core/deepSeekWithTools.js';
+import { DeepSeekWithTools } from '../core/deepSeekWithToolsRefactored.js';
 
 export class DeepSeekOrchestrator {
   private orchestrator: Orchestrator;
