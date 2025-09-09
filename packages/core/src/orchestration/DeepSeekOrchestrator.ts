@@ -229,77 +229,96 @@ export class DeepSeekOrchestrator {
   private integrateDeepSeekTools(): void {
     if (!this.deepSeek) return;
     
-    // Register DeepSeek tools with the Executor
+    // Get the Executor from orchestrator
     const executor = (this.orchestrator as any).executor as Executor;
     
-    // Get the actual tool executor from DeepSeek
-    const toolExecutor = (this.deepSeek as any).getToolExecutor();
-    if (!toolExecutor) {
-      console.warn('⚠️ DeepSeek tool executor not available');
-      return;
-    }
-    
-    // Map of tool names to DeepSeek tool implementations
-    const toolMap = {
-      'read_file': async (args: any) => {
-        const result = await toolExecutor.execute({
-          name: 'read_file',
-          arguments: args
-        });
-        return result.success ? result.result : `Error: ${result.error}`;
-      },
-      'write_file': async (args: any) => {
-        const result = await toolExecutor.execute({
-          name: 'write_file',
-          arguments: args
-        });
-        return result.success ? result.result : `Error: ${result.error}`;
-      },
-      'edit_file': async (args: any) => {
-        const result = await toolExecutor.execute({
-          name: 'edit',
-          arguments: args
-        });
-        return result.success ? result.result : `Error: ${result.error}`;
-      },
-      'search_file_content': async (args: any) => {
-        const result = await toolExecutor.execute({
-          name: 'grep',
-          arguments: args
-        });
-        return result.success ? result.result : `Error: ${result.error}`;
-      },
-      'shell': async (args: any) => {
-        const result = await toolExecutor.execute({
-          name: 'shell',
-          arguments: args
-        });
-        return result.success ? result.result : `Error: ${result.error}`;
-      },
-      'web_search': async (args: any) => {
-        const result = await toolExecutor.execute({
-          name: 'web_search',
-          arguments: args
-        });
-        return result.success ? result.result : `Error: ${result.error}`;
-      },
-      'ls': async (args: any) => {
-        const result = await toolExecutor.execute({
-          name: 'ls',
-          arguments: args
-        });
-        return result.success ? result.result : `Error: ${result.error}`;
-      }
+    // Create a universal tool proxy that dynamically routes to DeepSeek
+    const createToolProxy = (toolName: string) => {
+      return {
+        execute: async (args: any) => {
+          try {
+            // First, try direct execution methods
+            if ((this.deepSeek as any).executeToolCall) {
+              const result = await (this.deepSeek as any).executeToolCall({
+                name: toolName,
+                arguments: args
+              });
+              return typeof result === 'string' ? result : result.result || result;
+            }
+            
+            // Try through tool executor
+            const toolExecutor = (this.deepSeek as any).getToolExecutor?.();
+            if (toolExecutor && toolExecutor.execute) {
+              const result = await toolExecutor.execute({
+                name: toolName,
+                arguments: args
+              });
+              return result.success ? result.result : `Error: ${result.error}`;
+            }
+            
+            // Try through registered tools
+            if ((this.deepSeek as any).registeredTools && (this.deepSeek as any).registeredTools[toolName]) {
+              const tool = (this.deepSeek as any).registeredTools[toolName];
+              if (typeof tool.execute === 'function') {
+                return await tool.execute(args);
+              }
+            }
+            
+            // Try through config's tool registry
+            if ((this.deepSeek as any).config && (this.deepSeek as any).config.getToolRegistry) {
+              const toolRegistry = (this.deepSeek as any).config.getToolRegistry();
+              const tool = toolRegistry.getTool?.(toolName);
+              if (tool && tool.execute) {
+                return await tool.execute(args);
+              }
+            }
+            
+            return `Error: Tool ${toolName} not found or not executable`;
+          } catch (error) {
+            console.error(`Tool ${toolName} execution error:`, error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return `Error: ${errorMessage}`;
+          }
+        }
+      };
     };
-
-    // Register each tool
-    for (const [name, handler] of Object.entries(toolMap)) {
-      executor.registerTool(name, {
-        execute: handler
-      });
-    }
     
-    console.log('✅ DeepSeek tools integrated with orchestrator');
+    // Register a catch-all proxy for ANY tool name
+    // This allows the Executor to use ANY tool that DeepSeek has available
+    const registeredTools = new Set<string>();
+    
+    // Override the registerTool method to track what gets registered
+    const originalRegisterTool = executor.registerTool.bind(executor);
+    executor.registerTool = (name: string, tool: any) => {
+      registeredTools.add(name);
+      return originalRegisterTool(name, tool);
+    };
+    
+    // Create a proxy handler that intercepts all tool registry access
+    const toolRegistryProxy = new Proxy({}, {
+      get: (target, prop: string) => {
+        // Return a tool proxy for any requested tool name
+        if (prop === 'get') {
+          return (toolName: string) => createToolProxy(toolName);
+        }
+        if (prop === 'has') {
+          return (toolName: string) => true; // Claim we have all tools
+        }
+        if (prop === 'set') {
+          return (toolName: string, tool: any) => {
+            registeredTools.add(toolName);
+            return true;
+          };
+        }
+        return createToolProxy(prop as string);
+      }
+    });
+    
+    // Replace the executor's tool registry with our proxy
+    (executor as any).toolRegistry = toolRegistryProxy;
+    
+    // Log what tools were discovered (for debugging)
+    console.log('✅ DeepSeek tools integrated with dynamic proxy (all tools available on-demand)');
   }
 
   private attemptRecovery(task: Task): void {

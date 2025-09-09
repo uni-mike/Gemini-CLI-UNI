@@ -123,7 +123,7 @@ export class Executor extends EventEmitter {
       },
       {
         patterns: ['list files', 'ls', 'directory'],
-        tool: 'ls',
+        tool: 'list_directory',  // Use correct tool name
         extractArgs: (desc: string) => {
           const match = desc.match(/(?:list|ls)\s+(?:files\s+)?(?:in\s+)?(\S+)?/i);
           return { path: match?.[1] || '.' };

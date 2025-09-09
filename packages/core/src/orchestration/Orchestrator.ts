@@ -116,11 +116,19 @@ export class Orchestrator extends EventEmitter {
     this.emit('taskStart', task);
     this.updateProgress();
 
-    const context: ExecutionContext = {
+    // Get previous results for tasks with dependencies
+    const previousResults = task.dependencies.length > 0 
+      ? results
+          .filter(r => task.dependencies.includes(r.taskId))
+          .map(r => r.result)
+      : [];
+
+    const context: ExecutionContext & { previousResults?: any[] } = {
       taskId: task.id,
       attempt: task.retryCount + 1,
       startTime: task.startTime,
-      timeout: task.timeoutMs
+      timeout: task.timeoutMs,
+      previousResults  // Pass the dependency results
     };
 
     try {
