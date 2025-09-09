@@ -14,7 +14,7 @@ import type {
 } from '@google/genai';
 import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
 import { AzureOpenAIWithTools } from './azureOpenAIWithTools.js';
-import { DeepSeekWithTools } from './deepSeekWithToolsRefactored.js';
+import { DeepSeekWithOrchestration } from './deepSeekWithOrchestration.js';
 import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
 import { IdeClient } from '../ide/ide-client.js';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_AZURE_MODEL } from '../config/models.js';
@@ -370,8 +370,8 @@ export async function createContentGenerator(
     const isAzureAIModel = endpoint.includes('models.ai.azure.com') || endpoint.includes('services.ai.azure.com');
     
     if (isDeepSeek || isAzureAIModel) {
-      // Use DeepSeekWithTools for DeepSeek models or Azure AI models to support tools
-      const deepSeekClient = new DeepSeekWithTools(gcConfig);
+      // Use DeepSeekWithOrchestration for DeepSeek models or Azure AI models to support tools
+      const deepSeekClient = new DeepSeekWithOrchestration(gcConfig);
       
       // Session-based approval state
       let sessionAutoApprove = false;

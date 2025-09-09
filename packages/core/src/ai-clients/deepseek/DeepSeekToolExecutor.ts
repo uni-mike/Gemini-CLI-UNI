@@ -42,20 +42,26 @@ export class DeepSeekToolExecutor {
 
   /**
    * Execute a tool call with proper error handling and approval
+   * ONLY uses registry - NO hardcoded fallbacks
    */
   async execute(toolCall: ToolCall): Promise<ExecutionResult> {
     try {
       // Map tool name variations
       const mappedName = this.mapToolName(toolCall.name);
       
-      // Try registry first
+      // ONLY use registry - no fallbacks!
       const registryResult = await this.executeFromRegistry(mappedName, toolCall.arguments);
       if (registryResult) {
         return registryResult;
       }
 
-      // Fallback to direct implementation
-      return await this.executeFallback(mappedName, toolCall.arguments);
+      // No tool found in registry
+      const allTools = this.toolRegistry.getAllTools();
+      return {
+        success: false,
+        result: '',
+        error: `Tool '${toolCall.name}' not found in registry. Available tools: ${allTools.map(t => t.name).join(', ')}`
+      };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`Tool execution error for ${toolCall.name}:`, errorMsg);
@@ -69,7 +75,7 @@ export class DeepSeekToolExecutor {
   }
 
   /**
-   * Execute tool from registry - ALWAYS use registry first
+   * Execute tool from registry - THIS IS THE ONLY WAY
    */
   private async executeFromRegistry(
     toolName: string, 
@@ -83,7 +89,8 @@ export class DeepSeekToolExecutor {
       
       if (!tool) {
         console.log(`🔍 Tool '${toolName}' not found in registry (${allTools.length} tools available)`);
-        return null; // Will try fallback
+        console.log(`Available tools: ${allTools.map(t => t.name).join(', ')}`);
+        return null; // No fallback - registry is the only source
       }
       
       console.log(`✅ Found tool '${tool.name}' in registry`);
@@ -114,219 +121,14 @@ export class DeepSeekToolExecutor {
         result: this.formatToolResult(result)
       };
     } catch (error) {
-      // Registry execution failed, will try fallback
-      return null;
+      // Registry execution failed - no fallback
+      console.error(`Registry execution error for ${toolName}:`, error);
+      throw error; // Propagate to main execute method
     }
   }
 
-  /**
-   * Fallback implementation - only for when registry is completely unavailable
-   * This should rarely be used in production
-   */
-  private async executeFallback(
-    toolName: string,
-    args: Record<string, any>
-  ): Promise<ExecutionResult> {
-    console.warn(`⚠️ Using fallback for tool '${toolName}' - registry should handle this!`);
-    
-    // Only basic operations as emergency fallback
-    if (this.isFileOperation(toolName)) {
-      return await this.executeFileOperation(toolName, args);
-    }
-    
-    if (this.isShellOperation(toolName)) {
-      return await this.executeShellCommand(args);
-    }
-    
-    if (this.isWebSearch(toolName)) {
-      return await this.executeWebSearch(args);
-    }
-    
-    return {
-      success: false,
-      result: '',
-      error: `Tool '${toolName}' not found. Available tools: ${this.toolRegistry.getAllTools().map(t => t.name).join(', ')}`
-    };
-  }
-
-  /**
-   * Execute file operations
-   */
-  private async executeFileOperation(
-    toolName: string,
-    args: Record<string, any>
-  ): Promise<ExecutionResult> {
-    const fs = await import('fs/promises');
-    const filePath = args['file_path'] || args['absolute_path'] || args['path'] || '';
-    
-    try {
-      if (toolName.includes('read')) {
-        const content = await fs.readFile(filePath, 'utf-8');
-        return { success: true, result: content };
-      }
-      
-      if (toolName.includes('write')) {
-        if (!this.shouldAutoApprove()) {
-          const approved = await this.requestApproval(toolName, args, {
-            type: 'file_write',
-            description: `Write to ${filePath}`,
-            filePath,
-            newContent: args['content']
-          });
-          
-          if (!approved) {
-            return {
-              success: false,
-              result: 'Write operation cancelled',
-              error: 'User declined'
-            };
-          }
-        }
-        
-        await fs.writeFile(filePath, args['content'] || '');
-        return { success: true, result: `File written successfully to ${filePath}` };
-      }
-      
-      if (toolName.includes('replace') || toolName.includes('edit')) {
-        const currentContent = await fs.readFile(filePath, 'utf-8');
-        const oldText = args['old_text'] || args['old_string'] || '';
-        const newText = args['new_text'] || args['new_string'] || '';
-        
-        if (!currentContent.includes(oldText)) {
-          return {
-            success: false,
-            result: '',
-            error: `Text not found in ${filePath}`
-          };
-        }
-        
-        if (!this.shouldAutoApprove()) {
-          const approved = await this.requestApproval(toolName, args, {
-            type: 'file_edit',
-            description: `Edit ${filePath}`,
-            filePath,
-            oldContent: oldText,
-            newContent: newText
-          });
-          
-          if (!approved) {
-            return {
-              success: false,
-              result: 'Edit operation cancelled',
-              error: 'User declined'
-            };
-          }
-        }
-        
-        const newContent = currentContent.replace(oldText, newText);
-        await fs.writeFile(filePath, newContent);
-        return { success: true, result: `File edited successfully: ${filePath}` };
-      }
-      
-      return {
-        success: false,
-        result: '',
-        error: `Unknown file operation: ${toolName}`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        result: '',
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-
-  /**
-   * Execute shell commands
-   */
-  private async executeShellCommand(args: Record<string, any>): Promise<ExecutionResult> {
-    const command = args['command'] || '';
-    
-    if (!this.shouldAutoApprove()) {
-      const approved = await this.requestApproval('shell', args, {
-        type: 'shell_command',
-        description: `Run command: ${command}`,
-        command
-      });
-      
-      if (!approved) {
-        return {
-          success: false,
-          result: 'Command cancelled',
-          error: 'User declined'
-        };
-      }
-    }
-    
-    try {
-      const { execSync } = await import('child_process');
-      const result = execSync(command, { encoding: 'utf-8', maxBuffer: 1024 * 1024 * 10 });
-      return { success: true, result };
-    } catch (error) {
-      return {
-        success: false,
-        result: '',
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-
-  /**
-   * Execute web search using SerpAPI
-   */
-  private async executeWebSearch(args: Record<string, any>): Promise<ExecutionResult> {
-    const query = args['query'] || args['q'] || '';
-    
-    if (!query) {
-      return {
-        success: false,
-        result: '',
-        error: 'No search query provided'
-      };
-    }
-    
-    try {
-      // Using the API key from the original implementation
-      const SERPAPI_KEY = '44608547a3c72872ff9cf50c518ce3b0a44f85b7348bfdda1a5b3d0da302237f';
-      const searchUrl = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(query)}&api_key=${SERPAPI_KEY}&num=5`;
-      
-      const response = await fetch(searchUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Search failed: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      const results: string[] = [];
-      
-      // Add answer box if available
-      if (data.answer_box) {
-        const answer = data.answer_box.answer || data.answer_box.snippet;
-        if (answer) {
-          results.push(`Answer: ${answer}`);
-        }
-      }
-      
-      // Add organic results
-      if (data.organic_results) {
-        data.organic_results.slice(0, 5).forEach((result: any, i: number) => {
-          results.push(`\n${i + 1}. ${result.title}\n   URL: ${result.link}\n   ${result.snippet}`);
-        });
-      }
-      
-      return {
-        success: true,
-        result: results.length > 0 ? results.join('\n') : 'No search results found'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        result: '',
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
+  // ALL HARDCODED IMPLEMENTATIONS REMOVED
+  // Registry is the ONLY source of tools - no exceptions!
 
   /**
    * Helper methods
@@ -341,32 +143,35 @@ export class DeepSeekToolExecutor {
 
   private findTool(name: string, tools: any[]): any {
     // More comprehensive name matching for dynamic tools
-    const normalizedName = name.toLowerCase().replace(/[_-]/g, '');
+    const normalizedName = name.toLowerCase().replace(/[_-]/g, '').replace(/\s+/g, '');
     
+    // First try exact match
+    let tool = tools.find(t => {
+      const toolName = (t.name || '').toLowerCase().replace(/[_-]/g, '').replace(/\s+/g, '');
+      return toolName === normalizedName;
+    });
+    
+    if (tool) return tool;
+    
+    // Try various transformations
     return tools.find(t => {
-      const toolName = (t.name || '').toLowerCase().replace(/[_-]/g, '');
+      const toolName = (t.name || '').toLowerCase().replace(/[_-]/g, '').replace(/\s+/g, '');
       const toolNameWithoutSuffix = toolName.replace(/tool$/, '');
       const nameWithoutPrefix = normalizedName.replace(/^(read|write|search|run|execute|get|set|list)/, '');
       
-      return toolName === normalizedName ||
-             toolNameWithoutSuffix === normalizedName ||
+      // Check various matches
+      return toolNameWithoutSuffix === normalizedName ||
              toolName === nameWithoutPrefix ||
+             // Special case for web_search -> websearch mapping
+             (normalizedName === 'websearch' && toolName === 'websearch') ||
+             (normalizedName === 'websearch' && toolName === 'websearchtool') ||
+             // Include partial matches as last resort
              toolName.includes(normalizedName) ||
              normalizedName.includes(toolName);
     });
   }
 
-  private isFileOperation(name: string): boolean {
-    return /read|write|replace|edit|file/i.test(name);
-  }
-
-  private isShellOperation(name: string): boolean {
-    return /shell|bash|run_shell|command/i.test(name);
-  }
-
-  private isWebSearch(name: string): boolean {
-    return /web_search|websearch|search_web/i.test(name);
-  }
+  // Helper methods removed - registry handles everything
 
   private shouldAutoApprove(): boolean {
     const mode = this.config.getApprovalMode();

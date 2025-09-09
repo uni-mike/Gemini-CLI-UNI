@@ -106,7 +106,9 @@
       "Bash(git stash:*)",
       "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"create test-refactored.txt with content ''Testing refactored DeepSeek integration successfully!''\" --non-interactive)",
       "Bash(DEBUG=true APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"what is 2 + 2?\" --non-interactive)",
-      "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"what is 2 + 2?\" --non-interactive)"
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"what is 2 + 2?\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"create a file called test-orchestration.txt with content ''''Testing refactored DeepSeek integration successfully!''''\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"search the web for current Bitcoin price\" --non-interactive)"
     ],
     "deny": [],
     "ask": []
