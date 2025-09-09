@@ -260,41 +260,25 @@ export class Orchestrator extends EventEmitter {
   }
   
   private async generateFinalResponse(prompt: string, plan: any, results: any[]): Promise<string> {
-    // If all results have output, compile them
+    // Get any outputs from executed tools
     const outputs = results.filter(r => r.output).map(r => r.output);
     
-    // For queries that need summarization (like prices, times, etc), use LLM
-    if (prompt.toLowerCase().includes('price') || 
-        prompt.toLowerCase().includes('time') ||
-        prompt.toLowerCase().includes('what is') ||
-        prompt.toLowerCase().includes('how much')) {
-      
-      // Build context from results
+    // If we have tool outputs, let DeepSeek synthesize them with the original prompt
+    if (outputs.length > 0) {
       const context = outputs.join('\n');
       this.conversation.push({ 
         role: 'user', 
-        content: `Based on the following information, answer this question: ${prompt}\n\nInformation:\n${context}` 
+        content: `${prompt}\n\n[Tool outputs]:\n${context}` 
       });
-      
-      const response = await this.client.chat(this.conversation, []);
-      this.conversation.push({ role: 'assistant', content: response });
-      return response;
+    } else {
+      // No tool outputs, just send the original prompt
+      this.conversation.push({ role: 'user', content: prompt });
     }
     
-    // For file operations, return confirmation
-    if (plan.tasks.some((t: any) => t.tools?.includes('file'))) {
-      const fileOps = results.filter(r => r.success && r.toolsUsed?.includes('file'));
-      if (fileOps.length > 0) {
-        return outputs.join('\n');
-      }
-    }
-    
-    // Default: return all outputs
-    if (outputs.length > 0) {
-      return outputs.join('\n');
-    }
-    
-    return `Completed ${results.length} task${results.length !== 1 ? 's' : ''}`;
+    // Let DeepSeek generate the appropriate response - NO HARDCODING!
+    const response = await this.client.chat(this.conversation, []);
+    this.conversation.push({ role: 'assistant', content: response });
+    return response;
   }
   
   private sendTrioMessage(message: TrioMessage) {

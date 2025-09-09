@@ -52,7 +52,7 @@ export class ToolAutoDiscovery {
       return;
     }
     
-    console.log('🔍 Auto-discovering tools...');
+    // Silent auto-discovery
     
     try {
       // Read all files in the tools directory
@@ -62,9 +62,8 @@ export class ToolAutoDiscovery {
                !this.excludeFiles.includes(file);
       });
       
-      console.log(`📂 Found ${toolFiles.length} potential tool files`);
-      
       // Dynamically import each tool file
+      let loadedCount = 0;
       for (const file of toolFiles) {
         try {
           const modulePath = join(__dirname, file);
@@ -79,21 +78,20 @@ export class ToolAutoDiscovery {
               try {
                 const toolInstance = new ExportedClass();
                 globalRegistry.register(toolInstance);
-                console.log(`  ✅ Loaded: ${toolInstance.name} from ${file}`);
+                loadedCount++;
               } catch (err) {
-                console.log(`  ⚠️ Skipped ${exportName} - not instantiable`);
+                // Silently skip non-instantiable exports
               }
             }
           }
         } catch (error) {
-          console.error(`  ❌ Failed to import ${file}:`, error);
+          // Silently skip files that fail to import
         }
       }
       
       this.loaded = true;
       const toolCount = globalRegistry.list().length;
-      console.log(`🎉 Auto-discovered and loaded ${toolCount} tools`);
-      console.log(`📋 Available tools: ${globalRegistry.list().join(', ')}`);
+      console.log(`✅ Loaded ${toolCount} tools`);
       
     } catch (error) {
       console.error('❌ Tool discovery failed:', error);

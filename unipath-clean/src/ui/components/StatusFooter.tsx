@@ -4,7 +4,7 @@ import Spinner from 'ink-spinner';
 import { Colors } from '../Colors.js';
 
 interface StatusFooterProps {
-  status: 'idle' | 'processing' | 'thinking' | 'tool-execution';
+  status: 'idle' | 'processing' | 'thinking' | 'tool-execution' | 'orchestrating' | 'planning' | 'executing';
   approvalMode: string;
   helpText?: string;
 }
@@ -15,6 +15,9 @@ const getStatusColor = (status: string): string => {
     case 'processing': return Colors.AccentYellow;
     case 'thinking': return Colors.AccentPurple;
     case 'tool-execution': return Colors.AccentBlue;
+    case 'orchestrating': return Colors.AccentCyan;
+    case 'planning': return Colors.AccentYellow;
+    case 'executing': return Colors.AccentBlue;
     default: return Colors.Foreground;
   }
 };
@@ -23,9 +26,12 @@ const getStatusText = (status: string): string => {
   switch (status) {
     case 'idle': return 'Ready';
     case 'processing': return 'Processing...';
-    case 'thinking': return 'Thinking...';
+    case 'thinking': return 'Analyzing request...';
     case 'tool-execution': return 'Executing tools...';
-    default: return 'Unknown';
+    case 'orchestrating': return 'Orchestrator starting...';
+    case 'planning': return 'Creating plan...';
+    case 'executing': return 'Executing tasks...';
+    default: return 'Working...';
   }
 };
 

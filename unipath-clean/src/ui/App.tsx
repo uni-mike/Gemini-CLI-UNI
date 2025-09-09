@@ -29,7 +29,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
   const [processedResults] = useState(new Set<string>());
   const [showExitSummary, setShowExitSummary] = useState(false);
   const [sessionStartTime] = useState(new Date());
-  const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'thinking' | 'tool-execution'>('idle');
+  const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'thinking' | 'tool-execution' | 'orchestrating' | 'planning' | 'executing'>('idle');
   
   // Check if raw mode is supported - disable in CI/non-TTY environments
   const [rawModeSupported] = useState(() => {
@@ -79,12 +79,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     const handleStart = ({ prompt }: any) => {
       setCurrentStatus('thinking');
       
-      // Add thinking message to chat like Claude Code
-      setMessages(prev => [...prev, {
-        type: 'assistant',
-        content: `⏺ Analyzing request: "${prompt?.substring(0, 50)}${prompt?.length > 50 ? '...' : ''}"`,
-        timestamp: new Date()
-      }]);
+      // Don't add status message to chat - it's shown in the status bar
       
       setOperations(prev => {
         // Remove any existing thinking operations first to avoid duplicates
@@ -226,13 +221,18 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     orchestrator.on('tool-execute', handleToolExecute);
     orchestrator.on('tool-result', handleToolResult);
     
-    // Handle status updates from components
+    // Handle status updates - show in status bar, not as messages
     const handleStatus = (message: string) => {
-      setMessages(prev => [...prev, {
-        type: 'assistant',
-        content: message,
-        timestamp: new Date()
-      }]);
+      // Update the current status instead of adding as message
+      if (message.includes('Orchestrator starting')) {
+        setCurrentStatus('orchestrating');
+      } else if (message.includes('Analyzing')) {
+        setCurrentStatus('thinking');
+      } else if (message.includes('Created plan')) {
+        setCurrentStatus('planning');
+      } else if (message.includes('Executing')) {
+        setCurrentStatus('executing');
+      }
     };
     
     orchestrator.on('status', handleStatus);
@@ -361,8 +361,8 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
           )}
         </Box>,
         
-        /* Static message history like original UNIPATH */
-        ...messages.slice(-8).map((msg, i) => (
+        /* Static message history - show all messages */
+        ...messages.map((msg, i) => (
           <Box key={`msg-${i}`} marginBottom={1} paddingX={1}>
             {msg.type === 'user' && (
               <Text color={Colors.AccentCyan}>{'▶ '}{msg.content}</Text>
