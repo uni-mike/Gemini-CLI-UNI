@@ -221,20 +221,23 @@ export class ResultFormatter {
   }
 
   private formatGenericResult(result: string): string {
-    if (result.toLowerCase().includes('success')) {
+    // Ensure result is a string
+    const resultStr = typeof result === 'string' ? result : JSON.stringify(result);
+    
+    if (resultStr.toLowerCase().includes('success')) {
       return ColorThemes.success('✓ Success');
     }
     
-    if (result.toLowerCase().includes('error')) {
-      return ColorThemes.error(`✗ ${result.substring(0, 50)}`);
+    if (resultStr.toLowerCase().includes('error')) {
+      return ColorThemes.error(`✗ ${resultStr.substring(0, 50)}`);
     }
     
-    const lines = result.split('\n');
+    const lines = resultStr.split('\n');
     if (lines.length > 3) {
       const remaining = lines.length - 1;
       return `${lines[0].substring(0, 60)}\n     ${colorize(`… +${remaining} lines`, AnsiColors.dim)}`;
     }
     
-    return result.substring(0, 80) + (result.length > 80 ? '...' : '');
+    return resultStr.substring(0, 80) + (resultStr.length > 80 ? '...' : '');
   }
 }
