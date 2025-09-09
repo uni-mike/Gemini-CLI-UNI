@@ -348,8 +348,9 @@ Suggest an alternative approach using available tools.`;
   // Removed tool definition methods - all tool handling is now in Executor
   
   private handleSlashCommand(command: string): ExecutionResult {
-    // Get tool list from registry for help commands
-    const tools = globalRegistry.list();
+    // Get tool list from registry using new method
+    const toolObjects = globalRegistry.getTools();
+    const tools = toolObjects.map(t => t.name);
     
     if (command === '/help' || command === '/?') {
       const helpText = `🎭 Flexi-CLI - Help
@@ -362,7 +363,7 @@ Available Commands:
   /tools              - List available tools
 
 Available Tools:
-${tools.map(name => `  ${name} - ${globalRegistry.get(name)?.description || 'No description'}`).join('\n')}
+${toolObjects.map(tool => `  ${tool.name} - ${tool.description}`).join('\n')}
 
 Usage: Just type your request in natural language and I'll help you with it!`;
       
@@ -389,9 +390,8 @@ Usage: Just type your request in natural language and I'll help you with it!`;
     } else if (command === '/tools') {
       const toolsText = `🛠️ Available Tools:
 
-${tools.map(name => {
-  const tool = globalRegistry.get(name)!;
-  return `${name}: ${tool.description}`;
+${toolObjects.map(tool => {
+  return `${tool.name}: ${tool.description}`;
 }).join('\n')}`;
       
       setTimeout(() => {

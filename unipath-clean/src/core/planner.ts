@@ -6,6 +6,7 @@
 import { EventEmitter } from 'events';
 import { DeepSeekClient } from '../llm/deepseek-client.js';
 import { globalRegistry } from '../tools/registry.js';
+import { Tool } from '../tools/base.js';
 
 export interface Task {
   id: string;
@@ -37,39 +38,15 @@ export class Planner extends EventEmitter {
     this.emit('planning-start', { prompt });
     this.emit('status', '🤔 Analyzing request...');
     
-    // Get available tools for context - build DYNAMIC tool specifications!
-    const availableTools = globalRegistry.list();
+    // Get available tools using the registry's new method
+    const tools = globalRegistry.getTools();
     
-    // Build detailed tool specifications DYNAMICALLY from registry!
-    const toolSpecs = availableTools.map(toolName => {
-      const tool = globalRegistry.get(toolName);
-      if (!tool) return null;
+    // Build detailed tool specifications DYNAMICALLY from tools!
+    const toolSpecs = tools.map((tool: Tool) => {
+      // Get parameter info dynamically from tool - all tools now have this method
+      const paramInfo = tool.getParameterInfo();
       
-      // Get parameter info dynamically from tool schema if available
-      let paramInfo = '';
-      
-      // First try to get from tool's parameter schema (if implemented)
-      if ('getParameterInfo' in tool && typeof tool.getParameterInfo === 'function') {
-        paramInfo = (tool as any).getParameterInfo();
-      } 
-      // Fallback to hardcoded for tools without schema yet
-      else {
-        if (toolName === 'file') {
-          paramInfo = '  Parameters: {action: "read"|"write", path: string, content?: string}';
-        } else if (toolName === 'web') {
-          paramInfo = '  Parameters: {action: "search"|"fetch", query?: string, url?: string}';
-        } else if (toolName === 'bash') {
-          paramInfo = '  Parameters: {command: string}';
-        } else if (toolName === 'edit') {
-          paramInfo = '  Parameters: {path: string, oldText: string, newText: string}';
-        } else if (toolName === 'grep' || toolName === 'rg') {
-          paramInfo = '  Parameters: {pattern: string, path?: string}';
-        } else if (toolName === 'git') {
-          paramInfo = '  Parameters: {action: string, message?: string}';
-        }
-      }
-      
-      return `- ${toolName}: ${tool.description || 'No description'}\n${paramInfo}`;
+      return `- ${tool.name}: ${tool.description}\n${paramInfo}`;
     }).filter(Boolean).join('\n');
     
     // Use LLM to create intelligent plan - DeepSeek R1 is smart enough to provide everything!
