@@ -136,7 +136,8 @@
       "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"what is 3+3?\")",
       "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"create test-react-ink.txt with content ''Testing React Ink UI!''\")",
       "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"what is 4+4?\")",
-      "Bash(./fix-imports.sh)"
+      "Bash(./fix-imports.sh)",
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"create test-orchestration.txt with content ''Testing refactored DeepSeek integration successfully!''\")"
     ],
     "deny": [],
     "ask": []
