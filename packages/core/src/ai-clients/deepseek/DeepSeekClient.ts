@@ -451,26 +451,17 @@ export class DeepSeekClient {
       const toolCalls = this.parser.parseToolCalls(responseContent);
       
       if (toolCalls.length > 0) {
-        // Execute tools and stream progress
-        yield* this.executeTools(toolCalls);
-        
-        // Add assistant's message that contained the tool calls
+        // Add assistant's message that contained the tool calls FIRST
         this.conversation.push({
           role: 'assistant',
           content: responseContent
         });
         
-        // After executing tools, check if we should get a final response
-        // Some models (like DeepSeek R1) may not provide a summary after tools
-        // For now, let's make this optional
-        const REQUIRE_FINAL_RESPONSE = false; // Can be made configurable
+        // Execute tools and stream progress (this adds tool results to conversation)
+        yield* this.executeTools(toolCalls);
         
-        if (REQUIRE_FINAL_RESPONSE && iterations < MAX_ITERATIONS) {
-          // Continue to get the AI's final response with tool results
-          continue;
-        }
-        
-        break;
+        // Continue to next iteration to get summary from DeepSeek
+        continue;  // This will make DeepSeek provide a summary based on tool results
       } else {
         // No tools, just display the message
         const cleanMessage = this.parser.extractMessage(responseContent);

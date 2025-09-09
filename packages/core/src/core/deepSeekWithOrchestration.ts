@@ -4,7 +4,7 @@ import type { Config } from '../config/config.js';
 
 export class DeepSeekWithOrchestration extends DeepSeekWithTools {
   private orchestrator: DeepSeekOrchestrator;
-  private useOrchestration: boolean = true;
+  private useOrchestration: boolean = false; // Disabled temporarily until orchestration is fixed
 
   constructor(config: Config) {
     super(config);

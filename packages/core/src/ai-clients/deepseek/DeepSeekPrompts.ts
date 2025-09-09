@@ -27,11 +27,16 @@ function: [exact_name]
 CRITICAL RULES:
 1. Use the MINIMUM number of tools necessary
 2. NEVER call the same tool multiple times with same parameters
-3. For "create X with Y info": 
+3. For web/internet queries: ALWAYS use web_search (NOT search_file_content)
+   - web_search: For internet/web searches (Bitcoin price, weather, news)
+   - search_file_content: For searching within local files only
+4. For "create X with Y info": 
    - First: ONE web_search to get data
    - Then: ONE write_file with that data
-4. ALWAYS use REAL content, never placeholders like "..." or "TODO"
-5. Complete tasks in ONE round when possible
+5. ALWAYS use REAL content, never placeholders like "..." or "TODO"
+6. Complete tasks in ONE round when possible
+7. After web searches for prices/data: ALWAYS provide a clear BOTTOM LINE summary
+   Example: "Bottom Line: Bitcoin is currently trading at $52,345 USD"
 
 WORKFLOW EXAMPLES:
 
@@ -46,15 +51,22 @@ arguments: {"query": "Bitcoin price USD current"}
 tool_name: write_file
 arguments: {"file_path": "/path/bitcoin.md", "content": "# Bitcoin Price\\n\\nCurrent: $52,345\\nChange: +2.3%\\n[actual data from search]"}
 </tool_use>
+Bottom Line: Bitcoin is currently trading at $52,345 USD.
 
-Example 2 - Update existing file:
+Example 2 - Price inquiry:
+User: "Bitcoin price"
 <tool_use>
-tool_name: replace
-arguments: {"file_path": "/path/file.txt", "old_text": "old content", "new_text": "new content"}
+tool_name: web_search
+arguments: {"query": "Bitcoin BTC price USD current"}
 </tool_use>
+Bottom Line: Bitcoin is currently trading at $52,345 USD (up 2.3% today).
 
 Available tools:
 ${toolDescriptions}
+
+IMPORTANT: After executing tools, ALWAYS provide a concise summary with the bottom line.
+For price queries: State "Bottom Line: [Asset] is currently at $[price] USD"
+For other queries: Provide a clear, direct answer based on the results.
 
 Execute immediately. Be efficient. Use real data.`;
   }

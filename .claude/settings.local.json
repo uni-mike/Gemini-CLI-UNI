@@ -116,7 +116,9 @@
       "Bash(APPROVAL_MODE=yolo gtimeout:*)",
       "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"What is the current Bitcoin price?\" --non-interactive)",
       "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh:*)",
-      "Bash(./test-deepseek-comprehensive.sh:*)"
+      "Bash(./test-deepseek-comprehensive.sh:*)",
+      "Bash(APPROVAL_MODE=yolo DEBUG=true ./start-deepseek.sh --prompt \"What is 2 + 2?\" --non-interactive)",
+      "Bash(./test-final-comprehensive.sh:*)"
     ],
     "deny": [],
     "ask": []
