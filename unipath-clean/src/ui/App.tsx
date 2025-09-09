@@ -26,6 +26,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [operations, setOperations] = useState<Operation[]>([]);
+  const [processedOperations] = useState(new Set<string>());
   const [showExitSummary, setShowExitSummary] = useState(false);
   const [sessionStartTime] = useState(new Date());
   const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'thinking' | 'tool-execution'>('idle');
@@ -56,7 +57,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       
       // Add thinking message to chat like Claude Code
       setMessages(prev => [...prev, {
-        type: 'system',
+        type: 'assistant',
         content: `⏺ Analyzing request: "${prompt?.substring(0, 50)}${prompt?.length > 50 ? '...' : ''}"`,
         timestamp: new Date()
       }]);
@@ -95,6 +96,13 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     const handleToolExecute = ({ name, args }: any) => {
       setCurrentStatus('tool-execution');
       
+      // Create unique key for this operation to prevent duplicates
+      const operationKey = `${name}-${JSON.stringify(args)}`;
+      if (processedOperations.has(operationKey)) {
+        return; // Skip duplicate
+      }
+      processedOperations.add(operationKey);
+      
       // Create more descriptive operation title
       let operationTitle = '';
       if (name === 'web' && args.action === 'search') {
@@ -117,7 +125,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       
       // Add operation message to chat history like Claude Code examples
       setMessages(prev => [...prev, {
-        type: 'system',
+        type: 'assistant',
         content: `⏺ ${operationTitle}`,
         timestamp: new Date()
       }]);
@@ -155,7 +163,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
         }
         
         setMessages(prev => [...prev, {
-          type: 'system', 
+          type: 'assistant', 
           content: `  ${completionText}`,
           timestamp: new Date()
         }]);
