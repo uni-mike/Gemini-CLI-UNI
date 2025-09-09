@@ -95,8 +95,11 @@ export class DeepSeekToolExecutor {
       
       console.log(`✅ Found tool '${tool.name}' in registry`);
 
+      // Map parameters for specific tools
+      const mappedArgs = this.mapToolParameters(tool.name, args);
+
       // Build and execute tool
-      const invocation = tool.build(args);
+      const invocation = tool.build(mappedArgs);
       const abortController = new AbortController();
       
       // Check if confirmation needed
@@ -133,6 +136,30 @@ export class DeepSeekToolExecutor {
   /**
    * Helper methods
    */
+  private mapToolParameters(toolName: string, args: Record<string, any>): Record<string, any> {
+    // Handle read_file parameter mapping
+    if (toolName === 'read_file' || toolName.includes('read')) {
+      if (args['file_path'] && !args['absolute_path']) {
+        return { ...args, absolute_path: args['file_path'] };
+      }
+      if (args['path'] && !args['absolute_path']) {
+        return { ...args, absolute_path: args['path'] };
+      }
+    }
+    
+    // Handle write_file parameter mapping
+    if (toolName === 'write_file' || toolName.includes('write')) {
+      if (args['file_path'] && !args['absolute_path']) {
+        return { ...args, absolute_path: args['file_path'] };
+      }
+      if (args['path'] && !args['absolute_path']) {
+        return { ...args, absolute_path: args['path'] };
+      }
+    }
+    
+    return args;
+  }
+
   private mapToolName(name: string): string {
     // Normalize tool names
     return name

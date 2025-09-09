@@ -410,12 +410,18 @@ export class DeepSeekClient {
     while (iterations < MAX_ITERATIONS) {
       iterations++;
       
-      // Show continuation message for rounds 2+
+      // Only show continuation message when we're getting a summary after tools
       if (iterations > 1) {
-        yield `\n↻ Continuing (${iterations}/${MAX_ITERATIONS})...\n`;
-        // Debug: log conversation state
+        // Only show the message if the last action was tool execution
+        const lastMsg = this.conversation[this.conversation.length - 1];
+        if (lastMsg?.role === 'user' && lastMsg?.content?.includes('Tool results:')) {
+          // Getting summary after tool execution - don't show distracting message
+          this.debugLogger.debug(`Getting summary after tools (iteration ${iterations})`);
+        } else {
+          // Show for other continuations
+          yield `\n↻ Continuing...\n`;
+        }
         this.debugLogger.debug(`Iteration ${iterations} - Conversation has ${this.conversation.length} messages`);
-        this.debugLogger.debug(`Last message role: ${this.conversation[this.conversation.length - 1]?.role}`);
       }
       
       // Add user message on first iteration only
@@ -460,8 +466,14 @@ export class DeepSeekClient {
         // Execute tools and stream progress (this adds tool results to conversation)
         yield* this.executeTools(toolCalls);
         
-        // Continue to next iteration to get summary from DeepSeek
-        continue;  // This will make DeepSeek provide a summary based on tool results
+        // Get ONE summary after tool execution, then stop
+        if (iterations === 1) {
+          // First iteration with tools - continue to get summary
+          continue;
+        } else {
+          // Already got summary, stop here to avoid duplicate tool calls
+          break;
+        }
       } else {
         // No tools, just display the message
         const cleanMessage = this.parser.extractMessage(responseContent);

@@ -64,9 +64,10 @@ Bottom Line: Bitcoin is currently trading at $52,345 USD (up 2.3% today).
 Available tools:
 ${toolDescriptions}
 
-IMPORTANT: After executing tools, ALWAYS provide a concise summary with the bottom line.
-For price queries: State "Bottom Line: [Asset] is currently at $[price] USD"
+IMPORTANT: After executing tools, ALWAYS provide a concise summary.
+For price/data queries: Start with "📊 [Asset] is currently at $[price] USD"
 For other queries: Provide a clear, direct answer based on the results.
+Keep summaries brief and focused on the key information.
 
 Execute immediately. Be efficient. Use real data.`;
   }
