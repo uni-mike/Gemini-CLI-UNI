@@ -7,6 +7,7 @@ import { EventEmitter } from 'events';
 import { DeepSeekClient } from '../llm/deepseek-client.js';
 import { globalRegistry } from '../tools/registry.js';
 import { Tool } from '../tools/base.js';
+import { PromptTemplates } from '../prompts/prompts.js';
 
 export interface Task {
   id: string;
@@ -24,6 +25,8 @@ export interface TaskPlan {
   tasks: Task[];
   complexity: 'simple' | 'moderate' | 'complex';
   parallelizable: boolean;
+  isConversation?: boolean;
+  conversationResponse?: string;
 }
 
 export class Planner extends EventEmitter {
@@ -38,102 +41,48 @@ export class Planner extends EventEmitter {
     this.emit('planning-start', { prompt });
     this.emit('status', '🤔 Analyzing request...');
     
-    // Get available tools using the registry's new method
-    const tools = globalRegistry.getTools();
-    
-    // Build detailed tool specifications DYNAMICALLY from tools!
-    const toolSpecs = tools.map((tool: Tool) => {
-      // Get parameter info dynamically from tool - all tools now have this method
-      const paramInfo = tool.getParameterInfo();
-      
-      return `- ${tool.name}: ${tool.description}\n${paramInfo}`;
-    }).filter(Boolean).join('\n');
-    
-    // Use LLM to create intelligent plan - DeepSeek R1 is smart enough to provide everything!
-    const planPrompt = `SYSTEM: You MUST respond ONLY with valid JSON. No explanations, no code, no text - ONLY JSON.
-
-TASK: Decompose this request into multiple small tasks: "${prompt}"
-
-Tools available:
-${toolSpecs}
-
-RULES:
-- Create 3-10 separate tasks minimum
-- One file per task
-- One command per task  
-- Return ONLY JSON below
-
-JSON FORMAT (copy exactly):
-{
-  "complexity": "complex",
-  "parallelizable": false,
-  "tasks": [
-    {
-      "description": "Create package.json with Express dependencies",
-      "type": "tool", 
-      "tools": ["file"],
-      "arguments": {
-        "file": {
-          "action": "write",
-          "path": "package.json", 
-          "content": "{\\"name\\": \\"express-api\\", \\"dependencies\\": {\\"express\\": \\"^4.18.0\\"}}"
-        }
-      }
-    },
-    {
-      "description": "Create server.js with Express setup",
-      "type": "tool",
-      "tools": ["file"], 
-      "arguments": {
-        "file": {
-          "action": "write",
-          "path": "server.js",
-          "content": "const express = require('express');"
-        }
-      }
-    },
-    {
-      "description": "Create auth middleware file",
-      "type": "tool",
-      "tools": ["file"],
-      "arguments": {
-        "file": {
-          "action": "write", 
-          "path": "middleware/auth.js",
-          "content": "module.exports = (req, res, next) => next();"
-        }
-      }
-    }
-  ]
-}`;
-    
     try {
-      const response = await this.client.chat(
-        [{ role: 'user', content: planPrompt }],
-        [] // No tools for planning
+      // Use enhanced JSON approach with forced JSON output
+      const taskPlanResponse = await this.client.chat(
+        [{ role: 'user', content: PromptTemplates.taskDecomposition(prompt) }],
+        [],
+        true // forceJson = true
       );
       
       if (process.env.DEBUG === 'true') {
-        console.log('🔍 Planner received response:', response);
+        console.log('🔍 Task decomposition JSON response:', taskPlanResponse);
       }
       
-      // Parse LLM response
-      const planData = this.parsePlanResponse(response);
-      
-      // If parsing failed completely, use fallback
-      if (!planData) {
-        return this.createBasicPlan(prompt);
+      // Parse structured JSON response
+      let parsedPlan: any;
+      try {
+        parsedPlan = JSON.parse(taskPlanResponse);
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON:', parseError);
+        console.log('🔍 Raw response:', taskPlanResponse);
+        throw new Error('DeepSeek returned invalid JSON');
       }
       
-      // Create tasks with IDs and preserve arguments from AI
-      const tasks = planData.tasks.map((task: any, index: number) => ({
-        id: `task_${Date.now()}_${index}`,
-        description: task.description,
-        type: task.type || 'simple',
-        tools: task.tools || [],
-        arguments: task.arguments || {}, // Preserve the AI-provided arguments!
-        priority: index + 1
-      }));
+      // Handle conversation vs. task response
+      if (parsedPlan.type === 'conversation') {
+        // Return a special conversation plan
+        return {
+          id: `conversation_${Date.now()}`,
+          originalPrompt: prompt,
+          tasks: [],
+          complexity: 'simple' as const,
+          parallelizable: true,
+          isConversation: true,
+          conversationResponse: parsedPlan.response
+        };
+      }
+      
+      if (!parsedPlan.tasks || !Array.isArray(parsedPlan.tasks)) {
+        throw new Error('Invalid JSON structure - missing tasks array');
+      }
+      
+      // Convert to internal Task format
+      const tasks = this.convertJsonToTasks(parsedPlan.tasks);
       
       // Identify dependencies
       this.identifyDependencies(tasks);
@@ -142,8 +91,8 @@ JSON FORMAT (copy exactly):
         id: `plan_${Date.now()}`,
         originalPrompt: prompt,
         tasks,
-        complexity: planData.complexity || 'simple',
-        parallelizable: planData.parallelizable || false
+        complexity: this.analyzeComplexity(prompt),
+        parallelizable: this.canParallelize(tasks)
       };
       
       this.emit('status', `📋 Created plan with ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`);
@@ -151,9 +100,9 @@ JSON FORMAT (copy exactly):
       return plan;
       
     } catch (error) {
-      // Fallback to basic planning if LLM fails
-      console.warn('LLM planning failed, using fallback:', error);
-      return this.createBasicPlan(prompt);
+      // Emergency fallback using rule-based decomposition
+      console.warn('Smart planning failed, using emergency fallback:', error);
+      return this.createEmergencyPlan(prompt);
     }
   }
   
@@ -380,5 +329,172 @@ JSON FORMAT (copy exactly):
   private canParallelize(tasks: Task[]): boolean {
     // Can parallelize if no dependencies
     return tasks.every(task => !task.dependencies || task.dependencies.length === 0);
+  }
+  
+  private parseTaskList(response: string): string[] {
+    // Parse natural language task list from DeepSeek
+    const lines = response.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    // Extract numbered or bulleted tasks
+    const tasks: string[] = [];
+    
+    for (const line of lines) {
+      // Match patterns like "1. Task", "- Task", "* Task"
+      const match = line.match(/^(?:\d+\.|[-*•])\s*(.+)$/);
+      if (match) {
+        tasks.push(match[1].trim());
+      } else if (line.length > 10 && !line.includes('example') && !line.includes('becomes:')) {
+        // Include any reasonable-length line that's not an example
+        tasks.push(line);
+      }
+    }
+    
+    // Fallback if no structured tasks found
+    if (tasks.length === 0) {
+      tasks.push('Complete the requested task');
+    }
+    
+    return tasks;
+  }
+  
+  private async createStructuredTasks(descriptions: string[]): Promise<Task[]> {
+    const tasks: Task[] = [];
+    
+    for (let i = 0; i < descriptions.length; i++) {
+      const description = descriptions[i];
+      const tools = this.identifyRequiredTools(description);
+      
+      // Generate appropriate arguments based on tools
+      let taskArgs: Record<string, any> = {};
+      
+      if (tools.includes('file')) {
+        // Extract filename from description
+        const filename = this.extractFilename(description);
+        taskArgs.file = {
+          action: 'write',
+          path: filename,
+          content: '' // Will be filled by executor
+        };
+      }
+      
+      if (tools.includes('bash')) {
+        taskArgs.bash = {
+          command: this.extractCommand(description)
+        };
+      }
+      
+      tasks.push({
+        id: `task_${Date.now()}_${i}`,
+        description,
+        type: tools.length > 0 ? 'tool' : 'simple',
+        tools,
+        arguments: taskArgs,
+        priority: i + 1
+      });
+    }
+    
+    return tasks;
+  }
+  
+  private extractFilename(description: string): string {
+    // Extract filename from task description
+    const patterns = [
+      /create\s+([a-zA-Z0-9_.-]+\.[a-zA-Z]{2,4})/i,
+      /([a-zA-Z0-9_.-]+\.json)/i,
+      /([a-zA-Z0-9_.-]+\.js)/i,
+      /([a-zA-Z0-9_.-]+\.ts)/i,
+      /package\.json/i,
+      /server\.js/i,
+      /readme\.md/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = description.match(pattern);
+      if (match) {
+        return match[1] || match[0];
+      }
+    }
+    
+    // Fallback filename
+    if (description.toLowerCase().includes('package')) return 'package.json';
+    if (description.toLowerCase().includes('server')) return 'server.js';
+    if (description.toLowerCase().includes('auth')) return 'auth.js';
+    if (description.toLowerCase().includes('middleware')) return 'middleware/auth.js';
+    if (description.toLowerCase().includes('route')) return 'routes/api.js';
+    
+    return 'file.js';
+  }
+  
+  private extractCommand(description: string): string {
+    // Extract bash command from description
+    if (description.toLowerCase().includes('install')) return 'npm install';
+    if (description.toLowerCase().includes('run')) return 'npm run start';
+    if (description.toLowerCase().includes('test')) return 'npm test';
+    if (description.toLowerCase().includes('list') || description.toLowerCase().includes('check')) return 'ls -la';
+    
+    return 'echo "Task completed"';
+  }
+  
+  private convertJsonToTasks(jsonTasks: any[]): Task[] {
+    // Convert JSON tasks to internal Task format
+    return jsonTasks.map((jsonTask, index) => {
+      const tools = jsonTask.tools || this.identifyRequiredTools(jsonTask.description);
+      
+      // Build arguments based on task type and tools
+      let taskArgs: Record<string, any> = {};
+      
+      if (jsonTask.type === 'file' && tools.includes('file')) {
+        taskArgs.file = {
+          action: 'write',
+          path: jsonTask.filename || this.extractFilename(jsonTask.description),
+          content: jsonTask.content || null // Use provided content or trigger generation
+        };
+      }
+      
+      if (jsonTask.type === 'command' && tools.includes('bash')) {
+        taskArgs.bash = {
+          command: jsonTask.command || this.extractCommand(jsonTask.description)
+        };
+      }
+      
+      return {
+        id: `task_${Date.now()}_${index}`,
+        description: jsonTask.description,
+        type: tools.length > 0 ? 'tool' : 'simple',
+        tools,
+        arguments: taskArgs,
+        priority: index + 1
+      } as Task;
+    });
+  }
+  
+  private createEmergencyPlan(prompt: string): TaskPlan {
+    // Use rule-based emergency fallback
+    const taskDescriptions = PromptTemplates.emergencyDecomposition(prompt);
+    
+    const tasks = taskDescriptions.map((description, index) => ({
+      id: `emergency_task_${index}`,
+      description,
+      type: 'tool' as const,
+      tools: ['file'],
+      arguments: {
+        file: {
+          action: 'write',
+          path: this.extractFilename(description),
+          content: ''
+        }
+      },
+      priority: index + 1
+    }));
+    
+    return {
+      id: `emergency_plan_${Date.now()}`,
+      originalPrompt: prompt,
+      tasks,
+      complexity: 'moderate' as const,
+      parallelizable: false
+    };
   }
 }

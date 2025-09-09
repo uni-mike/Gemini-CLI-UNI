@@ -32,15 +32,25 @@ export class DeepSeekClient extends EventEmitter {
     this.apiVersion = process.env.API_VERSION || '2024-05-01-preview';
   }
   
-  async chat(messages: Message[], tools?: any[]): Promise<string> {
+  async chat(messages: Message[], tools?: any[], forceJson?: boolean): Promise<string> {
     this.emit('start', { messages, tools });
+    
+    // Clone messages to avoid modifying original
+    const processedMessages = [...messages];
     
     const requestBody: any = {
       model: this.model,
-      messages,
-      temperature: 0.7,
+      messages: processedMessages,
+      temperature: 0, // Use temperature 0 for consistency
       stream: false
     };
+    
+    if (forceJson) {
+      requestBody.response_format = { type: "json_object" };
+      // Enhance the last message to explicitly request clean JSON
+      const lastMessage = processedMessages[processedMessages.length - 1];
+      lastMessage.content += `\n\nIMP: give the output in a valid JSON string (it should be not be wrapped in markdown, just plain json object)`;
+    }
     
     if (tools && tools.length > 0) {
       requestBody.tools = this.formatToolsForAPI(tools);
@@ -92,9 +102,26 @@ export class DeepSeekClient extends EventEmitter {
       let content = choice.message.content;
       const originalContent = content; // Keep original for debugging
       
-      // Remove <think> tags (standard format)
-      content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-      content = content.replace(/<\/think>/g, '').trim();
+      if (forceJson) {
+        // JSON-specific cleaning based on community findings
+        // Remove <think> tags
+        content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        
+        // Remove markdown code blocks if present
+        if (content.includes('```json') || content.includes('```')) {
+          const pattern = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
+          const match = content.match(pattern);
+          if (match) {
+            content = match[1];
+          }
+        }
+        
+        content = content.trim();
+      } else {
+        // Standard cleaning for non-JSON responses
+        content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        content = content.replace(/<\/think>/g, '').trim();
+      }
       
       // Debug logging when in debug mode
       if (process.env.DEBUG === 'true') {

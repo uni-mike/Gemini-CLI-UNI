@@ -171,6 +171,7 @@ export class Orchestrator extends EventEmitter {
     }
     
     try {
+      
       // Step 1: Orchestrator asks Planner to create plan
       this.sendTrioMessage({
         from: 'orchestrator',
@@ -180,6 +181,16 @@ export class Orchestrator extends EventEmitter {
       });
       
       const plan = await this.planner.createPlan(prompt);
+      
+      // Handle conversation plans
+      if (plan.isConversation && plan.conversationResponse) {
+        this.emit('orchestration-complete', { response: plan.conversationResponse });
+        return {
+          success: true,
+          response: plan.conversationResponse,
+          toolsUsed: []
+        };
+      }
       
       if (process.env.DEBUG === 'true') {
         console.log(`📋 Plan created: ${plan.tasks.length} tasks, complexity: ${plan.complexity}`);
@@ -425,4 +436,5 @@ ${toolObjects.map(tool => {
     this.conversation = [];
     this.toolsUsed = [];
   }
+
 }

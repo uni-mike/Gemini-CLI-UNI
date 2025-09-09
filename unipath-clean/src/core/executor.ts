@@ -6,6 +6,7 @@
 import { EventEmitter } from 'events';
 import { Task, TaskPlan } from './planner.js';
 import { globalRegistry } from '../tools/registry.js';
+import { DeepSeekClient } from '../llm/deepseek-client.js';
 
 export interface ExecutionContext {
   workingDirectory: string;
@@ -41,10 +42,12 @@ export interface ExecutionResult {
 
 export class Executor extends EventEmitter {
   private activeExecutions: Map<string, AbortController>;
+  private client: DeepSeekClient;
   
   constructor() {
     super();
     this.activeExecutions = new Map();
+    this.client = new DeepSeekClient();
   }
 
   async executeTask(task: Task, context: ExecutionContext): Promise<ExecutionResult> {
@@ -194,8 +197,20 @@ export class Executor extends EventEmitter {
       }
       
       // Use AI-provided arguments if available, otherwise parse from description
-      const args = task.arguments?.[toolName] || 
-                   this.parseToolArguments(toolName, task.description, context);
+      let args = task.arguments?.[toolName];
+      
+      if (!args) {
+        args = await this.parseToolArguments(toolName, task.description, context);
+      } else {
+        // Check if file content needs generation 
+        if (toolName === 'file' && (!args.content || args.content === null || args.content === '')) {
+          args.content = await this.generateFileContent(task.description);
+        }
+        
+        if (process.env.DEBUG === 'true') {
+          console.log('🔍 Using AI-provided arguments (content generated if needed):', JSON.stringify({...args, content: args.content ? `${args.content.substring(0, 100)}...` : 'empty'}, null, 2));
+        }
+      }
       
       // Map tool names to user-friendly display names
       const displayName = this.getToolDisplayName(toolName, args);
@@ -262,11 +277,11 @@ export class Executor extends EventEmitter {
     return results;
   }
 
-  private parseToolArguments(
+  private async parseToolArguments(
     toolName: string, 
     description: string,
     context: ExecutionContext
-  ): any {
+  ): Promise<any> {
     // Parse arguments based on tool type and description
     const args: any = {};
     
@@ -280,13 +295,13 @@ export class Executor extends EventEmitter {
                    description.toLowerCase().includes('write')) {
           args.action = 'write';
           args.path = this.extractFilePath(description);
-          args.content = this.extractContent(description, context) || '';
+          args.content = await this.extractContent(description, context) || '';
         }
         break;
         
       case 'write_file':
         args.file_path = this.extractFilePath(description);
-        args.content = this.extractContent(description, context);
+        args.content = await this.extractContent(description, context);
         break;
         
       case 'read_file':
@@ -440,7 +455,7 @@ export class Executor extends EventEmitter {
     return explicitPath;
   }
 
-  private extractContent(description: string, context: ExecutionContext): string {
+  private async extractContent(description: string, context: ExecutionContext): Promise<string> {
     // Extract content from description or use previous results
     const match = description.match(/(?:with|content|containing)\s+['"`]([^'"`]+)['"`]/i);
     if (match) return match[1];
@@ -449,8 +464,27 @@ export class Executor extends EventEmitter {
       return context.previousResults[context.previousResults.length - 1];
     }
     
-    return '';
+    // Generate content using DeepSeek for file creation
+    return await this.generateFileContent(description);
   }
+
+  private async generateFileContent(description: string): Promise<string> {
+    try {
+      const contentPrompt = `Generate the code/content for: ${description}
+
+Return only the file content, no explanations or markdown blocks. Make it complete and functional.`;
+
+      const content = await this.client.chat([
+        { role: 'user', content: contentPrompt }
+      ], [], false); // Use temperature 0 for consistency
+      
+      return content.trim();
+    } catch (error) {
+      console.warn(`Failed to generate content for: ${description}`, error);
+      return `// TODO: Implement ${description}`;
+    }
+  }
+
 
   private extractCommand(description: string): string {
     // Extract command from description
