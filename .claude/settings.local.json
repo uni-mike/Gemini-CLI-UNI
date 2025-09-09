@@ -146,7 +146,10 @@
       "Bash(./start-unipath.sh:*)",
       "Bash(unipath-clean/start-clean.sh:*)",
       "Bash(DEBUG=true ./start-clean.sh --prompt \"What is 7+7?\" --non-interactive)",
-      "Bash(./test-suite.sh:*)"
+      "Bash(./test-suite.sh:*)",
+      "Bash(DEBUG=true timeout 10 ./start-clean.sh --prompt 'What is 5+5?' --non-interactive)",
+      "Bash(DEBUG=true gtimeout 10 ./start-clean.sh --prompt 'What is 5+5?' --non-interactive)",
+      "Bash(DEBUG=true ./start-clean.sh:*)"
     ],
     "deny": [],
     "ask": []

@@ -53,11 +53,17 @@ async function main() {
     // Set up event listeners for non-interactive output
     orchestrator.on('tool-execute', ({ name, args }) => {
       console.log(`  🔧 Running tool: ${name}`);
+      if (config.getDebugMode()) {
+        console.log(`     Args: ${JSON.stringify(args, null, 2)}`);
+      }
     });
     
     orchestrator.on('tool-result', ({ name, result }) => {
       if (result.success) {
         console.log(`  ✅ ${name} completed`);
+        if (config.getDebugMode() && result.output) {
+          console.log(`     Output: ${result.output.substring(0, 200)}${result.output.length > 200 ? '...' : ''}`);
+        }
       } else {
         console.log(`  ❌ ${name} failed: ${result.error}`);
       }
@@ -66,7 +72,10 @@ async function main() {
     const result = await orchestrator.execute(argv.prompt);
     
     if (result.success) {
-      console.log(`\n✨ Response: ${result.response}\n`);
+      console.log(`\n✨ Response:\n${result.response}\n`);
+      if (result.toolsUsed && result.toolsUsed.length > 0) {
+        console.log(`📊 Tools used: ${result.toolsUsed.join(', ')}\n`);
+      }
     } else {
       console.error(`\n❌ Error: ${result.error}\n`);
     }

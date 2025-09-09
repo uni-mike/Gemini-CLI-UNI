@@ -68,22 +68,31 @@ export class Orchestrator extends EventEmitter {
         await this.handleToolCalls(toolCalls);
         
         // Get follow-up response after tool execution
-        response = await this.client.chat(this.conversation, []);
+        // Pass tools again to allow for multiple tool calls
+        response = await this.client.chat(this.conversation, tools);
         
-        // If we get a clean response, break
+        // If we get a clean response (not tool calls), break
         if (!response.startsWith('[')) {
           break;
         }
       }
       
-      // Add assistant response
-      this.conversation.push({ role: 'assistant', content: response });
+      // Clean up the response if it's still tool calls JSON after max iterations
+      let finalResponse = response;
+      if (response.startsWith('[') && response.includes('function')) {
+        // If we still have tool calls after max iterations, just say we completed the tools
+        finalResponse = `Completed ${this.toolsUsed.length} tool${this.toolsUsed.length !== 1 ? 's' : ''}: ${this.toolsUsed.join(', ')}`;
+        this.conversation.push({ role: 'assistant', content: finalResponse });
+      } else if (!response.startsWith('[')) {
+        // Normal text response
+        this.conversation.push({ role: 'assistant', content: response });
+      }
       
-      this.emit('orchestration-complete', { response });
+      this.emit('orchestration-complete', { response: finalResponse });
       
       return {
         success: true,
-        response,
+        response: finalResponse,
         toolsUsed: this.toolsUsed
       };
     } catch (error: any) {

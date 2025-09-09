@@ -91,6 +91,8 @@ export class DeepSeekClient extends EventEmitter {
       // Clean up response - remove <think> tags if present
       let content = choice.message.content;
       content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      // Also clean up any stray closing tags
+      content = content.replace(/<\/think>/g, '').trim();
       
       this.emit('complete', content);
       return content;
