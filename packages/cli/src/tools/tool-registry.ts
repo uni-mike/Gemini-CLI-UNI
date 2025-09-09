@@ -11,7 +11,7 @@ import type {
   ToolInvocation,
 } from './tools.js';
 import { Kind, BaseDeclarativeTool, BaseToolInvocation } from './tools.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import { spawn } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 import { connectAndDiscover } from './mcp-client.js';

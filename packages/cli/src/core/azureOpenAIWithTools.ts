@@ -6,7 +6,7 @@
 
 import OpenAI from 'openai';
 import type { ChatCompletionTool, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 
 /**

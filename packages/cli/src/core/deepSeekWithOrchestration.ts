@@ -1,7 +1,7 @@
 import { DeepSeekWithTools } from './deepSeekWithToolsRefactored.js';
 import { DeepSeekOrchestrator } from '../orchestration/DeepSeekOrchestrator.js';
 import { OrchestrationUIBridge } from '../ui/orchestration/OrchestrationUIBridge.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 
 export class DeepSeekWithOrchestration extends DeepSeekWithTools {
   private orchestrator?: DeepSeekOrchestrator;

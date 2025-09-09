@@ -19,7 +19,7 @@ import {
 import type { ServerGeminiStreamEvent, ChatCompressionInfo } from './turn.js';
 import { CompressionStatus } from './turn.js';
 import { Turn, GeminiEventType } from './turn.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import type { UserTierId } from '../code_assist/types.js';
 import { getCoreSystemPrompt, getCompressionPrompt } from './prompts.js';
 import { getResponseText } from '../utils/partUtils.js';

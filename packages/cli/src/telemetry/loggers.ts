@@ -7,7 +7,7 @@
 import type { LogRecord, LogAttributes } from '@opentelemetry/api-logs';
 import { logs } from '@opentelemetry/api-logs';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import {
   EVENT_API_ERROR,
   EVENT_API_REQUEST,

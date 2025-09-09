@@ -12,8 +12,8 @@ import { bfsFileSearch } from './bfsFileSearch.js';
 import { getAllUnipathMdFilenames } from '../tools/memoryTool.js';
 import type { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { processImports } from './memoryImportProcessor.js';
-import type { FileFilteringOptions } from '../config/config.js';
-import { DEFAULT_MEMORY_FILE_FILTERING_OPTIONS } from '../config/config.js';
+import type { FileFilteringOptions } from '../config/core-config.js';
+import { DEFAULT_MEMORY_FILE_FILTERING_OPTIONS } from '../config/core-config.js';
 import { UNIPATH_DIR } from './paths.js';
 
 // Simple console logger, similar to the one previously in CLI's config.ts

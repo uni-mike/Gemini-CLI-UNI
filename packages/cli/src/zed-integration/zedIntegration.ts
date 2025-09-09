@@ -38,8 +38,8 @@ import { z } from 'zod';
 
 import { randomUUID } from 'node:crypto';
 import type { Extension } from '../config/extension.js';
-import type { CliArgs } from '../config/config.js';
-import { loadCliConfig } from '../config/config.js';
+import type { CliArgs } from '../config/core-config.js';
+import { loadCliConfig } from '../config/core-config.js';
 
 export async function runZedIntegration(
   config: Config,

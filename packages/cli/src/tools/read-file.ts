@@ -14,7 +14,7 @@ import {
   processSingleFileContent,
   getSpecificMimeType,
 } from '../utils/fileUtils.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import { FileOperation } from '../telemetry/metrics.js';
 import { getProgrammingLanguage } from '../telemetry/telemetry-utils.js';
 import { logFileOperation } from '../telemetry/loggers.js';

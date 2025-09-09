@@ -3,7 +3,7 @@
  * This replaces the monolithic deepSeekWithTools.ts
  */
 
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import { DeepSeekClient } from '../ai-clients/deepseek/index.js';
 
 /**

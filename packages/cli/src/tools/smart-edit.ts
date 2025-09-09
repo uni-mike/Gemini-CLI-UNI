@@ -21,7 +21,7 @@ import {
 import { ToolErrorType } from './tool-error.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
 import { isNodeError } from '../utils/errors.js';
-import { type Config, ApprovalMode } from '../config/config.js';
+import { type Config, ApprovalMode } from '../config/core-config.js';
 import { DEFAULT_DIFF_OPTIONS, getDiffStat } from './diffOptions.js';
 import { ReadFileTool } from './read-file.js';
 import {

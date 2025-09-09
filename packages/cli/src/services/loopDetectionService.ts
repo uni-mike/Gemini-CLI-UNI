@@ -10,8 +10,8 @@ import type { ServerGeminiStreamEvent } from '../core/turn.js';
 import { GeminiEventType } from '../core/turn.js';
 import { logLoopDetected } from '../telemetry/loggers.js';
 import { LoopDetectedEvent, LoopType } from '../telemetry/types.js';
-import type { Config } from '../config/config.js';
-import { DEFAULT_UNIPATH_FLASH_MODEL } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
+import { DEFAULT_UNIPATH_FLASH_MODEL } from '../config/core-config.js';
 import {
   isFunctionCall,
   isFunctionResponse,

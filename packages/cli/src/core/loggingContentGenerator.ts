@@ -19,7 +19,7 @@ import {
   ApiResponseEvent,
   ApiErrorEvent,
 } from '../telemetry/types.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import {
   logApiError,
   logApiRequest,

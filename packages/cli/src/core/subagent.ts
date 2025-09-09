@@ -7,7 +7,7 @@
 import { reportError } from '../utils/errorReporting.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
 import type { AnyDeclarativeTool } from '../tools/tools.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import type { ToolCallRequestInfo } from './turn.js';
 import { executeToolCall } from './nonInteractiveToolExecutor.js';
 import { createContentGenerator } from './contentGenerator.js';

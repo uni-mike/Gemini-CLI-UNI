@@ -5,7 +5,7 @@
  */
 
 import path from 'node:path';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import { getCurrentUnipathMdFilename } from '../tools/memoryTool.js';
 
 /**

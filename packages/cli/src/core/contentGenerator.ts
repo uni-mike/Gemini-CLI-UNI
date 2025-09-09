@@ -18,8 +18,8 @@ import { DeepSeekWithOrchestration } from './deepSeekWithOrchestration.js';
 import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
 import { IdeClient } from '../ide/ide-client.js';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_AZURE_MODEL } from '../config/models.js';
-import type { Config } from '../config/config.js';
-import { ApprovalMode } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
+import { ApprovalMode } from '../config/core-config.js';
 
 import type { UserTierId } from '../code_assist/types.js';
 import { LoggingContentGenerator } from './loggingContentGenerator.js';

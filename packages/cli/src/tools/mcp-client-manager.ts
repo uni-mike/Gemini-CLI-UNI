@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config, MCPServerConfig } from '../config/config.js';
+import type { Config, MCPServerConfig } from '../config/core-config.js';
 import type { ToolRegistry } from './tool-registry.js';
 import type { PromptRegistry } from '../prompts/prompt-registry.js';
 import {

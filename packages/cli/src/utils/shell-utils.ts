@@ -5,7 +5,7 @@
  */
 
 import type { AnyToolInvocation } from '../index.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import os from 'node:os';
 import { quote } from 'shell-quote';
 import { doesToolInvocationMatch } from './tool-utils.js';

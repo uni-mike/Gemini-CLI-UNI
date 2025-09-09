@@ -14,7 +14,7 @@ import { BaseDeclarativeTool, BaseToolInvocation, Kind } from './tools.js';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
 import { getErrorMessage, isNodeError } from '../utils/errors.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 
 const DEFAULT_TOTAL_MAX_MATCHES = 20000;
 

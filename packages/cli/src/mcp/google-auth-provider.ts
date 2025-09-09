@@ -12,7 +12,7 @@ import type {
   OAuthTokens,
 } from '@modelcontextprotocol/sdk/shared/auth.js';
 import { GoogleAuth } from 'google-auth-library';
-import type { MCPServerConfig } from '../config/config.js';
+import type { MCPServerConfig } from '../config/core-config.js';
 
 const ALLOWED_HOSTS = [/^.+\.googleapis\.com$/, /^(.*\.)?luci\.app$/];
 

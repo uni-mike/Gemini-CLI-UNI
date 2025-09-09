@@ -20,7 +20,7 @@ import {
   METRIC_CONTENT_RETRY_COUNT,
   METRIC_CONTENT_RETRY_FAILURE_COUNT,
 } from './constants.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 
 export enum FileOperation {
   CREATE = 'create',

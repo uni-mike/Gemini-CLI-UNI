@@ -19,7 +19,7 @@ import {
 } from './tools.js';
 import type { CallableTool, FunctionCall, Part } from '@google/genai';
 import { ToolErrorType } from './tool-error.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 
 type ToolParams = Record<string, unknown>;
 

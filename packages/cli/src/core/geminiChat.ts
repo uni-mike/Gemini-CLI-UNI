@@ -20,7 +20,7 @@ import { createUserContent } from '@google/genai';
 import { retryWithBackoff } from '../utils/retry.js';
 import type { ContentGenerator } from './contentGenerator.js';
 import { AuthType } from './contentGenerator.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
 import { hasCycleInSchema } from '../tools/tools.js';
 import type { StructuredError } from './turn.js';

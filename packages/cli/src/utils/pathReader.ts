@@ -9,7 +9,7 @@ import path from 'node:path';
 import { glob } from 'glob';
 import type { PartUnion } from '@google/genai';
 import { processSingleFileContent } from './fileUtils.js';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 
 /**
  * Reads the content of a file or recursively expands a directory from

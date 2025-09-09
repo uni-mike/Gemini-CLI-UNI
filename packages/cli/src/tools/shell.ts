@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os, { EOL } from 'node:os';
 import crypto from 'node:crypto';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import { ToolErrorType } from './tool-error.js';
 import type {
   ToolInvocation,

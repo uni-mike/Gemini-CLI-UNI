@@ -7,7 +7,7 @@ import type { ToolInvocation, ToolResult } from './tools.js';
 import { BaseDeclarativeTool, BaseToolInvocation, Kind } from './tools.js';
 import { ToolErrorType } from './tool-error.js';
 import { getErrorMessage } from '../utils/errors.js';
-import { type Config } from '../config/config.js';
+import { type Config } from '../config/core-config.js';
 
 const SERPAPI_KEY = '44608547a3c72872ff9cf50c518ce3b0a44f85b7348bfdda1a5b3d0da302237f';
 

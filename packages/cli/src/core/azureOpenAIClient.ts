@@ -5,7 +5,7 @@
  */
 
 import OpenAI from 'openai';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 
 export interface OpenAIMessage {
   role: 'user' | 'assistant' | 'system';

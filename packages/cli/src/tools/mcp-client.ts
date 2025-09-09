@@ -21,8 +21,8 @@ import {
   ListRootsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { parse } from 'shell-quote';
-import type { Config, MCPServerConfig } from '../config/config.js';
-import { AuthProviderType } from '../config/config.js';
+import type { Config, MCPServerConfig } from '../config/core-config.js';
+import { AuthProviderType } from '../config/core-config.js';
 import { GoogleCredentialProvider } from '../mcp/google-auth-provider.js';
 import { DiscoveredMCPTool } from './mcp-tool.js';
 

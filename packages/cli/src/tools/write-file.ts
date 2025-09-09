@@ -7,8 +7,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import * as Diff from 'diff';
-import type { Config } from '../config/config.js';
-import { ApprovalMode } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
+import { ApprovalMode } from '../config/core-config.js';
 import type {
   FileDiff,
   ToolCallConfirmationDetails,

@@ -5,7 +5,7 @@
  */
 
 import type { Part } from '@google/genai';
-import type { Config } from '../config/config.js';
+import type { Config } from '../config/core-config.js';
 import { getFolderStructure } from './getFolderStructure.js';
 
 /**
