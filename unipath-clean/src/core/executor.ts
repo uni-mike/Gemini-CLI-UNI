@@ -6,6 +6,7 @@
 import { EventEmitter } from 'events';
 import { Task, TaskPlan } from './planner.js';
 import { toolManager } from '../tools/tool-manager.js';
+import { globalRegistry } from '../tools/registry.js';
 
 export interface ExecutionContext {
   workingDirectory: string;
@@ -50,6 +51,7 @@ export class Executor extends EventEmitter {
   async executeTask(task: Task, context: ExecutionContext): Promise<ExecutionResult> {
     const startTime = Date.now();
     this.emit('task-start', { task, context });
+    this.emit('status', `⏺ Executing: ${task.description}`);
     
     const abortController = new AbortController();
     this.activeExecutions.set(task.id, abortController);
@@ -81,6 +83,7 @@ export class Executor extends EventEmitter {
         duration: Date.now() - startTime
       };
       
+      this.emit('status', `✅ Completed: ${task.description}`);
       this.emit('task-complete', executionResult);
       return executionResult;
       
@@ -93,6 +96,7 @@ export class Executor extends EventEmitter {
         duration: Date.now() - startTime
       };
       
+      this.emit('status', `❌ Failed: ${task.description}`);
       this.emit('task-error', executionResult);
       return executionResult;
       
@@ -103,11 +107,19 @@ export class Executor extends EventEmitter {
 
   async executePlan(plan: TaskPlan, context: ExecutionContext): Promise<ExecutionResult[]> {
     this.emit('plan-start', { plan, context });
+    this.emit('status', `🚀 Executing ${plan.tasks.length} task${plan.tasks.length !== 1 ? 's' : ''}...`);
     const results: ExecutionResult[] = [];
     
     // Initialize tracking arrays
     const createdFiles: string[] = [];
-    const taskHistory: Array<{ taskId: string; description: string; result: any }> = [];
+    const taskHistory: Array<{ 
+      taskId: string; 
+      description: string; 
+      timestamp: Date;
+      toolsUsed: string[];
+      result: any;
+      duration: number;
+    }> = [];
     
     // Execute tasks based on dependencies
     if (plan.parallelizable) {
@@ -147,11 +159,14 @@ export class Executor extends EventEmitter {
           }
         }
         
-        // Track task history
+        // Track task history with all required fields
         taskHistory.push({
           taskId: task.id,
           description: task.description,
-          result: result.output
+          timestamp: new Date(),
+          toolsUsed: result.toolsUsed || [],
+          result: result.output,
+          duration: result.duration || 0
         });
         
         // Stop on failure unless configured otherwise
@@ -162,6 +177,7 @@ export class Executor extends EventEmitter {
       }
     }
     
+    this.emit('status', `🎯 Plan execution complete: ${results.filter(r => r.success).length}/${results.length} succeeded`);
     this.emit('plan-complete', { plan, results });
     return results;
   }
@@ -179,12 +195,13 @@ export class Executor extends EventEmitter {
       }
       
       this.emit('tool-execute', { taskId: task.id, tool: toolName });
+      this.emit('status', `🔧 Using tool: ${toolName}`);
       
       // Parse tool arguments from task description
       const args = this.parseToolArguments(toolName, task.description, context);
       
-      // Execute tool using advanced tool manager
-      const result = await toolManager.executeTool(toolName, args);
+      // Execute tool using registry directly (toolManager may not be initialized)
+      const result = await globalRegistry.execute(toolName, args);
       
       this.emit('tool-result', { taskId: task.id, tool: toolName, result });
       
@@ -300,9 +317,13 @@ export class Executor extends EventEmitter {
         break;
         
       case 'web':
-        if (description.toLowerCase().includes('search')) {
+        // Default to search for price queries and general questions
+        if (description.toLowerCase().includes('price') || 
+            description.toLowerCase().includes('current') ||
+            description.toLowerCase().includes('what is') ||
+            !description.includes('http')) {
           args.action = 'search';
-          args.query = this.extractQuery(description);
+          args.query = description; // Use full description as query
         } else {
           args.action = 'fetch';
           args.url = this.extractUrl(description);

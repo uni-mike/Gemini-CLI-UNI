@@ -226,12 +226,24 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     orchestrator.on('tool-execute', handleToolExecute);
     orchestrator.on('tool-result', handleToolResult);
     
+    // Handle status updates from components
+    const handleStatus = (message: string) => {
+      setMessages(prev => [...prev, {
+        type: 'assistant',
+        content: message,
+        timestamp: new Date()
+      }]);
+    };
+    
+    orchestrator.on('status', handleStatus);
+    
     return () => {
       orchestrator.off('orchestration-start', handleStart);
       orchestrator.off('orchestration-complete', handleComplete);
       orchestrator.off('orchestration-error', handleError);
       orchestrator.off('tool-execute', handleToolExecute);
       orchestrator.off('tool-result', handleToolResult);
+      orchestrator.off('status', handleStatus);
     };
   }, [orchestrator]);
   

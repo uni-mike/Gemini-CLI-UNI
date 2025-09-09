@@ -4,7 +4,8 @@
  */
 
 import { EventEmitter } from 'events';
-import { toolManager } from '../tools/tool-manager.js';
+import { DeepSeekClient } from '../llm/deepseek-client.js';
+import { globalRegistry } from '../tools/registry.js';
 
 export interface Task {
   id: string;
@@ -24,33 +25,121 @@ export interface TaskPlan {
 }
 
 export class Planner extends EventEmitter {
+  private client: DeepSeekClient;
+  
   constructor() {
     super();
+    this.client = new DeepSeekClient();
   }
 
   async createPlan(prompt: string): Promise<TaskPlan> {
     this.emit('planning-start', { prompt });
+    this.emit('status', '🤔 Analyzing request...');
     
-    // Analyze prompt complexity
+    // Get available tools for context
+    const availableTools = globalRegistry.list();
+    
+    // Use LLM to create intelligent plan
+    const planPrompt = `You are a task planner. Create an execution plan for this request: "${prompt}"
+
+Available tools:
+${availableTools.map(tool => {
+  const t = globalRegistry.get(tool);
+  return `- ${tool}: ${t?.description || 'No description'}`;
+}).join('\n')}
+
+Respond ONLY with a JSON object in this EXACT format:
+{
+  "complexity": "simple" | "moderate" | "complex",
+  "tasks": [
+    {
+      "description": "task description",
+      "tools": ["tool1", "tool2"],
+      "type": "simple" | "tool" | "multi-step"
+    }
+  ],
+  "parallelizable": true | false
+}
+
+Rules:
+- For simple questions (math, explanations), create one task with no tools
+- For actions (create file, search web), include appropriate tools
+- For Bitcoin/crypto prices, use ["web"] tool with search action
+- For file operations, use ["file"] tool
+- Tasks should be specific and actionable`;
+    
+    try {
+      const response = await this.client.chat(
+        [{ role: 'user', content: planPrompt }],
+        [] // No tools for planning
+      );
+      
+      // Parse LLM response
+      const planData = this.parsePlanResponse(response);
+      
+      // Create tasks with IDs
+      const tasks = planData.tasks.map((task: any, index: number) => ({
+        id: `task_${Date.now()}_${index}`,
+        description: task.description,
+        type: task.type || 'simple',
+        tools: task.tools || [],
+        priority: index + 1
+      }));
+      
+      // Identify dependencies
+      this.identifyDependencies(tasks);
+      
+      const plan: TaskPlan = {
+        id: `plan_${Date.now()}`,
+        originalPrompt: prompt,
+        tasks,
+        complexity: planData.complexity || 'simple',
+        parallelizable: planData.parallelizable || false
+      };
+      
+      this.emit('status', `📋 Created plan with ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`);
+      this.emit('planning-complete', plan);
+      return plan;
+      
+    } catch (error) {
+      // Fallback to basic planning if LLM fails
+      console.warn('LLM planning failed, using fallback:', error);
+      return this.createBasicPlan(prompt);
+    }
+  }
+  
+  private parsePlanResponse(response: string): any {
+    try {
+      // Extract JSON from response
+      const jsonMatch = response.match(/\{[\s\S]*\}/); 
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      console.warn('Failed to parse plan JSON:', e);
+    }
+    
+    // Return basic structure if parsing fails
+    return {
+      complexity: 'simple',
+      tasks: [{ description: 'Process request', tools: [], type: 'simple' }],
+      parallelizable: false
+    };
+  }
+  
+  private createBasicPlan(prompt: string): TaskPlan {
+    // Fallback basic planning
     const complexity = this.analyzeComplexity(prompt);
-    
-    // Decompose into tasks
     const tasks = this.decomposeTasks(prompt, complexity);
-    
-    // Identify dependencies
     this.identifyDependencies(tasks);
     
-    // Create plan
-    const plan: TaskPlan = {
+    return {
       id: `plan_${Date.now()}`,
       originalPrompt: prompt,
       tasks,
       complexity,
       parallelizable: this.canParallelize(tasks)
     };
-    
-    this.emit('planning-complete', plan);
-    return plan;
   }
 
   private analyzeComplexity(prompt: string): 'simple' | 'moderate' | 'complex' {
@@ -166,17 +255,7 @@ export class Planner extends EventEmitter {
   }
 
   private identifyRequiredTools(operation: string): string[] {
-    // Use the advanced registry to intelligently select tools
-    try {
-      if (toolManager && typeof toolManager.getToolsForTask === 'function') {
-        const relevantTools = toolManager.getToolsForTask(operation, 3);
-        return relevantTools.map((t: any) => t.tool);
-      }
-    } catch (error) {
-      console.warn('Failed to use advanced tool selection, falling back to basic:', error);
-    }
-    
-    // Fallback to basic identification
+    // Basic tool identification based on keywords
     const tools: string[] = [];
     const op = operation.toLowerCase();
     
@@ -207,7 +286,8 @@ export class Planner extends EventEmitter {
     
     // Web operations
     if (op.includes('web') || op.includes('internet') || op.includes('online') || 
-        op.includes('fetch') || op.includes('download')) {
+        op.includes('fetch') || op.includes('download') || 
+        op.includes('price') || op.includes('current') || op.includes('latest')) {
       tools.push('web');
     }
     

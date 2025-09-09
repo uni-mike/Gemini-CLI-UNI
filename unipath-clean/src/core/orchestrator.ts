@@ -19,6 +19,14 @@ export interface ExecutionResult {
   error?: string;
 }
 
+export interface TrioMessage {
+  from: 'planner' | 'executor' | 'orchestrator';
+  to: 'planner' | 'executor' | 'orchestrator' | 'all';
+  type: 'question' | 'response' | 'adjustment' | 'status' | 'error';
+  content: string;
+  data?: any;
+}
+
 export class Orchestrator extends EventEmitter {
   private client: DeepSeekClient | MockLLMClient;
   private config: Config;
@@ -28,10 +36,28 @@ export class Orchestrator extends EventEmitter {
   private planner: Planner;
   private executor: Executor;
   private executionContext: ExecutionContext;
+  private trioMessages: TrioMessage[] = [];
   
   constructor(config: Config) {
     super();
     this.config = config;
+    
+    // Initialize the trio components
+    this.planner = new Planner();
+    this.executor = new Executor();
+    
+    // Initialize execution context
+    this.executionContext = {
+      workingDirectory: process.cwd(),
+      environment: process.env as Record<string, string>,
+      createdFiles: [],
+      modifiedFiles: [],
+      deletedFiles: [],
+      executedCommands: [],
+      webSearches: [],
+      toolExecutions: new Map<string, any>(),
+      taskHistory: []
+    };
     
     // Use real client if API key is available
     if (process.env.API_KEY) {
@@ -41,70 +67,206 @@ export class Orchestrator extends EventEmitter {
       this.client = new MockLLMClient();
     }
     
-    // Forward events
+    // Forward events from trio components
+    this.setupTrioEvents();
+    
+    // Forward LLM events
     this.client.on('start', (data) => this.emit('llm-start', data));
     this.client.on('complete', (data) => this.emit('llm-complete', data));
     this.client.on('error', (error) => this.emit('llm-error', error));
     this.client.on('tool-calls', (calls) => this.handleToolCalls(calls));
   }
   
+  private setupTrioEvents() {
+    // Forward Planner events
+    this.planner.on('planning-start', (data) => {
+      this.emit('planning-start', data);
+      this.sendTrioMessage({
+        from: 'planner',
+        to: 'all',
+        type: 'status',
+        content: `📋 Starting to plan: ${data.prompt}`,
+        data
+      });
+    });
+    
+    this.planner.on('planning-complete', (plan) => {
+      this.emit('planning-complete', plan);
+      this.sendTrioMessage({
+        from: 'planner',
+        to: 'orchestrator',
+        type: 'response',
+        content: `✅ Plan created with ${plan.tasks.length} tasks`,
+        data: plan
+      });
+    });
+    
+    // Forward Executor events with trio communication
+    this.executor.on('task-start', (data) => {
+      this.emit('task-start', data);
+      this.sendTrioMessage({
+        from: 'executor',
+        to: 'all',
+        type: 'status',
+        content: `⚙️ Starting task: ${data.task.description}`,
+        data
+      });
+    });
+    
+    this.executor.on('task-complete', (result) => {
+      this.emit('task-complete', result);
+      this.sendTrioMessage({
+        from: 'executor',
+        to: 'orchestrator',
+        type: 'response',
+        content: `✅ Task completed successfully`,
+        data: result
+      });
+    });
+    
+    this.executor.on('task-error', (result) => {
+      this.emit('task-error', result);
+      // Ask planner for help when task fails
+      this.sendTrioMessage({
+        from: 'executor',
+        to: 'planner',
+        type: 'question',
+        content: `❌ Task failed: ${result.error}. Need recovery strategy.`,
+        data: result
+      });
+      this.handleFailureRecovery(result);
+    });
+    
+    this.executor.on('tool-execute', (data) => {
+      this.emit('tool-execute', data);
+    });
+    
+    this.executor.on('tool-result', (data) => {
+      this.emit('tool-result', data);
+      if (!data.result?.success) {
+        // Tool failed, ask for alternative
+        this.sendTrioMessage({
+          from: 'executor',
+          to: 'planner',
+          type: 'question',
+          content: `🔧 Tool ${data.tool} failed. Should I try alternative?`,
+          data
+        });
+      }
+    });
+    
+    this.executor.on('status', (message) => {
+      this.emit('status', message);
+    });
+    
+    // Forward Planner status events
+    this.planner.on('status', (message) => {
+      this.emit('status', message);
+    });
+  }
+  
   async execute(prompt: string): Promise<ExecutionResult> {
     this.emit('orchestration-start', { prompt });
+    this.emit('status', '🎯 Orchestrator starting...');
     this.toolsUsed = [];
-    this.processedTools.clear(); // Clear for new execution
+    this.processedTools.clear();
+    this.trioMessages = []; // Clear trio conversation
     
     // Handle slash commands
     if (prompt.startsWith('/')) {
       return this.handleSlashCommand(prompt.toLowerCase());
     }
     
-    // Add user message
-    this.conversation.push({ role: 'user', content: prompt });
-    
     try {
-      // Get available tools
-      const tools = this.getToolDefinitions();
+      // Step 1: Orchestrator asks Planner to create plan
+      this.sendTrioMessage({
+        from: 'orchestrator',
+        to: 'planner',
+        type: 'question',
+        content: `📝 Please create a plan for: ${prompt}`
+      });
       
-      // Get LLM response
-      let response = await this.client.chat(this.conversation, tools);
+      const plan = await this.planner.createPlan(prompt);
       
-      // Check if response contains tool calls (it's a JSON string)
-      if (response.startsWith('[') && response.includes('function')) {
-        // Parse and handle tool calls ONCE
-        const toolCalls = JSON.parse(response);
-        await this.handleToolCalls(toolCalls);
+      if (process.env.DEBUG === 'true') {
+        console.log(`📋 Plan created: ${plan.tasks.length} tasks, complexity: ${plan.complexity}`);
+      }
+      
+      // Step 2: Check if this is a simple question that needs LLM response
+      if (plan.complexity === 'simple' && plan.tasks.length === 1 && 
+          (!plan.tasks[0].tools || plan.tasks[0].tools.length === 0)) {
+        // Simple question - use LLM for response
+        this.conversation.push({ role: 'user', content: prompt });
+        const response = await this.client.chat(this.conversation, []);
+        this.conversation.push({ role: 'assistant', content: response });
         
-        // Get follow-up response after tool execution (ONLY ONE ADDITIONAL CALL)
-        response = await this.client.chat(this.conversation, tools);
-        
-        // If the follow-up response also contains tool calls, handle them
-        if (response.startsWith('[') && response.includes('function')) {
-          const followUpCalls = JSON.parse(response);
-          await this.handleToolCalls(followUpCalls);
-          
-          // Get final response after second round of tools
-          response = await this.client.chat(this.conversation, tools);
+        this.emit('orchestration-complete', { response });
+        return {
+          success: true,
+          response,
+          toolsUsed: []
+        };
+      }
+      
+      // Step 3: Orchestrator asks Executor to execute plan
+      this.sendTrioMessage({
+        from: 'orchestrator',
+        to: 'executor',
+        type: 'question',
+        content: `🚀 Please execute this plan with ${plan.tasks.length} tasks`
+      });
+      
+      const results = await this.executor.executePlan(plan, this.executionContext);
+      
+      // Check if any tasks failed
+      const failures = results.filter(r => !r.success);
+      if (failures.length > 0) {
+        this.emit('status', `⚠️ ${failures.length} task(s) failed, attempting recovery...`);
+        // Recovery is handled in event listeners
+      }
+      
+      // Update toolsUsed from execution results
+      for (const result of results) {
+        if (result.toolsUsed) {
+          this.toolsUsed.push(...result.toolsUsed);
         }
       }
       
-      // Clean up the response if it's still tool calls JSON after max iterations
-      let finalResponse = response;
-      if (response.startsWith('[') && response.includes('function')) {
-        // If we still have tool calls after max iterations, just say we completed the tools
-        finalResponse = `Completed ${this.toolsUsed.length} tool${this.toolsUsed.length !== 1 ? 's' : ''}: ${this.toolsUsed.join(', ')}`;
-        this.conversation.push({ role: 'assistant', content: finalResponse });
-      } else if (!response.startsWith('[')) {
-        // Normal text response
-        this.conversation.push({ role: 'assistant', content: response });
+      // Update execution context with results
+      for (const result of results) {
+        if (result.success && result.output) {
+          // Track executed tools
+          const taskId = result.taskId;
+          this.executionContext.toolExecutions.set(taskId, result.output);
+          
+          // Track created files if mentioned in output
+          const fileMatch = result.output.toString().match(/File written: (.+)/) ||
+                           result.output.toString().match(/Created: (.+)/);
+          if (fileMatch) {
+            this.executionContext.createdFiles.push(fileMatch[1]);
+          }
+        }
       }
+      
+      // Step 4: Generate final response based on execution results
+      let finalResponse = await this.generateFinalResponse(prompt, plan, results);
       
       if (process.env.DEBUG === 'true') {
         console.log('🚀 Emitting orchestration-complete with:', finalResponse?.substring(0, 100) + (finalResponse?.length > 100 ? '...' : ''));
       }
+      
+      // Final trio communication
+      this.sendTrioMessage({
+        from: 'orchestrator',
+        to: 'all',
+        type: 'status',
+        content: `🎉 Execution complete: ${results.filter(r => r.success).length}/${results.length} tasks succeeded`
+      });
+      
       this.emit('orchestration-complete', { response: finalResponse });
       
       return {
-        success: true,
+        success: results.every(r => r.success),
         response: finalResponse,
         toolsUsed: this.toolsUsed
       };
@@ -115,6 +277,84 @@ export class Orchestrator extends EventEmitter {
         error: error.message
       };
     }
+  }
+  
+  private async generateFinalResponse(prompt: string, plan: any, results: any[]): Promise<string> {
+    // If all results have output, compile them
+    const outputs = results.filter(r => r.output).map(r => r.output);
+    
+    // For queries that need summarization (like prices, times, etc), use LLM
+    if (prompt.toLowerCase().includes('price') || 
+        prompt.toLowerCase().includes('time') ||
+        prompt.toLowerCase().includes('what is') ||
+        prompt.toLowerCase().includes('how much')) {
+      
+      // Build context from results
+      const context = outputs.join('\n');
+      this.conversation.push({ 
+        role: 'user', 
+        content: `Based on the following information, answer this question: ${prompt}\n\nInformation:\n${context}` 
+      });
+      
+      const response = await this.client.chat(this.conversation, []);
+      this.conversation.push({ role: 'assistant', content: response });
+      return response;
+    }
+    
+    // For file operations, return confirmation
+    if (plan.tasks.some((t: any) => t.tools?.includes('file'))) {
+      const fileOps = results.filter(r => r.success && r.toolsUsed?.includes('file'));
+      if (fileOps.length > 0) {
+        return outputs.join('\n');
+      }
+    }
+    
+    // Default: return all outputs
+    if (outputs.length > 0) {
+      return outputs.join('\n');
+    }
+    
+    return `Completed ${results.length} task${results.length !== 1 ? 's' : ''}`;
+  }
+  
+  private sendTrioMessage(message: TrioMessage) {
+    this.trioMessages.push(message);
+    this.emit('trio-message', message);
+    
+    if (process.env.DEBUG === 'true') {
+      const arrow = message.to === 'all' ? '📢' : '→';
+      console.log(`🎭 ${message.from} ${arrow} ${message.to}: ${message.content}`);
+    }
+  }
+  
+  private async handleFailureRecovery(failedResult: any) {
+    // Smart recovery: ask LLM for alternative approach
+    const recoveryPrompt = `A task failed with error: ${failedResult.error}
+
+Suggest an alternative approach using available tools.`;
+    
+    try {
+      const recovery = await this.client.chat(
+        [{ role: 'user', content: recoveryPrompt }],
+        []
+      );
+      
+      this.sendTrioMessage({
+        from: 'orchestrator',
+        to: 'executor',
+        type: 'adjustment',
+        content: `💡 Recovery strategy: ${recovery.substring(0, 100)}...`,
+        data: { strategy: recovery }
+      });
+      
+      this.emit('status', `🔄 Applying recovery strategy...`);
+    } catch (e) {
+      console.warn('Recovery failed:', e);
+    }
+  }
+  
+  getTrioConversation(): TrioMessage[] {
+    return this.trioMessages;
   }
   
   private async handleToolCalls(toolCalls: any[]) {
