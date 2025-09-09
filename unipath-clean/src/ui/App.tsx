@@ -87,27 +87,40 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     const handleToolExecute = ({ name, args }: any) => {
       setCurrentStatus('tool-execution');
       
-      // Add operation to history
+      // Create more descriptive operation title
+      let operationTitle = '';
+      if (name === 'web' && args.action === 'search') {
+        operationTitle = `Web search: "${args.query}"`;
+      } else if (name === 'web' && args.action === 'fetch') {
+        operationTitle = `Web fetch: ${new URL(args.url).hostname}`;
+      } else if (name === 'file' && args.action === 'write') {
+        operationTitle = `Write file: ${args.path}`;
+      } else if (name === 'file' && args.action === 'read') {
+        operationTitle = `Read file: ${args.path}`;
+      } else if (name === 'bash') {
+        operationTitle = `Execute: ${args.command?.substring(0, 30)}${args.command?.length > 30 ? '...' : ''}`;
+      } else {
+        // Fallback to generic format with actual values
+        const argValues = Object.values(args).map((v: any) => 
+          typeof v === 'string' && v.length > 20 ? v.substring(0, 20) + '...' : String(v)
+        ).join(', ');
+        operationTitle = `${name.charAt(0).toUpperCase() + name.slice(1)}: ${argValues}`;
+      }
+      
+      // Add operation to history only (not to messages to avoid duplication)
       const operationId = `tool-${name}-${Date.now()}`;
       setOperations(prev => [...prev, {
         id: operationId,
         type: name as any,
         status: 'running',
-        title: `${name.charAt(0).toUpperCase() + name.slice(1)}(${Object.keys(args).map(k => k).join(', ')})`,
-        timestamp: new Date()
-      }]);
-      
-      // Add message to chat for operation visibility
-      setMessages(prev => [...prev, {
-        type: 'system',
-        content: `⏺ ${name.charAt(0).toUpperCase() + name.slice(1)}(${Object.keys(args).map(k => args[k]).join(', ')})`,
+        title: operationTitle,
         timestamp: new Date()
       }]);
     };
 
     const handleToolResult = ({ name, result }: any) => {
       setOperations(prev => prev.map(op => 
-        op.title.startsWith(name.charAt(0).toUpperCase() + name.slice(1)) && op.status === 'running'
+        op.id.includes(`tool-${name}-`) && op.status === 'running'
           ? { 
               ...op, 
               status: 'completed' as const, 
@@ -116,16 +129,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
           : op
       ));
       
-      // Add completion message to chat
-      const status = result.success ? 'completed' : 'failed';
-      const icon = result.success ? '⎿' : '❌';
-      const details = result.success ? 'Completed successfully' : `Failed: ${result.error}`;
-      
-      setMessages(prev => [...prev, {
-        type: 'system',
-        content: `  ${icon} ${details}`,
-        timestamp: new Date()
-      }]);
+      // Don't add completion messages to chat - they're already in operations history
     };
     
     const handleError = (error: any) => {
