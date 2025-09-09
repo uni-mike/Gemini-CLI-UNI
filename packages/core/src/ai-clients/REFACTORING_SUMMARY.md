@@ -1,7 +1,7 @@
 # DeepSeek Integration Refactoring Documentation
 
 ## Overview
-The DeepSeek integration has been refactored from a monolithic 1700+ line file into a clean, modular architecture with proper separation of concerns.
+The DeepSeek integration has been refactored from a monolithic 1700+ line file into a clean, modular architecture with proper separation of concerns. Old monolithic code has been moved to `/_OLD/` folder to prevent accidental usage.
 
 ## Architecture
 
@@ -97,11 +97,11 @@ Robust message parsing with multiple format support:
 
 ### DeepSeekToolExecutor
 Tool execution with approval flows:
-- Registry-first execution
-- Emergency fallback implementations
+- **Registry-ONLY execution** (no hardcoded fallbacks)
+- Dynamic tool discovery from registry
 - Approval flow integration
 - Result formatting
-- Error handling
+- Error handling with graceful recovery
 
 ### Shared Formatters
 Reusable formatting components:
