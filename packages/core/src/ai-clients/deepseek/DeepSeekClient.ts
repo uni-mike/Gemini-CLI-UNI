@@ -443,15 +443,16 @@ export class DeepSeekClient {
         // Execute tools and stream progress
         yield* this.executeTools(toolCalls);
         
-        // Add results to conversation
+        // Add assistant's message that contained the tool calls
         this.conversation.push({
           role: 'assistant',
           content: responseContent
         });
         
-        // Check if continuation needed
-        if (this.parser.needsContinuation(responseContent) && iterations < MAX_ITERATIONS) {
-          currentMessage = DeepSeekPrompts.getContinuationPrompt();
+        // After executing tools, we need to get a final response from the AI
+        // that incorporates the tool results
+        if (iterations < MAX_ITERATIONS) {
+          // Continue to get the AI's final response with tool results
           continue;
         }
         

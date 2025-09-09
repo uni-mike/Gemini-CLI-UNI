@@ -22,6 +22,9 @@ export class DeepSeekMessageParser {
     
     // Legacy format with numbers
     functionNumbered: /function:\s*(\w+)\s*\n\s*\d+\s+({[^}]+})/gm,
+    
+    // DeepSeek R1 format: <｜tool▁call▁begin｜>function<｜tool▁sep｜>web_search\n```json\n{...}\n```<｜tool▁call▁end｜>
+    deepseekR1: /<｜tool▁call▁begin｜>function<｜tool▁sep｜>(\w+)\s*\n*```json\n*({[\s\S]*?})\n*```<｜tool▁call▁end｜>/gm,
   };
 
   /**
@@ -152,6 +155,9 @@ export class DeepSeekMessageParser {
     // Remove thinking tags
     cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '');
     cleaned = cleaned.replace(/<THINK>[\s\S]*?<\/THINK>/gi, '');
+    
+    // Remove DeepSeek R1 tool call markers
+    cleaned = cleaned.replace(/<｜tool▁calls▁begin｜>[\s\S]*?<｜tool▁calls▁end｜>/g, '');
     
     // Remove tool calls
     for (const pattern of Object.values(this.patterns)) {

@@ -110,7 +110,12 @@
       "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"create a file called test-orchestration.txt with content ''''Testing refactored DeepSeek integration successfully!''''\" --non-interactive)",
       "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"search the web for current Bitcoin price\" --non-interactive)",
       "Bash(ls:*)",
-      "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"What is 3 + 3?\" --non-interactive)"
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"What is 3 + 3?\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo DEBUG=true ./start-deepseek.sh --prompt \"What is the current Bitcoin price?\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo timeout 30 ./start-deepseek.sh --prompt \"What is the current Bitcoin price?\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo gtimeout:*)",
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh --prompt \"What is the current Bitcoin price?\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh:*)"
     ],
     "deny": [],
     "ask": []
