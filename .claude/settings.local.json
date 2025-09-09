@@ -137,7 +137,16 @@
       "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"create test-react-ink.txt with content ''Testing React Ink UI!''\")",
       "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"what is 4+4?\")",
       "Bash(./fix-imports.sh)",
-      "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"create test-orchestration.txt with content ''Testing refactored DeepSeek integration successfully!''\")"
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"create test-orchestration.txt with content ''Testing refactored DeepSeek integration successfully!''\")",
+      "Bash(npx eslint:*)",
+      "Bash(APPROVAL_MODE=yolo npm start)",
+      "Bash(ln:*)",
+      "Bash(npm i:*)",
+      "Bash(./start-clean.sh:*)",
+      "Bash(./start-unipath.sh:*)",
+      "Bash(unipath-clean/start-clean.sh:*)",
+      "Bash(DEBUG=true ./start-clean.sh --prompt \"What is 7+7?\" --non-interactive)",
+      "Bash(./test-suite.sh:*)"
     ],
     "deny": [],
     "ask": []

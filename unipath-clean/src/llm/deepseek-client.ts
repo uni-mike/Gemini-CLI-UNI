@@ -1,0 +1,185 @@
+/**
+ * DeepSeek API Client
+ * Real API integration
+ */
+
+import { Message } from './provider.js';
+import { EventEmitter } from 'events';
+import { StreamProcessor } from './streaming.js';
+
+interface DeepSeekConfig {
+  apiKey?: string;
+  baseUrl?: string;
+  model?: string;
+}
+
+interface ToolCall {
+  name: string;
+  arguments: any;
+}
+
+export class DeepSeekClient extends EventEmitter {
+  private apiKey: string;
+  private baseUrl: string;
+  private model: string;
+  private apiVersion: string;
+  
+  constructor(config: DeepSeekConfig = {}) {
+    super();
+    this.apiKey = config.apiKey || process.env.API_KEY || '';
+    this.baseUrl = config.baseUrl || process.env.ENDPOINT || '';
+    this.model = config.model || process.env.MODEL || 'DeepSeek-R1-0528';
+    this.apiVersion = process.env.API_VERSION || '2024-05-01-preview';
+  }
+  
+  async chat(messages: Message[], tools?: any[]): Promise<string> {
+    this.emit('start', { messages, tools });
+    
+    const requestBody: any = {
+      model: this.model,
+      messages,
+      temperature: 0.7,
+      stream: false
+    };
+    
+    if (tools && tools.length > 0) {
+      requestBody.tools = this.formatToolsForAPI(tools);
+      requestBody.tool_choice = 'auto';
+    }
+    
+    try {
+      // Azure endpoint already includes the model in the URL
+      const url = `${this.baseUrl}/chat/completions?api-version=${this.apiVersion}`;
+      
+      if (process.env.DEBUG === 'true') {
+        console.log('DeepSeek API Request:', {
+          url,
+          model: this.model,
+          messagesCount: messages.length,
+          hasTools: !!tools
+        });
+      }
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.apiKey
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`API error: ${response.status} - ${errorText.substring(0, 200)}`);
+      }
+      
+      const data: any = await response.json();
+      const choice = data.choices[0];
+      
+      // Check for tool calls
+      if (choice.message.tool_calls) {
+        this.emit('tool-calls', choice.message.tool_calls);
+        return JSON.stringify(choice.message.tool_calls);
+      }
+      
+      // Clean up response - remove <think> tags if present
+      let content = choice.message.content;
+      content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      
+      this.emit('complete', content);
+      return content;
+    } catch (error) {
+      this.emit('error', error);
+      throw error;
+    }
+  }
+  
+  formatToolsForAPI(tools: any[]): any[] {
+    return tools.map(tool => ({
+      type: 'function',
+      function: {
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters || {
+          type: 'object',
+          properties: {},
+          required: []
+        }
+      }
+    }));
+  }
+  
+  async *chatStream(messages: Message[], tools?: any[]): AsyncGenerator<string> {
+    this.emit('start', { messages, tools });
+    
+    const requestBody: any = {
+      model: this.model,
+      messages,
+      temperature: 0.7,
+      stream: true
+    };
+    
+    if (tools && tools.length > 0) {
+      requestBody.tools = this.formatToolsForAPI(tools);
+      requestBody.tool_choice = 'auto';
+    }
+    
+    try {
+      const url = `${this.baseUrl}/chat/completions?api-version=${this.apiVersion}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.apiKey
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
+      
+      const decoder = new TextDecoder();
+      const processor = new StreamProcessor();
+      
+      let fullContent = '';
+      
+      processor.on('content', (content: string) => {
+        fullContent += content;
+      });
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        processor.processChunk(chunk);
+        
+        // Yield content chunks
+        if (fullContent.length > 0) {
+          // Clean think tags from streamed content
+          const cleaned = fullContent.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+          if (cleaned) {
+            yield cleaned;
+            fullContent = '';
+          }
+        }
+      }
+      
+      this.emit('complete', fullContent);
+    } catch (error) {
+      this.emit('error', error);
+      throw error;
+    }
+  }
+}
