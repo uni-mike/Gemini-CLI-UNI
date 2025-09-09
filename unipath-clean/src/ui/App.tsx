@@ -14,7 +14,7 @@ interface AppProps {
 }
 
 interface Message {
-  type: 'user' | 'assistant' | 'system';
+  type: 'user' | 'assistant' | 'system' | 'diff';
   content: string;
   timestamp: Date;
 }
@@ -184,25 +184,32 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       
       // Add completion message to chat like Claude Code examples
       if (result.success) {
-        let completionText = '';
         if (result.output && typeof result.output === 'string') {
-          // Check if it's a file creation output with git-diff style
-          if (result.output.startsWith('Created ') && result.output.includes(' +  ')) {
-            // Show the git-diff style output directly
-            completionText = `⎿  ${result.output}`;
+          // Check if it's a file creation/update output with git-diff style
+          if ((result.output.startsWith('Created ') || result.output.startsWith('Updated ')) && 
+              result.output.includes(' +  ')) {
+            // Show the git-diff style output directly with special type
+            setMessages(prev => [...prev, {
+              type: 'diff' as any, // Special type for diff output
+              content: `⎿  ${result.output}`,
+              timestamp: new Date()
+            }]);
           } else {
             const lines = result.output.split('\n').length;
-            completionText = `⎿  ${lines > 1 ? `Found ${lines} lines` : result.output.substring(0, 60)}${result.output.length > 60 ? '...' : ''} (ctrl+r to expand)`;
+            const completionText = `⎿  ${lines > 1 ? `Found ${lines} lines` : result.output.substring(0, 60)}${result.output.length > 60 ? '...' : ''} (ctrl+r to expand)`;
+            setMessages(prev => [...prev, {
+              type: 'assistant', 
+              content: `  ${completionText}`,
+              timestamp: new Date()
+            }]);
           }
         } else {
-          completionText = '⎿  Completed successfully';
+          setMessages(prev => [...prev, {
+            type: 'assistant', 
+            content: '  ⎿  Completed successfully',
+            timestamp: new Date()
+          }]);
         }
-        
-        setMessages(prev => [...prev, {
-          type: 'assistant', 
-          content: `  ${completionText}`,
-          timestamp: new Date()
-        }]);
       }
     };
     
@@ -378,6 +385,22 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
             )}
             {msg.type === 'system' && (
               <Text color={Colors.AccentYellow}>{'⚠ '}{msg.content}</Text>
+            )}
+            {msg.type === 'diff' && (
+              <Box flexDirection="column">
+                {msg.content.split('\n').map((line, idx) => {
+                  // Color lines based on diff indicators
+                  let color = Colors.Foreground;
+                  if (line.includes(' +  ')) {
+                    color = Colors.DiffAdded; // Green for added
+                  } else if (line.includes(' -  ')) {
+                    color = Colors.DiffRemoved; // Red for removed
+                  } else if (line.startsWith('⎿')) {
+                    color = Colors.AccentGreen; // Keep connector green
+                  }
+                  return <Text key={idx} color={color}>{line}</Text>;
+                })}
+              </Box>
             )}
           </Box>
         ))

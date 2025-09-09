@@ -263,7 +263,17 @@ export class Orchestrator extends EventEmitter {
     // Get any outputs from executed tools
     const outputs = results.filter(r => r.output).map(r => r.output);
     
-    // If we have tool outputs, let DeepSeek synthesize them with the original prompt
+    // Check if we created/modified files - if so, just return success message
+    const fileCreated = outputs.some(o => 
+      typeof o === 'string' && (o.includes('Created ') || o.includes('Updated '))
+    );
+    
+    if (fileCreated) {
+      // File was created/updated - no need for explanation, the diff output says it all
+      return 'Done.';
+    }
+    
+    // For other operations, let DeepSeek provide appropriate response
     if (outputs.length > 0) {
       const context = outputs.join('\n');
       this.conversation.push({ 
@@ -271,11 +281,9 @@ export class Orchestrator extends EventEmitter {
         content: `${prompt}\n\n[Tool outputs]:\n${context}` 
       });
     } else {
-      // No tool outputs, just send the original prompt
       this.conversation.push({ role: 'user', content: prompt });
     }
     
-    // Let DeepSeek generate the appropriate response - NO HARDCODING!
     const response = await this.client.chat(this.conversation, []);
     this.conversation.push({ role: 'assistant', content: response });
     return response;
