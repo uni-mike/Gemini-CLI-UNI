@@ -26,6 +26,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [operations, setOperations] = useState<Operation[]>([]);
   const [processedOperations] = useState(new Set<string>());
+  const [processedResults] = useState(new Set<string>());
   const [showExitSummary, setShowExitSummary] = useState(false);
   const [sessionStartTime] = useState(new Date());
   const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'thinking' | 'tool-execution'>('idle');
@@ -169,6 +170,13 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     };
 
     const handleToolResult = ({ name, result }: any) => {
+      // Create unique key for this result to prevent duplicates
+      const resultKey = `${name}-${JSON.stringify(result.output || result.error)}`;
+      if (processedResults.has(resultKey)) {
+        return; // Skip duplicate result
+      }
+      processedResults.add(resultKey);
+      
       setOperations(prev => prev.map(op => 
         op.id.includes(`tool-${name}-`) && op.status === 'running'
           ? { 

@@ -22,6 +22,7 @@ export class Orchestrator extends EventEmitter {
   private config: Config;
   private conversation: Message[] = [];
   private toolsUsed: string[] = [];
+  private processedTools = new Set<string>();
   
   constructor(config: Config) {
     super();
@@ -45,6 +46,7 @@ export class Orchestrator extends EventEmitter {
   async execute(prompt: string): Promise<ExecutionResult> {
     this.emit('orchestration-start', { prompt });
     this.toolsUsed = [];
+    this.processedTools.clear(); // Clear for new execution
     
     // Handle slash commands
     if (prompt.startsWith('/')) {
@@ -69,6 +71,15 @@ export class Orchestrator extends EventEmitter {
         
         // Get follow-up response after tool execution (ONLY ONE ADDITIONAL CALL)
         response = await this.client.chat(this.conversation, tools);
+        
+        // If the follow-up response also contains tool calls, handle them
+        if (response.startsWith('[') && response.includes('function')) {
+          const followUpCalls = JSON.parse(response);
+          await this.handleToolCalls(followUpCalls);
+          
+          // Get final response after second round of tools
+          response = await this.client.chat(this.conversation, tools);
+        }
       }
       
       // Clean up the response if it's still tool calls JSON after max iterations
@@ -104,8 +115,11 @@ export class Orchestrator extends EventEmitter {
   private async handleToolCalls(toolCalls: any[]) {
     this.emit('tools-start', toolCalls);
     
+    if (process.env.DEBUG === 'true') {
+      console.log(`🔍 Handling ${toolCalls.length} tool calls from DeepSeek`);
+    }
+    
     const toolResults: any[] = [];
-    const processedTools = new Set<string>();
     
     for (const call of toolCalls) {
       const toolName = call.function?.name || call.name;
@@ -115,10 +129,13 @@ export class Orchestrator extends EventEmitter {
       
       // Create unique key to prevent duplicate tool execution
       const toolKey = `${toolName}-${JSON.stringify(args)}`;
-      if (processedTools.has(toolKey)) {
+      if (this.processedTools.has(toolKey)) {
+        if (process.env.DEBUG === 'true') {
+          console.log(`🔍 Skipping duplicate tool call: ${toolName}`);
+        }
         continue; // Skip duplicate tool call
       }
-      processedTools.add(toolKey);
+      this.processedTools.add(toolKey);
       
       this.emit('tool-execute', { name: toolName, args });
       
