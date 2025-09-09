@@ -12,9 +12,16 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
   }
 
   /**
-   * Override the main process method to use orchestration for complex tasks
+   * Override the main method that contentGenerator calls
    */
-  async *processWithOrchestration(
+  override async *sendMessageStreamWithTools(message: string): AsyncGenerator<string> {
+    yield* this.processWithOrchestration(message);
+  }
+
+  /**
+   * Process method to use orchestration for complex tasks
+   */
+  private async *processWithOrchestration(
     message: string, 
     options?: any
   ): AsyncGenerator<string, void, unknown> {
@@ -22,6 +29,10 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
       // Check if this is a complex task that needs orchestration
       const userMessage = this.extractUserMessageFromPrompt(message);
       const isComplexTask = await this.detectOrchestrationNeeded(userMessage);
+      
+      // DEBUG: Always log detection result
+      console.log(`📊 Task complexity check for: "${userMessage.substring(0, 50)}..."`);
+      console.log(`   Result: ${isComplexTask ? '✅ COMPLEX - Using orchestration' : '❌ SIMPLE - Direct execution'}`);
       
       if (isComplexTask && this.useOrchestration) {
         yield "🎭 Complex task detected - engaging intelligent orchestration...\n";
@@ -52,14 +63,14 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
         return;
       }
       
-      // Fall back to original implementation for simple tasks
-      yield* this.processDirectly(message, options);
+      // Fall back to parent implementation for simple tasks
+      yield* super.sendMessageStreamWithTools(message);
       
     } catch (error) {
       console.error('Orchestration error:', error);
       // Fall back to original implementation
       yield "⚠️ Orchestration failed, falling back to standard processing...\n";
-      yield* this.processDirectly(message, options);
+      yield* super.sendMessageStreamWithTools(message);
     }
   }
 
@@ -96,48 +107,66 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
 
   /**
    * Detect if a task is complex enough to need orchestration
+   * Focus on ACTUAL complexity, not word count!
    */
   private async detectOrchestrationNeeded(message: string): Promise<boolean> {
-    // Word count check
-    const wordCount = message.split(/\s+/).length;
-    if (wordCount < 30) {
-      return false;
+    const lowerMessage = message.toLowerCase();
+    
+    // ALWAYS use orchestration for multi-step operations
+    if (/\bthen\b|\band\s+then\b|\bafter\s+that\b/.test(lowerMessage)) {
+      console.log(`🎯 Multi-step detected: contains 'then/after'`);
+      return true;
     }
     
-    // Look for complexity indicators
-    const complexityIndicators = [
-      /\d+\.\s+/g,  // Numbered lists
-      /step\s+\d+/gi,  // Step references
-      /first.*then.*finally/si,  // Sequential operations
-      /analyze.*implement.*test/si,  // Multiple phases
-      /comprehensive|entire|all|every/gi,  // Broad scope
-      /and then|after that|once.*complete/gi,  // Dependencies
+    // Multiple file operations
+    if (/create.*update|create.*add|write.*edit|write.*append/.test(lowerMessage)) {
+      console.log(`🎯 Multiple file operations detected`);
+      return true;
+    }
+    
+    // Research/analysis followed by action
+    if (/(research|search|find).*\b(create|write|update|save)/.test(lowerMessage) ||
+        /(create|write).*\b(research|search|find)/.test(lowerMessage)) {
+      console.log(`🎯 Research + action detected`);
+      return true;
+    }
+    
+    // Multiple targets (e.g., "BTC and LTC", "multiple files")
+    if (/\band\b.*\b(and|plus|also|as well)\b/.test(lowerMessage) ||
+        /multiple|several|various|all/.test(lowerMessage)) {
+      console.log(`🎯 Multiple targets detected`);
+      return true;
+    }
+    
+    // Commands that inherently require multiple steps
+    const complexCommands = [
+      'refactor', 'migrate', 'setup', 'configure', 'deploy',
+      'analyze.*fix', 'debug.*repair', 'test.*fix'
     ];
     
-    let complexityScore = 0;
-    for (const indicator of complexityIndicators) {
-      if (indicator.test(message)) {
-        complexityScore++;
+    for (const cmd of complexCommands) {
+      if (new RegExp(cmd, 'i').test(lowerMessage)) {
+        console.log(`🎯 Complex command detected: ${cmd}`);
+        return true;
       }
     }
     
-    // Count distinct operations
-    const operations = [
-      'search', 'find', 'read', 'write', 'create', 'edit', 'modify',
-      'test', 'analyze', 'review', 'implement', 'deploy', 'install',
-      'check', 'validate', 'fix', 'update', 'refactor'
-    ];
+    // Count distinct action verbs
+    const actionVerbs = ['search', 'research', 'find', 'create', 'write', 
+                         'update', 'edit', 'add', 'append', 'modify', 
+                         'delete', 'fix', 'test', 'build', 'deploy'];
     
-    const foundOperations = operations.filter(op => 
-      new RegExp(`\\b${op}\\b`, 'i').test(message)
+    const foundActions = actionVerbs.filter(verb => 
+      new RegExp(`\\b${verb}`, 'i').test(message)
     );
     
-    if (foundOperations.length >= 4) {
-      complexityScore += 2;
+    if (foundActions.length >= 2) {
+      console.log(`🎯 Multiple actions: ${foundActions.join(', ')}`);
+      return true;
     }
     
-    // Decide based on score
-    return complexityScore >= 3;
+    // Default: simple single-action tasks don't need orchestration
+    return false;
   }
 
   /**
@@ -164,18 +193,4 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
     console.log(`🎭 Orchestration ${use ? 'enabled' : 'disabled'}`);
   }
 
-  /**
-   * Process directly using the base class implementation
-   */
-  private async *processDirectly(
-    message: string, 
-    options?: any
-  ): AsyncGenerator<string, void, unknown> {
-    // For now, just yield a simple response
-    yield "Processing with standard method...\n";
-    
-    // This would integrate with the base class methods
-    // but we'll keep it simple to avoid private access issues
-    yield "Task completed.\n";
-  }
 }
