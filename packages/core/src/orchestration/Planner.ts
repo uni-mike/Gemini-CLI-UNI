@@ -135,7 +135,7 @@ export class Planner {
         const parts = prompt.split(/\s+then\s+/i);
         return parts.map((part, index) => ({
           id: uuidv4(),
-          description: this.normalizeTaskDescription(part.trim()),
+          description: part.trim(),
           dependencies: index > 0 ? [parts[index-1]] : [],
           status: TaskStatus.PENDING,
           retryCount: 0,
@@ -151,7 +151,7 @@ export class Planner {
     // For simple tasks, just create one task
     return [{
       id: uuidv4(),
-      description: this.normalizeTaskDescription(prompt),
+      description: prompt,
       dependencies: [],
       status: TaskStatus.PENDING,
       retryCount: 0,
@@ -592,7 +592,7 @@ DECOMPOSE THE REQUEST:`;
         const subtaskId = uuidv4();
         subtasks.push({
           id: subtaskId,
-          description: this.normalizeTaskDescription(cleanPart),
+          description: cleanPart,
           dependencies: previousTaskId ? [previousTaskId] : task.dependencies,
           status: TaskStatus.PENDING,
           retryCount: 0,
@@ -613,7 +613,7 @@ DECOMPOSE THE REQUEST:`;
           
           subtasks.push({
             id: uuidv4(),
-            description: this.normalizeTaskDescription(cleanPart),
+            description: cleanPart,
             dependencies: task.dependencies,
             status: TaskStatus.PENDING,
             retryCount: 0,
