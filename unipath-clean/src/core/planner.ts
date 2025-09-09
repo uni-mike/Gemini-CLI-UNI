@@ -50,49 +50,34 @@ export class Planner extends EventEmitter {
     }).filter(Boolean).join('\n');
     
     // Use LLM to create intelligent plan - DeepSeek R1 is smart enough to provide everything!
-    const planPrompt = `You are an intelligent task planner using DeepSeek R1. Analyze this request and create a COMPLETE execution plan: "${prompt}"
+    const planPrompt = `You are an intelligent task planner. Analyze this request: "${prompt}"
 
-Available tools with their EXACT parameter requirements:
+Available tools:
 ${toolSpecs}
 
-Provide a COMPLETE JSON plan with ACTUAL values, not placeholders:
+CRITICAL: When user says "build", "create", "make", or "write" - ALWAYS use tools to CREATE the actual file.
+
+Return ONLY valid JSON in this exact format (no other text):
 {
   "complexity": "simple" | "moderate" | "complex",
   "tasks": [
     {
-      "description": "Specific task description",
-      "tools": ["actual_tool_name"],
-      "type": "simple" | "tool" | "multi-step",
+      "description": "What this task does",
+      "tools": ["tool_name"],
+      "type": "tool",
       "arguments": {
         "tool_name": {
-          "actual_param": "actual_value"
+          "param1": "value1",
+          "param2": "value2"
         }
       }
     }
   ],
-  "parallelizable": true | false
+  "parallelizable": false
 }
 
-IMPORTANT: You are DeepSeek R1, a highly intelligent AI. Based on the user's request:
-- Analyze what they want to achieve
-- Select the appropriate tools from those available
-- Generate COMPLETE arguments including full file contents when needed
-- For scripts: Generate the ENTIRE working script based on the request
-- For searches: Use specific, relevant queries
-- For commands: Provide the exact command to execute
-
-Examples of argument structure (but generate actual content based on request):
-- file tool: {"action": "write", "path": "filename.ext", "content": "[COMPLETE FILE CONTENT]"}
-- web tool: {"action": "search", "query": "[SPECIFIC SEARCH QUERY]"}
-- bash tool: {"command": "[EXACT COMMAND TO RUN]"}
-
-RULES:
-- ALWAYS provide complete, actual values - NO placeholders like "value1" or "tool1"
-- For file creation, provide COMPLETE file content based on the request
-- For web searches, use specific, relevant search queries
-- For bash commands, provide the exact command to run
-- Multi-step tasks should be broken into separate tasks with proper dependencies
-- Think step-by-step about what the user wants and provide ALL necessary details`;
+For the request "${prompt}", generate a complete plan with actual values.
+Provide ONLY the JSON response, no explanations.`;
     
     try {
       const response = await this.client.chat(
@@ -100,8 +85,17 @@ RULES:
         [] // No tools for planning
       );
       
+      if (process.env.DEBUG === 'true') {
+        console.log('🔍 Planner received response:', response);
+      }
+      
       // Parse LLM response
       const planData = this.parsePlanResponse(response);
+      
+      // If parsing failed completely, use fallback
+      if (!planData) {
+        return this.createBasicPlan(prompt);
+      }
       
       // Create tasks with IDs and preserve arguments from AI
       const tasks = planData.tasks.map((task: any, index: number) => ({
@@ -137,21 +131,30 @@ RULES:
   
   private parsePlanResponse(response: string): any {
     try {
-      // Extract JSON from response
-      const jsonMatch = response.match(/\{[\s\S]*\}/); 
+      // Extract JSON from response - handle code blocks too
+      const jsonMatch = response.match(/```json\s*([\s\S]*?)```/) || 
+                        response.match(/\{[\s\S]*\}/);
+      
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const jsonStr = jsonMatch[1] || jsonMatch[0];
+        const parsed = JSON.parse(jsonStr);
+        
+        if (process.env.DEBUG === 'true') {
+          console.log('🔍 Parsed plan data:', JSON.stringify(parsed, null, 2));
+        }
+        
+        return parsed;
       }
     } catch (e) {
       console.warn('Failed to parse plan JSON:', e);
+      if (process.env.DEBUG === 'true') {
+        console.warn('Response was:', response);
+      }
     }
     
-    // Return basic structure if parsing fails
-    return {
-      complexity: 'simple',
-      tasks: [{ description: 'Process request', tools: [], type: 'simple' }],
-      parallelizable: false
-    };
+    // DeepSeek failed to provide JSON - use the fallback planner
+    console.warn('⚠️ DeepSeek did not provide valid JSON plan, using fallback planner');
+    return null; // Will trigger createBasicPlan
   }
   
   private createBasicPlan(prompt: string): TaskPlan {

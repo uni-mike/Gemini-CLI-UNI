@@ -133,7 +133,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       } else if (name === 'web' && args.action === 'fetch') {
         operationTitle = `WebFetch(${args.url})`;
       } else if (name === 'file' && args.action === 'write') {
-        operationTitle = `Write(${args.path})`;
+        operationTitle = `Create(${args.path})`;
       } else if (name === 'file' && args.action === 'read') {
         operationTitle = `Read(${args.path})`;
       } else if (name === 'bash') {
@@ -186,8 +186,14 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       if (result.success) {
         let completionText = '';
         if (result.output && typeof result.output === 'string') {
-          const lines = result.output.split('\n').length;
-          completionText = `⎿  ${lines > 1 ? `Found ${lines} lines` : result.output.substring(0, 60)}${result.output.length > 60 ? '...' : ''} (ctrl+r to expand)`;
+          // Check if it's a file creation output with git-diff style
+          if (result.output.startsWith('Created ') && result.output.includes(' +  ')) {
+            // Show the git-diff style output directly
+            completionText = `⎿  ${result.output}`;
+          } else {
+            const lines = result.output.split('\n').length;
+            completionText = `⎿  ${lines > 1 ? `Found ${lines} lines` : result.output.substring(0, 60)}${result.output.length > 60 ? '...' : ''} (ctrl+r to expand)`;
+          }
         } else {
           completionText = '⎿  Completed successfully';
         }

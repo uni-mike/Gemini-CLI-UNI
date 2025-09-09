@@ -27,7 +27,17 @@ export class FileTool extends Tool {
           
         case 'write':
           await writeFile(path as string, content as string, 'utf8');
-          return { success: true, output: `File written: ${path}` };
+          
+          // Generate git-diff style output for file creation
+          const lines = (content as string).split('\n');
+          const preview = lines.slice(0, 10).map((line, i) => 
+            `       ${i + 1} +  ${line}`
+          ).join('\n');
+          
+          const diffOutput = `Created ${path} with ${lines.length} lines
+${preview}${lines.length > 10 ? `\n       ... (${lines.length - 10} more lines)` : ''}`;
+          
+          return { success: true, output: diffOutput };
           
         default:
           return { success: false, error: `Unknown action: ${action}` };

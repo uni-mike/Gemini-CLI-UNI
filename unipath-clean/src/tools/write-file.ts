@@ -64,9 +64,17 @@ export class WriteFileTool extends Tool {
         };
       }
       
+      // Generate git-diff style output
+      const lines = content.split('\n');
+      const preview = lines.slice(0, 10).map((line, i) => 
+        `       ${i + 1} +  ${line}`
+      ).join('\n');
+      
+      const diffOutput = `Created ${filePath} with ${lines.length} lines\n${preview}${lines.length > 10 ? `\n       ... (${lines.length - 10} more lines)` : ''}`;
+      
       return {
         success: true,
-        output: `File written: ${filePath}`
+        output: diffOutput
       };
     } catch (error: any) {
       return {
