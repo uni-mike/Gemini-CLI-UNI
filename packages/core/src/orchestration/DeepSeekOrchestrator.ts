@@ -21,7 +21,9 @@ export class DeepSeekOrchestrator {
       maxRetries: 2,
       progressCallback: (progress) => this.handleProgress(progress),
       healthCheckInterval: 5000,
-      aiModel: deepSeek ? (deepSeek as any).getClient() : undefined
+      // Disable AI model in orchestration to prevent recursive loops
+      // The orchestration trio should use heuristic decomposition
+      aiModel: undefined
     });
 
     // Set up event listeners

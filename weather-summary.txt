@@ -5,32 +5,34 @@ Executive summary compiled from 5 primary sources, highlighting 6 key metrics an
 
 ## Key Prices
 - 1.
-- 2.
 - ,
+- 2.
 - 3.
 - 4.
 - 5.
 
 ## Key Information
 - 📰 **Search Results:**
-- 1. **Climate Data Online (CDO)**
-- 📰 Source: National Centers for Environmental Information (.gov)
-- Climate Data Online (CDO) provides free access to NCDC's archive of global historical weather and climate data in addition to station history information.
-- 2. **National Weather Service**
+- 1. **Current US Forecast Map -- Weather.com**
+- 📰 Source: The Weather Channel
+- Current storm systems, cold and warm fronts, and rain and snow areas. Current Weather Maps. Most recent reported temperatures around the contiguous US. Current ...
+- 2. **National Forecast Maps**
 
 ## Sources
-- National Centers for Environmental Information
+- The Weather Channel
+   Current storm systems
 - National Weather Service
+- AccuWeather
+   This interactive map provides live current temperatures in and around your area
 - Weather Underground
-   Find historical weather by searching for a city
-- National Oceanic and Atmospheric Administration
-- the Global Historical Climatology Network daily
+   Skip to Main Content
+- tion weather
 
 ## References
-- https://www.ncei.noaa.gov/cdo-web/
-- https://www.weather.gov/
-- https://www.wunderground.com/history/
-- https://www.climate.gov/maps-data/dataset/past-weather-zip-code-data-table
+- https://weather.com/maps/currentusweather
+- https://www.weather.gov/forecastmaps/
+- https://www.accuweather.com/en/us/national/current-weather-maps
+- https://www.wunderground.com/maps/current-weather/current-weather
 - https://digital.weather.gov/
 
 ---
