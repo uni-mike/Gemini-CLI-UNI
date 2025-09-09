@@ -2,7 +2,7 @@
  * Write File Tool with advanced features
  */
 
-import { Tool, ToolResult } from './base';
+import { Tool, ToolResult } from './base.js';
 import { writeFile, mkdir, access, readFile } from 'fs/promises';
 import { dirname } from 'path';
 import { constants } from 'fs';

@@ -4,7 +4,7 @@
  * Tool Inventory - Complete analysis of UNIPATH CLI tools
  */
 
-import { toolManager } from './tools/tool-manager';
+import { toolManager } from './tools/tool-manager.js';
 
 async function showCompleteToolInventory() {
   console.log('🔧 UNIPATH CLI - Complete Tool Inventory\n');

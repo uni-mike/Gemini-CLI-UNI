@@ -1,12 +1,11 @@
 import React from 'react';
-import { Box, Text } from 'ink';
+import { Box, Text, Static } from 'ink';
 import Spinner from 'ink-spinner';
 import { Colors } from '../Colors.js';
 
 interface StatusFooterProps {
   status: 'idle' | 'processing' | 'thinking' | 'tool-execution';
   approvalMode: string;
-  currentOperation?: string;
 }
 
 const getStatusColor = (status: string): string => {
@@ -19,12 +18,12 @@ const getStatusColor = (status: string): string => {
   }
 };
 
-const getStatusText = (status: string, currentOperation?: string): string => {
+const getStatusText = (status: string): string => {
   switch (status) {
     case 'idle': return 'Ready';
     case 'processing': return 'Processing...';
     case 'thinking': return 'Thinking...';
-    case 'tool-execution': return currentOperation ? `Running ${currentOperation}` : 'Running tools...';
+    case 'tool-execution': return 'Executing tools...';
     default: return 'Unknown';
   }
 };
@@ -40,11 +39,10 @@ const getApprovalModeDisplay = (mode: string): string => {
 
 export const StatusFooter: React.FC<StatusFooterProps> = ({ 
   status, 
-  approvalMode, 
-  currentOperation 
+  approvalMode
 }) => {
   const statusColor = getStatusColor(status);
-  const statusText = getStatusText(status, currentOperation);
+  const statusText = getStatusText(status);
   const approvalDisplay = getApprovalModeDisplay(approvalMode);
   
   return (
@@ -60,14 +58,15 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
       <Box flexDirection="row" alignItems="center">
         {status !== 'idle' && (
           <>
-            <Spinner type="dots" />
-            <Text color={statusColor}> </Text>
+            <Box width={2}>
+              <Spinner type="dots" />
+            </Box>
+            <Text color={statusColor}> {statusText}</Text>
           </>
         )}
         {status === 'idle' && (
-          <Text color={statusColor}>● </Text>
+          <Text color={statusColor}>● {statusText}</Text>
         )}
-        <Text color={statusColor}>{statusText}</Text>
       </Box>
       
       {/* Right side: Approval mode */}

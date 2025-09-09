@@ -5,7 +5,6 @@
 
 import React from 'react';
 import { Box, Text } from 'ink';
-import Spinner from 'ink-spinner';
 import { Colors } from '../Colors.js';
 
 export interface Operation {
@@ -45,12 +44,6 @@ const getOperationIcon = (type: Operation['type'], status: Operation['status']):
   return '⏺';
 };
 
-const OperationSpinner: React.FC<{ type: Operation['type'] }> = ({ type }) => {
-  if (type === 'thinking') {
-    return <Spinner type="dots" />;
-  }
-  return <Spinner type="line" />;
-};
 
 const getOperationColor = (type: Operation['type'], status: Operation['status']): string => {
   if (status === 'running') {
@@ -83,18 +76,9 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
         
         return (
           <Box key={operation.id} flexDirection="column" marginBottom={1}>
-            {/* Main operation line with spinner */}
+            {/* Main operation line without spinner - spinner is now in status footer */}
             <Box flexDirection="row" alignItems="center">
-              <Text color={color}>{icon} </Text>
-              {operation.status === 'running' && (
-                <>
-                  <OperationSpinner type={operation.type} />
-                  <Text color={color}> {operation.title}</Text>
-                </>
-              )}
-              {operation.status !== 'running' && (
-                <Text color={color}>{operation.title}</Text>
-              )}
+              <Text color={color}>{icon} {operation.title}</Text>
             </Box>
             
             {/* Details line - properly indented */}

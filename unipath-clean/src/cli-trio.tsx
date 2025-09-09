@@ -9,10 +9,10 @@ import React from 'react';
 import { render } from 'ink';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { Config } from './config/Config';
-import { OrchestratorTrio } from './core/orchestrator-trio';
-import { toolManager } from './tools/tool-manager';
-import { App } from './ui/App';
+import { Config } from './config/Config.js';
+import { OrchestratorTrio } from './core/orchestrator-trio.js';
+import { toolManager } from './tools/tool-manager.js';
+import { App } from './ui/App.js';
 
 async function main() {
   const argv = await yargs(hideBin(process.argv))
@@ -111,10 +111,9 @@ async function main() {
   if (!argv['non-interactive']) {
     console.log('🎨 Starting interactive mode with React Ink UI...\n');
     
-    // Note: App would need to be updated to work with OrchestratorTrio
-    // For now, showing a simple message
-    console.log('Interactive mode with Trio coming soon!');
-    console.log('Use --non-interactive flag to test the Trio pattern.');
+    const { InteractiveApp } = await import('./ui/InteractiveApp.js');
+    
+    render(<InteractiveApp config={config} />);
   }
 }
 

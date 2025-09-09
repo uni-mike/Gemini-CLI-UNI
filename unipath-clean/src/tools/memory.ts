@@ -2,7 +2,7 @@
  * Memory Tool for persistent context
  */
 
-import { Tool, ToolResult } from './base';
+import { Tool, ToolResult } from './base.js';
 import { writeFile, readFile, access } from 'fs/promises';
 import { constants } from 'fs';
 

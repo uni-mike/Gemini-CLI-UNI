@@ -2,7 +2,7 @@
  * List Directory Tool
  */
 
-import { Tool, ToolResult } from './base';
+import { Tool, ToolResult } from './base.js';
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
 

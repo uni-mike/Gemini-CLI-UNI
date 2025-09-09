@@ -3,7 +3,7 @@
  * Integrates advanced registry with dynamic discovery and AI-powered selection
  */
 
-import { AdvancedToolRegistry } from './advanced-registry';
+import { AdvancedToolRegistry } from './advanced-registry.js';
 import { EventEmitter } from 'events';
 
 export class ToolManager extends EventEmitter {

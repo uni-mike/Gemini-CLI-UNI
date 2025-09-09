@@ -4,7 +4,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { toolManager } from '../tools/tool-manager';
+import { toolManager } from '../tools/tool-manager.js';
 
 export interface Task {
   id: string;

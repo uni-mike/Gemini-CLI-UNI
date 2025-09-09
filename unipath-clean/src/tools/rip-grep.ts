@@ -2,7 +2,7 @@
  * RipGrep Tool for advanced searching
  */
 
-import { Tool, ToolResult } from './base';
+import { Tool, ToolResult } from './base.js';
 import { spawn } from 'child_process';
 
 export class RipGrepTool extends Tool {

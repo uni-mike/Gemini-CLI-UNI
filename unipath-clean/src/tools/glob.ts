@@ -2,7 +2,7 @@
  * Glob Tool for pattern matching
  */
 
-import { Tool, ToolResult } from './base';
+import { Tool, ToolResult } from './base.js';
 import { glob } from 'glob';
 import { stat } from 'fs/promises';
 

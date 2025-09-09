@@ -2,7 +2,7 @@
  * Read File Tool with advanced features
  */
 
-import { Tool, ToolResult } from './base';
+import { Tool, ToolResult } from './base.js';
 import { readFile, access } from 'fs/promises';
 import { constants } from 'fs';
 

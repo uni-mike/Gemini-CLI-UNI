@@ -29,7 +29,6 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
   const [showExitSummary, setShowExitSummary] = useState(false);
   const [sessionStartTime] = useState(new Date());
   const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'thinking' | 'tool-execution'>('idle');
-  const [currentOperation, setCurrentOperation] = useState<string | undefined>(undefined);
   
   useInput((input, key) => {
     if (isProcessing) return; // Ignore input while processing
@@ -54,7 +53,6 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     // Subscribe to orchestrator events for message updates and operations
     const handleStart = ({ prompt }: any) => {
       setCurrentStatus('thinking');
-      setCurrentOperation(undefined);
       setOperations(prev => {
         // Remove any existing thinking operations first to avoid duplicates
         const filtered = prev.filter(op => op.type !== 'thinking');
@@ -70,7 +68,6 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
 
     const handleComplete = ({ response }: any) => {
       setCurrentStatus('idle');
-      setCurrentOperation(undefined);
       
       // Mark thinking as completed
       setOperations(prev => prev.map(op => 
@@ -89,7 +86,6 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     
     const handleToolExecute = ({ name, args }: any) => {
       setCurrentStatus('tool-execution');
-      setCurrentOperation(name);
       
       setOperations(prev => [...prev, {
         id: `tool-${name}-${Date.now()}`,
@@ -279,7 +275,6 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       <StatusFooter
         status={currentStatus}
         approvalMode={config.getApprovalMode()}
-        currentOperation={currentOperation}
       />
       
       {/* Help Text */}

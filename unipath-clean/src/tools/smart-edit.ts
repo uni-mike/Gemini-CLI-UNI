@@ -2,7 +2,7 @@
  * Smart Edit Tool with advanced editing capabilities
  */
 
-import { Tool, ToolResult } from './base';
+import { Tool, ToolResult } from './base.js';
 import { readFile, writeFile } from 'fs/promises';
 
 export class SmartEditTool extends Tool {

@@ -3,7 +3,7 @@
  * Like the OLD registry but cleaner and more intelligent
  */
 
-import { Tool, ToolResult } from './base';
+import { Tool, ToolResult } from './base.js';
 import { EventEmitter } from 'events';
 import { readdir } from 'fs/promises';
 import { join } from 'path';

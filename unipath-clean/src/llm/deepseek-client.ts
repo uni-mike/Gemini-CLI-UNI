@@ -95,10 +95,21 @@ export class DeepSeekClient extends EventEmitter {
       content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
       content = content.replace(/<\/think>/g, '').trim();
       
-      // For DeepSeek R1: If content is very long and contains reasoning patterns,
-      // try to extract just the final answer
-      if (content.length > 500) {
-        // Look for common patterns that mark the start of the final answer
+      // SEXY parsing: Aggressive cleanup for DeepSeek R1 reasoning
+      if (content.length > 200) {
+        // Remove internal API response explanations
+        content = content.replace(/We have successfully.*?API\./gi, '').trim();
+        content = content.replace(/The response is:.*?}/gi, '').trim();
+        content = content.replace(/This means.*?\./gi, '').trim();
+        content = content.replace(/Let's format.*?user\./gi, '').trim();
+        content = content.replace(/Let me.*?\./gi, '').trim();
+        content = content.replace(/I'll.*?\./gi, '').trim();
+        content = content.replace(/Now.*?\./gi, '').trim();
+        
+        // Clean up extra whitespace
+        content = content.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
+        
+        // Look for final answer patterns
         const finalAnswerMarkers = [
           /(?:^|\n\n)(?:The current price of Bitcoin|The price of Bitcoin|Bitcoin.*?is|BTC.*?is)\s*.*?\$[\d,]+/i,
           /(?:^|\n\n)(?:Based on|Given|After analyzing|In summary|To answer your question|The answer is|Here'?s the|Current)/i,
@@ -110,11 +121,26 @@ export class DeepSeekClient extends EventEmitter {
           const match = content.match(marker);
           if (match && match.index !== undefined) {
             const candidateAnswer = content.substring(match.index).trim();
-            // If the candidate is much shorter than the original, it's likely the clean answer
-            if (candidateAnswer.length < content.length * 0.4 && candidateAnswer.length > 20) {
+            // If the candidate is much shorter and cleaner, use it
+            if (candidateAnswer.length < content.length * 0.6 && candidateAnswer.length > 15) {
               content = candidateAnswer;
               break;
             }
+          }
+        }
+        
+        // If still long, try to extract just the key information
+        if (content.length > 300) {
+          const lines = content.split('\n').filter((line: string) => line.trim());
+          const answerLines = lines.filter((line: string) => 
+            line.includes('$') || 
+            line.includes('**') || 
+            line.match(/^(The|Bitcoin|BTC|Current|Price)/i) ||
+            line.includes('USD')
+          );
+          
+          if (answerLines.length > 0) {
+            content = answerLines.slice(0, 2).join('\n\n');
           }
         }
       }

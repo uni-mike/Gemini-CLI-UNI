@@ -3,7 +3,7 @@
  * Manages all available tools
  */
 
-import { Tool, ToolResult } from './base';
+import { Tool, ToolResult } from './base.js';
 import { EventEmitter } from 'events';
 
 export class ToolRegistry extends EventEmitter {

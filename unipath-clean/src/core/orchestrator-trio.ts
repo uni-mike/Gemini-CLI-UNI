@@ -5,13 +5,13 @@
  */
 
 import { EventEmitter } from 'events';
-import { Planner, Task, TaskPlan } from './planner';
-import { Executor, ExecutionContext, ExecutionResult } from './executor';
-import { Config } from '../config/Config';
-import { DeepSeekClient } from '../llm/deepseek-client';
-import { Message } from '../llm/provider';
-import { RecoveryManager } from './recovery-strategies';
-import { toolManager } from '../tools/tool-manager';
+import { Planner, Task, TaskPlan } from './planner.js';
+import { Executor, ExecutionContext, ExecutionResult } from './executor.js';
+import { Config } from '../config/Config.js';
+import { DeepSeekClient } from '../llm/deepseek-client.js';
+import { Message } from '../llm/provider.js';
+import { RecoveryManager } from './recovery-strategies.js';
+import { toolManager } from '../tools/tool-manager.js';
 
 export interface TrioMessage {
   from: 'planner' | 'executor' | 'orchestrator';

@@ -4,8 +4,8 @@
  */
 
 import { EventEmitter } from 'events';
-import { Task, TaskPlan } from './planner';
-import { toolManager } from '../tools/tool-manager';
+import { Task, TaskPlan } from './planner.js';
+import { toolManager } from '../tools/tool-manager.js';
 
 export interface ExecutionContext {
   workingDirectory: string;
