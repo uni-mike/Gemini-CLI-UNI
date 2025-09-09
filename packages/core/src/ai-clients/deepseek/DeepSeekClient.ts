@@ -332,7 +332,11 @@ export class DeepSeekClient {
    * Analyze if a task is complex and needs chunking
    */
   private async analyzeTaskComplexity(task: string): Promise<boolean> {
-    // Quick heuristics for complexity
+    // DISABLED - This was breaking simple tasks
+    // Only enable for truly complex multi-step operations
+    return false;
+    
+    /* Original overly aggressive detection:
     const indicators = [
       /multiple|several|various|different/i,
       /step.?by.?step/i,
@@ -341,13 +345,13 @@ export class DeepSeekClient {
       /and also|as well as|in addition/i
     ];
     
-    // Check if task mentions multiple operations
     const operations = task.match(/create|update|delete|modify|add|remove|search|find|analyze/gi);
     if (operations && operations.length > 3) {
       return true;
     }
     
     return indicators.some(pattern => pattern.test(task));
+    */
   }
 
   /**
