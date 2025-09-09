@@ -28,10 +28,11 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
     try {
       // Check if this is a complex task that needs orchestration
       const userMessage = this.extractUserMessageFromPrompt(message);
-      const isComplexTask = await this.detectOrchestrationNeeded(userMessage);
       
-      // DEBUG: Always log detection result
-      console.log(`📊 Task complexity check for: "${userMessage.substring(0, 50)}..."`);
+      // DEBUG: Log what we're checking
+      console.log(`📊 Extracted user message: "${userMessage.substring(0, 100)}"`);
+      
+      const isComplexTask = await this.detectOrchestrationNeeded(userMessage);
       console.log(`   Result: ${isComplexTask ? '✅ COMPLEX - Using orchestration' : '❌ SIMPLE - Direct execution'}`);
       
       if (isComplexTask && this.useOrchestration) {
@@ -78,31 +79,48 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
    * Extract user message from the full context
    */
   private extractUserMessageFromPrompt(message: string): string {
-    // Extract just the user's actual message
-    const userMatch = message.match(/User Request:\s*(.+?)(?:\n\nTools available:|$)/s);
-    if (userMatch) {
-      return userMatch[1].trim();
+    // The message sent from contentGenerator likely has format:
+    // "This is the Gemini CLI... User Request: <actual request>"
+    // We need to extract JUST the actual user request
+    
+    // Try to find "User Request:" marker
+    const userRequestIndex = message.lastIndexOf('User Request:');
+    if (userRequestIndex !== -1) {
+      const afterMarker = message.substring(userRequestIndex + 'User Request:'.length).trim();
+      // Take everything after "User Request:" until "Tools available" or end
+      const toolsIndex = afterMarker.indexOf('Tools available');
+      if (toolsIndex !== -1) {
+        return afterMarker.substring(0, toolsIndex).trim();
+      }
+      return afterMarker;
     }
     
-    // Fallback: look for common markers
-    const lines = message.split('\n');
-    let inUserSection = false;
-    let userMessage = '';
+    // Try "Task:" marker
+    const taskIndex = message.lastIndexOf('Task:');
+    if (taskIndex !== -1) {
+      const afterMarker = message.substring(taskIndex + 'Task:'.length).trim();
+      const toolsIndex = afterMarker.indexOf('Tools available');
+      if (toolsIndex !== -1) {
+        return afterMarker.substring(0, toolsIndex).trim();
+      }
+      return afterMarker;
+    }
     
-    for (const line of lines) {
-      if (line.includes('User Request:') || line.includes('Task:')) {
-        inUserSection = true;
-        continue;
-      }
-      if (inUserSection && (line.includes('Tools available') || line.includes('---'))) {
-        break;
-      }
-      if (inUserSection) {
-        userMessage += line + '\n';
+    // If no markers found, assume the whole message is the user request
+    // But skip any system context at the beginning
+    if (message.includes('This is the Gemini CLI')) {
+      // Find the actual question/command (usually after newlines)
+      const lines = message.split('\n');
+      // Skip system context lines and find the actual command
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i].trim();
+        if (line && !line.includes('Gemini CLI') && !line.includes('context')) {
+          return line;
+        }
       }
     }
     
-    return userMessage.trim() || message;
+    return message;
   }
 
   /**
@@ -157,7 +175,7 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
                          'delete', 'fix', 'test', 'build', 'deploy'];
     
     const foundActions = actionVerbs.filter(verb => 
-      new RegExp(`\\b${verb}`, 'i').test(message)
+      new RegExp(`\\b${verb}\\b`, 'i').test(message)  // Added word boundary at end
     );
     
     if (foundActions.length >= 2) {
