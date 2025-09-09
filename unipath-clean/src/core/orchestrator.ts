@@ -62,24 +62,13 @@ export class Orchestrator extends EventEmitter {
       let response = await this.client.chat(this.conversation, tools);
       
       // Check if response contains tool calls (it's a JSON string)
-      let iterations = 0;
-      const maxIterations = 10; // Prevent infinite loops
-      
-      while (response.startsWith('[') && response.includes('function') && iterations < maxIterations) {
-        iterations++;
-        
-        // Parse and handle tool calls
+      if (response.startsWith('[') && response.includes('function')) {
+        // Parse and handle tool calls ONCE
         const toolCalls = JSON.parse(response);
         await this.handleToolCalls(toolCalls);
         
-        // Get follow-up response after tool execution
-        // Pass tools again to allow for multiple tool calls
+        // Get follow-up response after tool execution (ONLY ONE ADDITIONAL CALL)
         response = await this.client.chat(this.conversation, tools);
-        
-        // If we get a clean response (not tool calls), break
-        if (!response.startsWith('[')) {
-          break;
-        }
       }
       
       // Clean up the response if it's still tool calls JSON after max iterations
@@ -113,12 +102,20 @@ export class Orchestrator extends EventEmitter {
     this.emit('tools-start', toolCalls);
     
     const toolResults: any[] = [];
+    const processedTools = new Set<string>();
     
     for (const call of toolCalls) {
       const toolName = call.function?.name || call.name;
       const argsString = call.function?.arguments || call.arguments;
       const args = typeof argsString === 'string' ? JSON.parse(argsString) : argsString;
       const callId = call.id || `call_${Date.now()}`;
+      
+      // Create unique key to prevent duplicate tool execution
+      const toolKey = `${toolName}-${JSON.stringify(args)}`;
+      if (processedTools.has(toolKey)) {
+        continue; // Skip duplicate tool call
+      }
+      processedTools.add(toolKey);
       
       this.emit('tool-execute', { name: toolName, args });
       

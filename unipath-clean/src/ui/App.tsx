@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput, useApp, Static } from 'ink';
+import { Box, Text, useInput, useApp, Static, useStdin } from 'ink';
 import { Config } from '../config/Config.js';
 import { Orchestrator } from '../core/orchestrator.js';
 import { OrchestrationUI } from './OrchestrationUI.js';
@@ -31,8 +31,12 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
   const [sessionStartTime] = useState(new Date());
   const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'thinking' | 'tool-execution'>('idle');
   
+  // Only use input handling if raw mode is supported
+  const { stdin } = useStdin();
+  const rawModeSupported = stdin && stdin.isTTY && !process.env.CI;
+  
   useInput((input, key) => {
-    if (isProcessing) return; // Ignore input while processing
+    if (!rawModeSupported || isProcessing) return; // Skip if raw mode not supported
     
     if (key.return) {
       handleSubmit();
@@ -48,7 +52,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     } else {
       setInput(prev => prev + input);
     }
-  });
+  }, { isActive: rawModeSupported });
   
   useEffect(() => {
     // Subscribe to orchestrator events for message updates and operations
