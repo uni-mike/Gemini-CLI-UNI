@@ -194,19 +194,30 @@ export class Executor extends EventEmitter {
         throw new Error('Task execution aborted');
       }
       
-      this.emit('tool-execute', { taskId: task.id, tool: toolName });
-      this.emit('status', `🔧 Using tool: ${toolName}`);
-      
       // Parse tool arguments from task description
       const args = this.parseToolArguments(toolName, task.description, context);
       
-      // Execute tool using registry directly (toolManager may not be initialized)
-      const result = await globalRegistry.execute(toolName, args);
+      // Map tool names to user-friendly display names
+      const displayName = this.getToolDisplayName(toolName, args);
+      this.emit('tool-execute', { taskId: task.id, tool: toolName, name: toolName, args });
+      this.emit('status', `🔧 Using tool: ${displayName}`);
       
-      this.emit('tool-result', { taskId: task.id, tool: toolName, result });
+      // Execute tool using registry directly (toolManager may not be initialized)
+      let result = await globalRegistry.execute(toolName, args);
+      
+      this.emit('tool-result', { taskId: task.id, tool: toolName, name: toolName, result });
       
       if (!result.success) {
-        throw new Error(`Tool ${toolName} failed: ${result.error}`);
+        // Emit failure for recovery
+        this.emit('tool-failure', { taskId: task.id, tool: toolName, error: result.error });
+        
+        // Try recovery strategy
+        const recovered = await this.tryRecovery(toolName, args, result.error || '', context);
+        if (recovered.success) {
+          result = recovered;
+        } else {
+          throw new Error(`Tool ${toolName} failed: ${result.error}`);
+        }
       }
       
       results.push(result.output);
@@ -509,5 +520,66 @@ export class Executor extends EventEmitter {
       this.emit('task-aborted', { taskId });
     }
     this.activeExecutions.clear();
+  }
+  
+  private getToolDisplayName(toolName: string, args: any): string {
+    switch (toolName) {
+      case 'file':
+        if (args.action === 'write') return `Write(${args.path})`;
+        if (args.action === 'read') return `Read(${args.path})`;
+        return `File(${args.action})`;
+      case 'web':
+        if (args.action === 'search') return `WebSearch("${args.query}")`;
+        if (args.action === 'fetch') return `WebFetch(${args.url})`;
+        return `Web(${args.action})`;
+      case 'bash':
+        const cmd = args.command?.substring(0, 50) || '';
+        return `Bash(${cmd}${args.command?.length > 50 ? '...' : ''})`;
+      case 'edit':
+        return `Edit(${args.path})`;
+      case 'grep':
+        return `Grep("${args.pattern}")`;
+      default:
+        return toolName;
+    }
+  }
+  
+  private async tryRecovery(toolName: string, args: any, error: string, context: ExecutionContext): Promise<any> {
+    this.emit('status', `🔄 Attempting recovery for ${toolName} failure...`);
+    
+    // Smart recovery strategies based on error type
+    if (error.includes('File not found') || error.includes('No such file')) {
+      // Try to create parent directory or use alternative path
+      if (toolName === 'file' && args.action === 'write') {
+        const dir = args.path.substring(0, args.path.lastIndexOf('/'));
+        if (dir) {
+          await globalRegistry.execute('bash', { command: `mkdir -p ${dir}` });
+          // Retry the operation
+          return await globalRegistry.execute(toolName, args);
+        }
+      }
+    }
+    
+    if (error.includes('Permission denied')) {
+      // Try with sudo or alternative location
+      if (toolName === 'bash') {
+        this.emit('status', `⚠️ Permission denied, trying alternative approach...`);
+        // Try in temp directory instead
+        const tempCmd = args.command.replace(/^\//, '/tmp/');
+        return await globalRegistry.execute(toolName, { command: tempCmd });
+      }
+    }
+    
+    if (error.includes('timeout') || error.includes('network')) {
+      // Retry network operations
+      if (toolName === 'web') {
+        this.emit('status', `🔄 Retrying network operation...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return await globalRegistry.execute(toolName, args);
+      }
+    }
+    
+    // No recovery possible
+    return { success: false, error };
   }
 }
