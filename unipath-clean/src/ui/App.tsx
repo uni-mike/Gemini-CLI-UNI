@@ -53,6 +53,14 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     // Subscribe to orchestrator events for message updates and operations
     const handleStart = ({ prompt }: any) => {
       setCurrentStatus('thinking');
+      
+      // Add thinking message to chat like Claude Code
+      setMessages(prev => [...prev, {
+        type: 'system',
+        content: `⏺ Analyzing request: "${prompt?.substring(0, 50)}${prompt?.length > 50 ? '...' : ''}"`,
+        timestamp: new Date()
+      }]);
+      
       setOperations(prev => {
         // Remove any existing thinking operations first to avoid duplicates
         const filtered = prev.filter(op => op.type !== 'thinking');
@@ -90,24 +98,31 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       // Create more descriptive operation title
       let operationTitle = '';
       if (name === 'web' && args.action === 'search') {
-        operationTitle = `Web search: "${args.query}"`;
+        operationTitle = `Search(pattern: "${args.query}", output_mode: "web")`;
       } else if (name === 'web' && args.action === 'fetch') {
-        operationTitle = `Web fetch: ${new URL(args.url).hostname}`;
+        operationTitle = `WebFetch(${args.url})`;
       } else if (name === 'file' && args.action === 'write') {
-        operationTitle = `Write file: ${args.path}`;
+        operationTitle = `Write(${args.path})`;
       } else if (name === 'file' && args.action === 'read') {
-        operationTitle = `Read file: ${args.path}`;
+        operationTitle = `Read(${args.path})`;
       } else if (name === 'bash') {
-        operationTitle = `Execute: ${args.command?.substring(0, 30)}${args.command?.length > 30 ? '...' : ''}`;
+        operationTitle = `Bash(${args.command?.substring(0, 40)}${args.command?.length > 40 ? '...' : ''})`;
       } else {
-        // Fallback to generic format with actual values
-        const argValues = Object.values(args).map((v: any) => 
-          typeof v === 'string' && v.length > 20 ? v.substring(0, 20) + '...' : String(v)
+        // Fallback to generic format
+        const argValues = Object.values(args).slice(0, 2).map((v: any) => 
+          typeof v === 'string' && v.length > 15 ? v.substring(0, 15) + '...' : String(v)
         ).join(', ');
-        operationTitle = `${name.charAt(0).toUpperCase() + name.slice(1)}: ${argValues}`;
+        operationTitle = `${name.charAt(0).toUpperCase() + name.slice(1)}(${argValues})`;
       }
       
-      // Add operation to history only (not to messages to avoid duplication)
+      // Add operation message to chat history like Claude Code examples
+      setMessages(prev => [...prev, {
+        type: 'system',
+        content: `⏺ ${operationTitle}`,
+        timestamp: new Date()
+      }]);
+      
+      // Also track in operations for status
       const operationId = `tool-${name}-${Date.now()}`;
       setOperations(prev => [...prev, {
         id: operationId,
@@ -129,7 +144,22 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
           : op
       ));
       
-      // Don't add completion messages to chat - they're already in operations history
+      // Add completion message to chat like Claude Code examples
+      if (result.success) {
+        let completionText = '';
+        if (result.output && typeof result.output === 'string') {
+          const lines = result.output.split('\n').length;
+          completionText = `⎿  ${lines > 1 ? `Found ${lines} lines` : result.output.substring(0, 60)}${result.output.length > 60 ? '...' : ''} (ctrl+r to expand)`;
+        } else {
+          completionText = '⎿  Completed successfully';
+        }
+        
+        setMessages(prev => [...prev, {
+          type: 'system', 
+          content: `  ${completionText}`,
+          timestamp: new Date()
+        }]);
+      }
     };
     
     const handleError = (error: any) => {
