@@ -3,7 +3,7 @@
  * Manages all available tools
  */
 
-import { Tool, ToolParams, ToolResult } from './base.js';
+import { Tool, ToolResult } from './base';
 import { EventEmitter } from 'events';
 
 export class ToolRegistry extends EventEmitter {
@@ -22,7 +22,7 @@ export class ToolRegistry extends EventEmitter {
     return Array.from(this.tools.keys());
   }
   
-  async execute(name: string, params: ToolParams): Promise<ToolResult> {
+  async execute(name: string, params: any): Promise<ToolResult> {
     const tool = this.tools.get(name);
     if (!tool) {
       return {
