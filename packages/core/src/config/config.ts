@@ -314,7 +314,26 @@ export class Config {
     this.mcpServers = params.mcpServers;
     this.userMemory = params.userMemory ?? '';
     this.unipathMdFileCount = params.unipathMdFileCount ?? params.geminiMdFileCount ?? 0;
-    this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
+    // Check for APPROVAL_MODE environment variable first, then params, then default
+    const envApprovalMode = process.env['APPROVAL_MODE'];
+    if (envApprovalMode) {
+      switch (envApprovalMode.toLowerCase()) {
+        case 'yolo':
+          this.approvalMode = ApprovalMode.YOLO;
+          console.log('🚀 YOLO mode enabled from environment');
+          break;
+        case 'autoedit':
+        case 'auto_edit':
+        case 'auto-edit':
+          this.approvalMode = ApprovalMode.AUTO_EDIT;
+          console.log('✅ Auto-edit mode enabled from environment');
+          break;
+        default:
+          this.approvalMode = ApprovalMode.DEFAULT;
+      }
+    } else {
+      this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
+    }
     this.showMemoryUsage = params.showMemoryUsage ?? false;
     this.accessibility = params.accessibility ?? {};
     this.telemetrySettings = {
