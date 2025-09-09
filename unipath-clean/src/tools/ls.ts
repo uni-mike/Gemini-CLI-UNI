@@ -2,13 +2,18 @@
  * List Directory Tool
  */
 
-import { Tool, ToolResult } from './base.js';
+import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
 
 export class LsTool extends Tool {
   name = 'ls';
   description = 'List files and directories';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'path', type: 'string', required: false, default: '.', description: 'Directory path to list' },
+    { name: 'detailed', type: 'boolean', required: false, default: false, description: 'Include file details (size, modified date)' }
+  ];
   
   async execute(args: any): Promise<ToolResult> {
     try {

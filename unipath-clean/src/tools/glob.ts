@@ -2,13 +2,22 @@
  * Glob Tool for pattern matching
  */
 
-import { Tool, ToolResult } from './base.js';
+import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { glob } from 'glob';
 import { stat } from 'fs/promises';
 
 export class GlobTool extends Tool {
   name = 'glob';
-  description = 'Find files matching patterns';
+  description = 'Find files matching glob patterns';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'pattern', type: 'string', required: true, description: 'Glob pattern (e.g., **/*.js, src/*.ts)' },
+    { name: 'cwd', type: 'string', required: false, description: 'Working directory' },
+    { name: 'include_hidden', type: 'boolean', required: false, default: false, description: 'Include hidden files' },
+    { name: 'ignore', type: 'object', required: false, description: 'Patterns to ignore' },
+    { name: 'absolute', type: 'boolean', required: false, default: false, description: 'Return absolute paths' },
+    { name: 'with_details', type: 'boolean', required: false, default: false, description: 'Include file details' }
+  ];
   
   async execute(args: any): Promise<ToolResult> {
     try {

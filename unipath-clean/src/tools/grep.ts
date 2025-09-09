@@ -3,7 +3,7 @@
  * Search for patterns in files
  */
 
-import { Tool, ToolParams, ToolResult } from './base.js';
+import { Tool, ToolParams, ToolResult, ParameterSchema } from './base.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -11,7 +11,13 @@ const execAsync = promisify(exec);
 
 export class GrepTool extends Tool {
   name = 'grep';
-  description = 'Search for patterns in files';
+  description = 'Search for patterns in files using grep';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'pattern', type: 'string', required: true, description: 'Search pattern (regex supported)' },
+    { name: 'path', type: 'string', required: false, default: '.', description: 'File or directory to search' },
+    { name: 'flags', type: 'string', required: false, default: '', description: 'Grep flags (e.g., -r for recursive, -i for case-insensitive)' }
+  ];
   
   async execute(params: ToolParams): Promise<ToolResult> {
     const { pattern, path = '.', flags = '' } = params;

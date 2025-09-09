@@ -11,6 +11,13 @@ import { WebTool } from './tools/web.js';
 import { EditTool } from './tools/edit.js';
 import { GrepTool } from './tools/grep.js';
 import { GitTool } from './tools/git.js';
+import { GlobTool } from './tools/glob.js';
+import { LsTool } from './tools/ls.js';
+import { ReadFileTool } from './tools/read-file.js';
+import { WriteFileTool } from './tools/write-file.js';
+import { RipGrepTool } from './tools/rip-grep.js';
+import { SmartEditTool } from './tools/smart-edit.js';
+import { MemoryTool } from './tools/memory.js';
 import { Orchestrator } from './core/orchestrator.js';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -35,13 +42,20 @@ async function main() {
   const config = new Config();
   await config.initialize();
   
-  // Register tools
+  // Register ALL tools for maximum capability!
   globalRegistry.register(new BashTool());
   globalRegistry.register(new FileTool());
   globalRegistry.register(new WebTool());
   globalRegistry.register(new EditTool());
   globalRegistry.register(new GrepTool());
   globalRegistry.register(new GitTool());
+  globalRegistry.register(new GlobTool());
+  globalRegistry.register(new LsTool());
+  globalRegistry.register(new ReadFileTool());
+  globalRegistry.register(new WriteFileTool());
+  globalRegistry.register(new RipGrepTool());
+  globalRegistry.register(new SmartEditTool());
+  globalRegistry.register(new MemoryTool());
   
   // Create orchestrator
   const orchestrator = new Orchestrator(config);

@@ -3,7 +3,7 @@
  * Git operations
  */
 
-import { Tool, ToolParams, ToolResult } from './base.js';
+import { Tool, ToolParams, ToolResult, ParameterSchema } from './base.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -11,7 +11,14 @@ const execAsync = promisify(exec);
 
 export class GitTool extends Tool {
   name = 'git';
-  description = 'Execute git commands';
+  description = 'Execute git version control commands';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'action', type: 'string', required: true, enum: ['status', 'add', 'commit', 'push', 'pull', 'branch', 'checkout', 'log', 'diff'], description: 'Git command to execute' },
+    { name: 'message', type: 'string', required: false, description: 'Commit message (required for commit)' },
+    { name: 'branch', type: 'string', required: false, description: 'Branch name (for push/pull/checkout)' },
+    { name: 'files', type: 'string', required: false, description: 'Files to add (for add command)' }
+  ];
   
   async execute(params: ToolParams): Promise<ToolResult> {
     const { action, message, branch, files } = params;
