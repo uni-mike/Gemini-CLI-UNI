@@ -6,6 +6,8 @@
 
 // Export config
 export * from './config/config.js';
+export * from './config/core-config.js';
+export * from './config/models.js';
 
 // Export Core Logic
 export * from './core/client.js';
@@ -31,6 +33,7 @@ export * from './code_assist/types.js';
 export * from './utils/paths.js';
 export * from './utils/schemaValidator.js';
 export * from './utils/errors.js';
+export * from './utils/core-errors.js'; // Export Fatal error types
 export * from './utils/getFolderStructure.js';
 export * from './utils/memoryDiscovery.js';
 export * from './utils/gitIgnoreParser.js';

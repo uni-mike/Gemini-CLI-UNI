@@ -17,8 +17,8 @@ import type {
   MCPServerConfig,
 } from '.././index.js';
 import { extensionsCommand } from '../commands/extensions.js';
+import { Config } from './core-config.js';
 import {
-  Config,
   loadServerHierarchicalMemory,
   setUnipathMdFilename as setServerUnipathMdFilename,
   getCurrentUnipathMdFilename,
