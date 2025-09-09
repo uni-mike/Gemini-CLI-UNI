@@ -53,6 +53,25 @@ export class DeepSeekWithTools {
   }
 
   /**
+   * Execute a tool directly (for orchestration)
+   */
+  async executeToolDirectly(toolName: string, args: any): Promise<any> {
+    // Get the tool executor from the client
+    const executor = (this.client as any).executor;
+    if (!executor) {
+      throw new Error('Tool executor not available');
+    }
+    
+    // Execute the tool
+    const result = await executor.execute({
+      name: toolName,
+      arguments: args
+    });
+    
+    return result;
+  }
+
+  /**
    * Get model name
    */
   getModel(): string {

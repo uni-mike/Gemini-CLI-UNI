@@ -4,7 +4,7 @@ import type { Config } from '../config/config.js';
 
 export class DeepSeekWithOrchestration extends DeepSeekWithTools {
   private orchestrator: DeepSeekOrchestrator;
-  private useOrchestration: boolean = false; // Disabled temporarily until orchestration is fixed
+  private useOrchestration: boolean = true; // Enable orchestration detection and smart routing
 
   constructor(config: Config) {
     super(config);
@@ -36,29 +36,26 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
       console.log(`   Result: ${isComplexTask ? '✅ COMPLEX - Using orchestration' : '❌ SIMPLE - Direct execution'}`);
       
       if (isComplexTask && this.useOrchestration) {
-        yield "🎭 Complex task detected - engaging intelligent orchestration...\n";
+        yield "🎭 Complex task detected - executing with intelligent routing...\n";
         yield "━".repeat(60) + "\n\n";
         
-        // Use orchestrator for complex tasks
-        const result = await this.orchestrator.orchestratePrompt(userMessage);
+        // Complex tasks are handled by DeepSeek directly
+        // The orchestration system (Planner/Executor/Orchestrator) is not properly connected
+        // so we use DeepSeek's native multi-step capabilities
+        console.log("🎯 Routing complex task to DeepSeek for execution");
         
-        // Format and yield the results
-        if (result && result.length > 0) {
-          yield "\n📊 Orchestration Results:\n";
-          yield "─".repeat(50) + "\n";
-          
-          for (const taskResult of result) {
-            if (taskResult.result) {
-              yield `✅ ${taskResult.taskId}: Success\n`;
-              if (typeof taskResult.result === 'string') {
-                yield `   ${taskResult.result.substring(0, 100)}...\n`;
-              }
-            } else if (taskResult.error) {
-              yield `❌ ${taskResult.taskId}: ${taskResult.error}\n`;
-            }
+        // Important: Pass the ORIGINAL message, not the extracted one
+        // DeepSeek needs the full context
+        const asyncIterator = super.sendMessageStreamWithTools(message);
+        
+        try {
+          for await (const chunk of asyncIterator) {
+            yield chunk;
           }
-          
-          yield "\n✨ Orchestration complete!\n";
+          yield "\n✨ Complex task complete!\n";
+        } catch (error) {
+          console.error("Error in complex task execution:", error);
+          yield `\n❌ Error: ${error}\n`;
         }
         
         return;
@@ -169,14 +166,21 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
       }
     }
     
-    // Count distinct action verbs
+    // Count distinct action verbs (excluding 'test' when used as filename)
     const actionVerbs = ['search', 'research', 'find', 'create', 'write', 
                          'update', 'edit', 'add', 'append', 'modify', 
-                         'delete', 'fix', 'test', 'build', 'deploy'];
+                         'delete', 'fix', 'build', 'deploy'];
+    
+    // Special handling for 'test' - only count if not part of filename
+    const hasTestAction = /\btest\s+(?!\.txt|\.md|\.json|\.js|\.ts|\.py)/i.test(message);
     
     const foundActions = actionVerbs.filter(verb => 
       new RegExp(`\\b${verb}\\b`, 'i').test(message)  // Added word boundary at end
     );
+    
+    if (hasTestAction && !message.toLowerCase().includes('test.')) {
+      foundActions.push('test');
+    }
     
     if (foundActions.length >= 2) {
       console.log(`🎯 Multiple actions: ${foundActions.join(', ')}`);

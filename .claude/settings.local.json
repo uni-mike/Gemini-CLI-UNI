@@ -118,7 +118,10 @@
       "Bash(APPROVAL_MODE=yolo ./start-deepseek.sh:*)",
       "Bash(./test-deepseek-comprehensive.sh:*)",
       "Bash(APPROVAL_MODE=yolo DEBUG=true ./start-deepseek.sh --prompt \"What is 2 + 2?\" --non-interactive)",
-      "Bash(./test-final-comprehensive.sh:*)"
+      "Bash(./test-final-comprehensive.sh:*)",
+      "Bash(./comprehensive-test.sh)",
+      "Bash(APPROVAL_MODE=yolo timeout 10 ./start-deepseek.sh --prompt \"What is 2 + 2?\" --non-interactive)",
+      "Bash(./test-all-features.sh:*)"
     ],
     "deny": [],
     "ask": []
