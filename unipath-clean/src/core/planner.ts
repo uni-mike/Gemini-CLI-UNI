@@ -50,46 +50,62 @@ export class Planner extends EventEmitter {
     }).filter(Boolean).join('\n');
     
     // Use LLM to create intelligent plan - DeepSeek R1 is smart enough to provide everything!
-    const planPrompt = `You are a task planner. Break down this request into specific tasks: "${prompt}"
+    const planPrompt = `SYSTEM: You MUST respond ONLY with valid JSON. No explanations, no code, no text - ONLY JSON.
 
-Available tools:
+TASK: Decompose this request into multiple small tasks: "${prompt}"
+
+Tools available:
 ${toolSpecs}
 
-INSTRUCTIONS:
-1. Decompose the request into MULTIPLE small, specific tasks
-2. Each task should do ONE thing (create ONE file, run ONE command, etc.)
-3. For complex projects, create separate tasks for each file
-4. Return ONLY a JSON object, nothing else
+RULES:
+- Create 3-10 separate tasks minimum
+- One file per task
+- One command per task  
+- Return ONLY JSON below
 
-Example decomposition for "Create Express API with auth":
-- Task 1: Create package.json
-- Task 2: Create server.js with Express setup
-- Task 3: Create auth middleware file
-- Task 4: Create user routes file
-- Task 5: Create login route
-- Task 6: Install dependencies
-
-Return this exact JSON structure:
+JSON FORMAT (copy exactly):
 {
-  "complexity": "simple" | "moderate" | "complex",
+  "complexity": "complex",
+  "parallelizable": false,
   "tasks": [
     {
-      "description": "Create package.json with dependencies",
+      "description": "Create package.json with Express dependencies",
+      "type": "tool", 
       "tools": ["file"],
-      "type": "tool",
       "arguments": {
         "file": {
           "action": "write",
-          "path": "package.json",
-          "content": "{ actual JSON content here }"
+          "path": "package.json", 
+          "content": "{\\"name\\": \\"express-api\\", \\"dependencies\\": {\\"express\\": \\"^4.18.0\\"}}"
+        }
+      }
+    },
+    {
+      "description": "Create server.js with Express setup",
+      "type": "tool",
+      "tools": ["file"], 
+      "arguments": {
+        "file": {
+          "action": "write",
+          "path": "server.js",
+          "content": "const express = require('express');"
+        }
+      }
+    },
+    {
+      "description": "Create auth middleware file",
+      "type": "tool",
+      "tools": ["file"],
+      "arguments": {
+        "file": {
+          "action": "write", 
+          "path": "middleware/auth.js",
+          "content": "module.exports = (req, res, next) => next();"
         }
       }
     }
-  ],
-  "parallelizable": false
-}
-
-IMPORTANT: Return ONLY the JSON, no markdown, no explanation.`;
+  ]
+}`;
     
     try {
       const response = await this.client.chat(
