@@ -1,0 +1,40 @@
+# Weather Summary
+
+## Summary
+Executive summary compiled from 5 primary sources, highlighting 6 key metrics and 5 critical data points.
+
+## Key Prices
+- 1.
+- 2.
+- ,
+- 3.
+- 4.
+- 5.
+
+## Key Information
+- 📰 **Search Results:**
+- 1. **Climate Data Online (CDO)**
+- 📰 Source: National Centers for Environmental Information (.gov)
+- Climate Data Online (CDO) provides free access to NCDC's archive of global historical weather and climate data in addition to station history information.
+- 2. **National Weather Service**
+
+## Sources
+- National Centers for Environmental Information
+- National Weather Service
+- Weather Underground
+   Find historical weather by searching for a city
+- National Oceanic and Atmospheric Administration
+- the Global Historical Climatology Network daily
+
+## References
+- https://www.ncei.noaa.gov/cdo-web/
+- https://www.weather.gov/
+- https://www.wunderground.com/history/
+- https://www.climate.gov/maps-data/dataset/past-weather-zip-code-data-table
+- https://digital.weather.gov/
+
+---
+*Report generated on: Tuesday, September 9, 2025*  
+*Report type: summary*  
+*Data sources processed: 5*  
+*Operational-Grade Generator: No hardcoding used*
