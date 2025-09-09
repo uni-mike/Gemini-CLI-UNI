@@ -402,19 +402,21 @@ DECOMPOSE THE REQUEST:`;
     console.log('🧠 Parsing AI decomposition response:', response.substring(0, 200) + '...');
     const tasks: Task[] = [];
     
-    // First, strip DeepSeek thinking tags if present
+    // First, strip DeepSeek thinking tags if present and extract ONLY the final answer
     let cleanResponse = response;
     if (response.includes('<think>')) {
-      // Extract content after thinking process
+      // Extract content AFTER the thinking process - this is the final answer
       const afterThink = response.split('</think>').pop() || response;
       cleanResponse = afterThink.trim();
       
-      // Also try to extract from thinking content if it contains steps
-      const thinkContent = response.match(/<think>([\s\S]*?)<\/think>/)?.[1] || '';
-      if (thinkContent.includes('Steps:') || thinkContent.includes('1.')) {
-        const stepsMatch = thinkContent.match(/Steps:[\s\S]*/)?.[0] || thinkContent;
-        cleanResponse = stepsMatch;
-      }
+      // Remove any remaining thinking remnants
+      cleanResponse = cleanResponse.replace(/<\/?think>/g, '').trim();
+    }
+    
+    // Remove any explanatory text and extract only the JSON array
+    const jsonMatch = cleanResponse.match(/\[[\s\S]*?\]/);
+    if (jsonMatch) {
+      cleanResponse = jsonMatch[0];
     }
     
     // Helper to clean task descriptions
@@ -468,34 +470,46 @@ DECOMPOSE THE REQUEST:`;
       console.warn('🧠 Failed to parse JSON format, trying numbered list');
     }
     
-    // Parse numbered list format (also handle cleaned response)
-    const lines = cleanResponse.split('\n');
-    const taskPattern = /^\d+\.\s*(.+)/;
-    
-    for (const line of lines) {
-      const match = line.match(taskPattern);
-      if (match) {
-        const description = match[1].trim();
-        if (description.length < 5) continue; // Skip very short descriptions
-        
-        // Smart timeout estimation based on task type
-        let timeout = 30000; // default 30s
-        const lowerDesc = description.toLowerCase();
-        if (lowerDesc.includes('search') || lowerDesc.includes('find')) timeout = 15000;
-        if (lowerDesc.includes('create') || lowerDesc.includes('write') || lowerDesc.includes('generate')) timeout = 20000;
-        if (lowerDesc.includes('analyze') || lowerDesc.includes('process')) timeout = 25000;
-        if (lowerDesc.includes('test') || lowerDesc.includes('deploy')) timeout = 60000;
-        
-        tasks.push({
-          id: uuidv4(),
-          description: cleanTaskDescription(description),
-          dependencies: [],
-          status: TaskStatus.PENDING,
-          retryCount: 0,
-          maxRetries: 2,
-          timeoutMs: timeout,
-          toolCalls: []
-        });
+    // Parse numbered list format (also handle cleaned response) - only if no JSON found
+    if (tasks.length === 0) {
+      const lines = cleanResponse.split('\n');
+      const taskPattern = /^\d+\.\s*([^(].+?)(?:\s*\(|$)/; // Stop at parentheses or end
+      
+      for (const line of lines) {
+        const match = line.match(taskPattern);
+        if (match) {
+          const description = match[1].trim();
+          
+          // Skip garbage descriptions that look like AI reasoning
+          if (description.length < 10) continue; // Too short
+          if (description.includes('?') && description.length > 50) continue; // Likely reasoning
+          if (description.toLowerCase().includes('step ') && description.length > 50) continue; // Step reasoning
+          if (description.toLowerCase().includes('note') && description.length > 40) continue; // Notes
+          
+          // Only keep clean, actionable task descriptions
+          const actionVerbs = ['search', 'create', 'write', 'generate', 'analyze', 'read', 'update', 'run', 'test', 'build'];
+          const hasActionVerb = actionVerbs.some(verb => description.toLowerCase().startsWith(verb));
+          if (!hasActionVerb) continue;
+          
+          // Smart timeout estimation based on task type
+          let timeout = 30000; // default 30s
+          const lowerDesc = description.toLowerCase();
+          if (lowerDesc.includes('search') || lowerDesc.includes('find')) timeout = 15000;
+          if (lowerDesc.includes('create') || lowerDesc.includes('write') || lowerDesc.includes('generate')) timeout = 20000;
+          if (lowerDesc.includes('analyze') || lowerDesc.includes('process')) timeout = 25000;
+          if (lowerDesc.includes('test') || lowerDesc.includes('deploy')) timeout = 60000;
+          
+          tasks.push({
+            id: uuidv4(),
+            description: cleanTaskDescription(description),
+            dependencies: [],
+            status: TaskStatus.PENDING,
+            retryCount: 0,
+            maxRetries: 2,
+            timeoutMs: timeout,
+            toolCalls: []
+          });
+        }
       }
     }
     

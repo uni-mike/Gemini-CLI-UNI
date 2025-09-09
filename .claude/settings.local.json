@@ -122,7 +122,11 @@
       "Bash(./comprehensive-test.sh)",
       "Bash(APPROVAL_MODE=yolo timeout 10 ./start-deepseek.sh --prompt \"What is 2 + 2?\" --non-interactive)",
       "Bash(./test-all-features.sh:*)",
-      "Bash(APPROVAL_MODE=yolo timeout 30 ./start-deepseek.sh --prompt \"search Bitcoin price then create btc-report.txt\" --non-interactive)"
+      "Bash(APPROVAL_MODE=yolo timeout 30 ./start-deepseek.sh --prompt \"search Bitcoin price then create btc-report.txt\" --non-interactive)",
+      "Bash(sed:*)",
+      "Bash(git restore:*)",
+      "Bash(npm start:*)",
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"Search the web for ''TypeScript validation functions 2025'', then create utils/validator.ts with email validation function\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

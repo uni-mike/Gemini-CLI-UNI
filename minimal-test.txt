@@ -1,7 +1,0 @@
-Please do these 3 simple tasks:
-
-1. Search web for "React 2025"
-2. Read package.json 
-3. Create SIMPLE_TEST.md with "# Test Complete"
-
-That's it - just 3 quick tasks.

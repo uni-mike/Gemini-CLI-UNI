@@ -111,6 +111,9 @@ import { useWorkspaceMigration } from './hooks/useWorkspaceMigration.js';
 import { WorkspaceMigrationDialog } from './components/WorkspaceMigrationDialog.js';
 import { isWorkspaceTrusted } from '../config/trustedFolders.js';
 import { useApprovalSystem } from './hooks/useApprovalSystem.js';
+import { useOperationTracker } from './hooks/useOperationTracker.js';
+import { OperationHistory } from './components/OperationHistory.js';
+import { OrchestrationUIBridge } from './orchestration/OrchestrationUIBridge.js';
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 // Maximum number of queued messages to display in UI to prevent performance issues
@@ -160,6 +163,44 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   const { stdout } = useStdout();
   const nightly = version.includes('nightly');
   const { history, addItem, clearItems, loadHistory } = useHistory();
+  
+  // Orchestration UI integration
+  const operationTracker = useOperationTracker();
+  const [orchestrationBridge] = useState(() => new OrchestrationUIBridge());
+
+  // Set up orchestration UI bridge
+  useEffect(() => {
+    // Make bridge available globally for contentGenerator
+    (globalThis as any).__orchestrationUIBridge = orchestrationBridge;
+    
+    // Listen to orchestration events and update UI operations
+    const handleOrchestrationEvent = (event: any) => {
+      const operation = orchestrationBridge.createOperationFromEvent(event);
+      if (operation) {
+        if (event.type === 'task_start') {
+          const operationId = operationTracker.addOperation(operation);
+          // Store mapping for later updates
+          (orchestrationBridge as any).setOperationMapping(event.taskId, operationId);
+        } else if (event.type === 'task_complete' || event.type === 'task_failed') {
+          const operationId = (orchestrationBridge as any).getOperationId(event.taskId);
+          if (operationId) {
+            operationTracker.updateOperation({
+              id: operationId,
+              status: event.type === 'task_complete' ? 'completed' : 'failed',
+              details: operation.details
+            });
+          }
+        }
+      }
+    };
+
+    orchestrationBridge.on('orchestration', handleOrchestrationEvent);
+    
+    return () => {
+      orchestrationBridge.off('orchestration', handleOrchestrationEvent);
+      (globalThis as any).__orchestrationUIBridge = undefined;
+    };
+  }, [orchestrationBridge, operationTracker]);
 
   const [idePromptAnswered, setIdePromptAnswered] = useState(false);
   const currentIDE = config.getIdeClient().getCurrentIde();
@@ -1045,6 +1086,15 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
               ) && <Header version={version} nightly={nightly} />}
               {!(settings.merged.ui?.hideTips || config.getScreenReader()) && (
                 <Tips config={config} />
+              )}
+              {/* Orchestration Operations Display */}
+              {operationTracker.operations.length > 0 && (
+                <OperationHistory
+                  operations={operationTracker.operations}
+                  expandedOperations={operationTracker.expandedOperations}
+                  onToggleExpand={operationTracker.toggleExpanded}
+                  maxVisible={5}
+                />
               )}
             </Box>,
             ...history.map((h) => (
