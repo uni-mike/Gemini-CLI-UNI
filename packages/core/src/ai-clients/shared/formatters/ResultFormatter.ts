@@ -148,34 +148,59 @@ export class ResultFormatter {
       return 'No results found';
     }
     
-    // ALWAYS show the actual search results!
-    // Extract key information like prices, answers, etc.
     const lines = result.split('\n');
     const output: string[] = [];
     
-    // Look for answer box or price info first
-    const answerLine = lines.find(l => l.toLowerCase().includes('answer:') || l.toLowerCase().includes('price:'));
+    // Look for direct answer or price
+    const answerLine = lines.find(l => 
+      l.toLowerCase().includes('answer:') || 
+      l.toLowerCase().includes('price:') ||
+      l.includes('USD') && l.includes('$')
+    );
+    
     if (answerLine) {
-      output.push(colorize('📊 ' + answerLine.trim(), AnsiColors.yellow));
+      // Clean up and highlight the answer
+      const answer = answerLine.replace(/.*?(answer:|price:)/i, '').trim();
+      output.push(colorize('💰 ' + answer, AnsiColors.green));
       output.push('');
     }
     
-    // Show top results
+    // Show top 3 sources concisely
     let resultNum = 0;
+    let currentResult: string[] = [];
+    
     for (const line of lines) {
       if (line.match(/^\d+\./)) {
-        resultNum++;
-        if (resultNum <= 5) { // Show top 5 results
-          output.push(line);
+        // Process previous result if exists
+        if (currentResult.length > 0 && resultNum <= 3) {
+          const title = currentResult[0].replace(/^\d+\./, '').trim();
+          const source = currentResult.find(l => l.includes('Source:'))?.replace('📰 Source:', '').trim() || '';
+          const snippet = currentResult.find(l => !l.includes('Source:') && !l.includes('http') && l.length > 20);
+          
+          if (source) {
+            output.push(`  ${colorize('•', AnsiColors.dim)} ${source}: ${snippet ? snippet.substring(0, 60) + '...' : title.substring(0, 60)}`);
+          }
         }
-      } else if (resultNum > 0 && resultNum <= 5 && line.trim()) {
-        // Include details for top results
-        output.push('  ' + line.substring(0, 100));
+        
+        resultNum++;
+        currentResult = [line];
+      } else if (line.trim()) {
+        currentResult.push(line);
       }
     }
     
-    if (resultCount > 5) {
-      output.push(colorize(`\n  ... and ${resultCount - 5} more results`, AnsiColors.dim));
+    // Process last result
+    if (currentResult.length > 0 && resultNum <= 3) {
+      const source = currentResult.find(l => l.includes('Source:'))?.replace('📰 Source:', '').trim() || '';
+      const snippet = currentResult.find(l => !l.includes('Source:') && !l.includes('http') && l.length > 20);
+      
+      if (source) {
+        output.push(`  ${colorize('•', AnsiColors.dim)} ${source}: ${snippet ? snippet.substring(0, 60) + '...' : ''}`);
+      }
+    }
+    
+    if (resultCount > 3) {
+      output.push(colorize(`  • ${resultCount - 3} more sources`, AnsiColors.dim));
     }
     
     return output.join('\n');
