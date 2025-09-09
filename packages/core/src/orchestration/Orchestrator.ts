@@ -34,7 +34,7 @@ export class Orchestrator extends EventEmitter {
     };
 
     this.planner = new Planner((config as any).aiModel);
-    this.executor = new Executor();
+    this.executor = new Executor(config.aiModel);
     this.activeTasks = new Map();
     this.taskQueue = [];
 

@@ -9,6 +9,7 @@ import type { ConsoleMessageItem } from '../types.js';
 
 interface ConsolePatcherParams {
   onNewMessage?: (message: Omit<ConsoleMessageItem, 'id'>) => void;
+  onOrchestrationEvent?: (event: { type: string; message: string; timestamp: number }) => void;
   debugMode: boolean;
   stderr?: boolean;
 }
@@ -50,9 +51,39 @@ export class ConsolePatcher {
       originalMethod: (...args: unknown[]) => void,
     ) =>
     (...args: unknown[]) => {
+      const content = this.formatArgs(args);
+      
+      // Check for orchestration events in the console output
+      if (content.includes('🎭ORCHESTRATION_EVENT:')) {
+        try {
+          const eventStartIndex = content.indexOf('🎭ORCHESTRATION_EVENT:') + '🎭ORCHESTRATION_EVENT:'.length;
+          const eventJson = content.substring(eventStartIndex).trim();
+          
+          // Debug logging to see what we're trying to parse
+          console.log('🔧 ConsolePatcher found orchestration event, parsing:', eventJson.substring(0, 100));
+          
+          const event = JSON.parse(eventJson);
+          
+          console.log('🎯 ConsolePatcher successfully parsed event:', event);
+          
+          // Emit orchestration event separately
+          this.params.onOrchestrationEvent?.(event);
+          
+          // Also log normally but without the JSON part
+          const cleanContent = content.substring(0, content.indexOf('🎭ORCHESTRATION_EVENT:'));
+          if (cleanContent.trim()) {
+            originalMethod.apply(console, [cleanContent]);
+          }
+          return;
+        } catch (error) {
+          console.log('❌ ConsolePatcher failed to parse orchestration event:', error);
+          // If parsing fails, fall through to normal logging
+        }
+      }
+      
       if (this.params.stderr) {
         if (type !== 'debug' || this.params.debugMode) {
-          this.originalConsoleError(this.formatArgs(args));
+          this.originalConsoleError(content);
         }
       } else {
         if (this.params.debugMode) {
@@ -62,7 +93,7 @@ export class ConsolePatcher {
         if (type !== 'debug' || this.params.debugMode) {
           this.params.onNewMessage?.({
             type,
-            content: this.formatArgs(args),
+            content: content,
             count: 1,
           });
         }

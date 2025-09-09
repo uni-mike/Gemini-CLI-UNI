@@ -487,7 +487,9 @@ export async function loadCliConfig(
   }
 
   const interactive =
-    !!argv.promptInteractive || (process.stdin.isTTY && question.length === 0);
+    !!argv.promptInteractive || 
+    (process.stdin.isTTY && question.length === 0) ||
+    (process.env['APPROVAL_MODE'] === 'yolo'); // Force interactive mode for YOLO to enable React Ink UI
   // In non-interactive mode, exclude tools that require a prompt.
   const extraExcludes: string[] = [];
   if (!interactive && !argv.experimentalAcp) {

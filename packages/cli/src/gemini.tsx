@@ -24,7 +24,6 @@ import { loadSettings, SettingScope } from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { getUserStartupWarnings } from './utils/userStartupWarnings.js';
-import { ConsolePatcher } from './ui/utils/ConsolePatcher.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
 import { loadExtensions } from './config/extension.js';
 import {
@@ -234,12 +233,10 @@ export async function main() {
     });
   }
 
-  const consolePatcher = new ConsolePatcher({
-    stderr: true,
-    debugMode: config.getDebugMode(),
-  });
-  consolePatcher.patch();
-  registerCleanup(consolePatcher.cleanup);
+  // ConsolePatcher will be created by the appropriate mode:
+  // - Interactive mode: App.tsx creates ConsolePatcher with orchestration callback
+  // - Non-interactive mode: runNonInteractive creates ConsolePatcher for stderr
+  // Don't create ConsolePatcher here to avoid double-patching console methods
 
   dns.setDefaultResultOrder(
     validateDnsResolutionOrder(settings.merged.advanced?.dnsResolutionOrder),

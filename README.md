@@ -1,22 +1,35 @@
-# A Comprehensive README.Md That Documents Everything Created,
+# gemini-cli
 
-## Summary
-Report generated from 0 sources with 3 quantitative measures and 5 key insights. All content dynamically extracted without hardcoding.
+A command-line interface (CLI) tool for interacting with Google Gemini.
 
-## Key Prices
-- ,
-- 1
-- 73560
+## Features
+- Generate text completions
+- Stream responses in real-time
+- Configure API keys and models
+- Support for text and image inputs
+- Save conversation history
 
-## Key Information
-- Command: chmod +x run-tests.sh to make it executable,
-- Output: chmod: to: No such file or directory
-- chmod: make: No such file or directory
-- chmod: it: No such file or directory
-- chmod: executable,: No such file or directory
+## Installation
+bash
+npm install -g gemini-cli
 
----
-*Report generated on: Tuesday, September 9, 2025*  
-*Report type: report*  
-*Data sources processed: 5*  
-*Operational-Grade Generator: No hardcoding used*
+## Configuration
+1. Obtain Google Gemini API key
+2. Run setup:
+bash
+gemini config set --api-key=YOUR_API_KEY
+
+## Usage
+### Basic Prompt
+bash
+gemini generate "Explain quantum computing"
+
+### Streaming Mode
+bash
+gemini stream "Write a poem about AI" --temperature=0.7
+
+### Image Input
+bash
+gemini vision "describe this image" --image=./photo.png
+
+##

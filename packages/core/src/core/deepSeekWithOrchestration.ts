@@ -36,18 +36,29 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
         console.log('🔍 About to start orchestration trio...');
         
         try {
-          // Build complete orchestration output
-          let fullOutput = "\n🎭 Complex task detected - using orchestration trio...\n";
-          fullOutput += "━".repeat(60) + "\n\n";
-          
           console.log('🔍 About to call executeWithOrchestrationTrio...');
           const orchestrationResults = await this.executeWithOrchestrationTrio(userMessage);
           console.log('✅ Orchestration trio completed!');
           
-          fullOutput += orchestrationResults;
+          // Check if React Ink UI is active (APPROVAL_MODE=yolo typically indicates React Ink UI mode)
+          const isReactInkMode = process.env['APPROVAL_MODE'] === 'yolo';
+          console.log('🔍 CHECKING REACT INK MODE:', {
+            APPROVAL_MODE: process.env['APPROVAL_MODE'],
+            isReactInkMode
+          });
           
-          // Yield everything at once to avoid async generator issues
-          yield fullOutput;
+          if (isReactInkMode) {
+            // In React Ink mode, don't yield the formatted text output
+            // The UI components will display the orchestration progress
+            // Just yield a simple completion message
+            yield "\n✅ Orchestration completed - see operations above\n";
+          } else {
+            // In non-React Ink mode, yield the full formatted output
+            let fullOutput = "\n🎭 Complex task detected - using orchestration trio...\n";
+            fullOutput += "━".repeat(60) + "\n\n";
+            fullOutput += orchestrationResults;
+            yield fullOutput;
+          }
           
         } catch (error) {
           console.error("Orchestration trio failed:", error);
@@ -79,6 +90,7 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
    */
   private async executeWithOrchestrationTrio(userMessage: string): Promise<string> {
     console.log('🔍 executeWithOrchestrationTrio called with:', userMessage);
+    console.log('🚀 ABOUT TO START ORCHESTRATION PHASES WITH UI EVENTS!');
     
     if (!this.orchestrator) {
       throw new Error('Orchestrator not initialized');
@@ -92,26 +104,42 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
       throw new Error('Internal orchestrator not found');
     }
     console.log('✅ Internal orchestrator found:', Object.keys(orchestrator));
+    console.log('🎯 TESTING NOTIFYUI METHOD DIRECTLY!');
+    this.notifyUI("🎯 TESTING REACT INK UI EVENTS!");
 
+    // Check if React Ink UI is active
+    const isReactInkMode = process.env['APPROVAL_MODE'] === 'yolo';
     let output = "";
 
-    // Phase 1: Planning
-    output += "📋 Planning tasks...\n";
+    // Phase 1: Planning - EMIT ORCHESTRATION EVENT FOR REACT INK UI  
+    this.notifyUI("📋 Planning tasks...");
+    if (!isReactInkMode) {
+      output += "📋 Planning tasks...\n";
+    }
     console.log('🔍 About to call orchestrator.planner.createPlan...');
     const plan = await orchestrator.planner.createPlan(userMessage);
     console.log('✅ Planner.createPlan completed, plan:', plan);
-    output += `\n✅ Created execution plan with ${plan.tasks.length} tasks:\n`;
+    this.notifyUI(`✅ Created execution plan with ${plan.tasks.length} tasks`);
     
-    for (const task of plan.tasks) {
-      output += `  • ${task.description}\n`;
+    if (!isReactInkMode) {
+      output += `\n✅ Created execution plan with ${plan.tasks.length} tasks:\n`;
+      for (const task of plan.tasks) {
+        output += `  • ${task.description}\n`;
+      }
     }
     
     // Phase 2: Execution
-    output += "\n🔧 Executing tasks...\n";
+    this.notifyUI("🔧 Executing tasks...");
+    if (!isReactInkMode) {
+      output += "\n🔧 Executing tasks...\n";
+    }
     const results = [];
     
     for (const task of plan.tasks) {
-      output += `\n⏳ ${task.description}\n`;
+      this.notifyUI(`⏳ ${task.description}`);
+      if (!isReactInkMode) {
+        output += `\n⏳ ${task.description}\n`;
+      }
       
       try {
         console.log(`🔍 About to execute task: ${task.description}`);
@@ -133,17 +161,23 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
         console.log(`✅ Task completed: ${task.description}, result:`, result);
         
         results.push({ taskId: task.id, result });
-        output += `✅ Completed: ${task.description}\n`;
+        this.notifyUI(`✅ Completed: ${task.description}`);
         
-        // Show result if it's a string and reasonable length
-        if (typeof result === 'string' && result.length < 200) {
-          output += `   → ${result}\n`;
-        } else if (result && typeof result === 'object' && result.summary) {
-          output += `   → ${result.summary}\n`;
+        if (!isReactInkMode) {
+          output += `✅ Completed: ${task.description}\n`;
+          // Show result if it's a string and reasonable length
+          if (typeof result === 'string' && result.length < 200) {
+            output += `   → ${result}\n`;
+          } else if (result && typeof result === 'object' && result.summary) {
+            output += `   → ${result.summary}\n`;
+          }
         }
         
       } catch (error) {
-        output += `❌ Failed: ${task.description} - ${error}\n`;
+        this.notifyUI(`❌ Failed: ${task.description} - ${error}`);
+        if (!isReactInkMode) {
+          output += `❌ Failed: ${task.description} - ${error}\n`;
+        }
         results.push({ taskId: task.id, error: String(error) });
       }
     }
@@ -152,12 +186,17 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
     const successCount = results.filter(r => !r.error).length;
     const failCount = results.filter(r => r.error).length;
     
-    output += `\n📊 Execution Summary:\n`;
-    output += `   ✅ Successful: ${successCount}\n`;
-    if (failCount > 0) {
-      output += `   ❌ Failed: ${failCount}\n`;
+    // Always notify UI about summary
+    this.notifyUI(`📊 Execution Summary: ✅ ${successCount} successful${failCount > 0 ? `, ❌ ${failCount} failed` : ''}`);
+    
+    if (!isReactInkMode) {
+      output += `\n📊 Execution Summary:\n`;
+      output += `   ✅ Successful: ${successCount}\n`;
+      if (failCount > 0) {
+        output += `   ❌ Failed: ${failCount}\n`;
+      }
+      output += "\n🎯 Orchestration trio execution complete!\n";
     }
-    output += "\n🎯 Orchestration trio execution complete!\n";
     
     return output;
   }
@@ -203,51 +242,11 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
   }
 
   /**
-   * Detect if a task is complex enough to need orchestration
+   * ALWAYS USE ORCHESTRATION - NO HEURISTICS EVER
    */
   private async detectOrchestrationNeeded(message: string): Promise<boolean> {
-    const lowerMessage = message.toLowerCase();
-    
-    // Multi-step operations
-    if (/\bthen\b|\band\s+then\b|\bafter\s+that\b/.test(lowerMessage)) {
-      console.log(`🎯 Multi-step detected: contains 'then/after'`);
-      return true;
-    }
-    
-    // Multiple file operations
-    if (/create.*update|create.*add|write.*edit|write.*append/.test(lowerMessage)) {
-      console.log(`🎯 Multiple file operations detected`);
-      return true;
-    }
-    
-    // Research/analysis followed by action
-    if (/(research|search|find).*\b(create|write|update|save)/.test(lowerMessage) ||
-        /(create|write).*\b(research|search|find)/.test(lowerMessage)) {
-      console.log(`🎯 Research + action detected`);
-      return true;
-    }
-    
-    // Complex commands
-    const complexCommands = ['refactor', 'migrate', 'setup', 'configure', 'deploy'];
-    for (const cmd of complexCommands) {
-      if (new RegExp(cmd, 'i').test(lowerMessage)) {
-        console.log(`🎯 Complex command detected: ${cmd}`);
-        return true;
-      }
-    }
-    
-    // Multiple distinct actions
-    const actionVerbs = ['search', 'research', 'find', 'create', 'write', 'update', 'edit'];
-    const foundActions = actionVerbs.filter(verb => 
-      new RegExp(`\\b${verb}\\b`, 'i').test(message)
-    );
-    
-    if (foundActions.length >= 2) {
-      console.log(`🎯 Multiple actions: ${foundActions.join(', ')}`);
-      return true;
-    }
-    
-    return false;
+    console.log(`🤖 PURE AI MODE: Always using orchestration trio (NO HEURISTICS EVER)`);
+    return true; // ALWAYS USE AI-DRIVEN ORCHESTRATION - ZERO HEURISTICS
   }
 
   /**
@@ -278,5 +277,22 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
   public setUseOrchestration(use: boolean): void {
     this.useOrchestration = use;
     console.log(`🎭 Orchestration ${use ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Notify the UI bridge of orchestration progress
+   */
+  private notifyUI(message: string): void {
+    // Send orchestration progress as a specially formatted console message
+    // The ConsolePatcher will detect this and emit it as an orchestration event
+    console.log('🔥 NOTIFYUI CALLED WITH:', message);
+    const orchestrationEvent = {
+      type: 'orchestration-progress',
+      message: message,
+      timestamp: Date.now()
+    };
+    
+    console.log(`🎭ORCHESTRATION_EVENT:${JSON.stringify(orchestrationEvent)}`);
+    console.log('🔥 NOTIFYUI FINISHED');
   }
 }

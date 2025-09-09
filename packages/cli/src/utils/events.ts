@@ -9,6 +9,7 @@ import { EventEmitter } from 'node:events';
 export enum AppEvent {
   OpenDebugConsole = 'open-debug-console',
   LogError = 'log-error',
+  OrchestrationProgress = 'orchestration-progress',
 }
 
 export const appEvents = new EventEmitter();

@@ -382,11 +382,8 @@ export async function createContentGenerator(
       // Set up progress callback to show tool execution progress in real-time
       deepSeekClient.setProgressCallback((message: string) => {
         console.log(message);
-        
-        // Emit orchestration event for UI integration
-        if ((globalThis as any).__orchestrationUIBridge) {
-          (globalThis as any).__orchestrationUIBridge.handleProgressMessage(message);
-        }
+        // Note: Orchestration events are now handled via ConsolePatcher
+        // which detects special orchestration event markers in console output
       });
       
       // Set up approval flow callback using direct readline prompts

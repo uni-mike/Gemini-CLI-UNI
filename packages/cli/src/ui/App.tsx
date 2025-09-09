@@ -168,39 +168,8 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   const operationTracker = useOperationTracker();
   const [orchestrationBridge] = useState(() => new OrchestrationUIBridge());
 
-  // Set up orchestration UI bridge
-  useEffect(() => {
-    // Make bridge available globally for contentGenerator
-    (globalThis as any).__orchestrationUIBridge = orchestrationBridge;
-    
-    // Listen to orchestration events and update UI operations
-    const handleOrchestrationEvent = (event: any) => {
-      const operation = orchestrationBridge.createOperationFromEvent(event);
-      if (operation) {
-        if (event.type === 'task_start') {
-          const operationId = operationTracker.addOperation(operation);
-          // Store mapping for later updates
-          (orchestrationBridge as any).setOperationMapping(event.taskId, operationId);
-        } else if (event.type === 'task_complete' || event.type === 'task_failed') {
-          const operationId = (orchestrationBridge as any).getOperationId(event.taskId);
-          if (operationId) {
-            operationTracker.updateOperation({
-              id: operationId,
-              status: event.type === 'task_complete' ? 'completed' : 'failed',
-              details: operation.details
-            });
-          }
-        }
-      }
-    };
-
-    orchestrationBridge.on('orchestration', handleOrchestrationEvent);
-    
-    return () => {
-      orchestrationBridge.off('orchestration', handleOrchestrationEvent);
-      (globalThis as any).__orchestrationUIBridge = undefined;
-    };
-  }, [orchestrationBridge, operationTracker]);
+  // Note: Orchestration UI integration now handled via ConsolePatcher
+  // No need for globalThis bridge since we capture orchestration events from console output
 
   const [idePromptAnswered, setIdePromptAnswered] = useState(false);
   const currentIDE = config.getIdeClient().getCurrentIde();
@@ -225,13 +194,81 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   } = useConsoleMessages();
 
   useEffect(() => {
+    // Handle orchestration events captured from console output
+    const handleOrchestrationEvent = (event: { type: string; message: string; timestamp: number }) => {
+      
+      // Parse different message types
+      if (event.message.includes('⏳')) {
+        // Task starting - extract task description
+        const taskMatch = event.message.match(/⏳\s*(.+)/);
+        if (taskMatch) {
+          const taskDescription = taskMatch[1];
+          console.log('Creating orchestration operation for task:', taskDescription);
+          
+          const operationId = operationTracker.addOperation({
+            type: 'build',
+            title: taskDescription.length > 50 ? taskDescription.substring(0, 47) + '...' : taskDescription,
+            status: 'running',
+            details: event.message,
+          });
+          
+          console.log('Created orchestration operation with ID:', operationId);
+          // Store mapping for later updates
+          orchestrationBridge.setOperationMapping(taskDescription, operationId);
+        }
+      } else if (event.message.includes('✅ Completed:')) {
+        // Task completed - find and update the operation
+        const taskMatch = event.message.match(/✅\s*Completed:\s*(.+)/);
+        if (taskMatch) {
+          const taskDescription = taskMatch[1];
+          console.log('Completing orchestration operation for task:', taskDescription);
+          
+          const operationId = orchestrationBridge.getOperationId(taskDescription);
+          if (operationId) {
+            operationTracker.updateOperation({
+              id: operationId,
+              status: 'completed',
+              details: event.message
+            });
+            console.log('Updated orchestration operation to completed:', operationId);
+          } else {
+            console.log('❌ Could not find operation to complete for:', taskDescription);
+          }
+        }
+      } else if (event.message.includes('❌')) {
+        // Task failed - find and update the operation
+        const taskMatch = event.message.match(/❌\s*(?:Failed:)?\s*(.+?)(?:\s*-|$)/);
+        if (taskMatch) {
+          const taskDescription = taskMatch[1];
+          console.log('Failing orchestration operation for task:', taskDescription);
+          
+          const operationId = orchestrationBridge.getOperationId(taskDescription);
+          if (operationId) {
+            operationTracker.updateOperation({
+              id: operationId,
+              status: 'failed',
+              details: event.message
+            });
+            console.log('Updated orchestration operation to failed:', operationId);
+          } else {
+            console.log('❌ Could not find operation to fail for:', taskDescription);
+          }
+        }
+      } else if (event.message.includes('📋 Planning tasks')) {
+        // Clear previous operations and start fresh
+        console.log('Starting new orchestration session - clearing operations');
+        operationTracker.clearOperations();
+      }
+    };
+    
     const consolePatcher = new ConsolePatcher({
       onNewMessage: handleNewMessage,
+      onOrchestrationEvent: handleOrchestrationEvent,
       debugMode: config.getDebugMode(),
     });
     consolePatcher.patch();
     registerCleanup(consolePatcher.cleanup);
-  }, [handleNewMessage, config]);
+  }, [handleNewMessage, config, orchestrationBridge, operationTracker]);
 
   const { stats: sessionStats } = useSessionStats();
   const [staticNeedsRefresh, setStaticNeedsRefresh] = useState(false);
