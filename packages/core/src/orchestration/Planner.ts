@@ -3,10 +3,10 @@ import { TaskStatus } from './types.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class Planner {
-  private aiModel: any; // Will be injected
+  // private aiModel: any; // Commented out to avoid unused variable warning
 
   constructor(aiModel?: any) {
-    this.aiModel = aiModel;
+    // this.aiModel = aiModel; // Disabled to prevent recursive loops for now
   }
 
   async createPlan(prompt: string): Promise<TaskPlan> {
@@ -66,12 +66,9 @@ export class Planner {
       return this.createSimpleTasks(prompt);
     }
     
-    // For complex tasks, use AI to decompose if available
-    if (this.aiModel) {
-      return await this.aiDecomposition(prompt);
-    }
-    
-    // Fallback to heuristic decomposition
+    // For now, always use heuristic decomposition to avoid recursive loops
+    // TODO: Implement AI decomposition properly without causing deadlocks
+    console.log('📝 Using heuristic decomposition (AI decomposition disabled to prevent loops)');
     return this.heuristicDecomposition(prompt);
   }
 
@@ -88,6 +85,7 @@ export class Planner {
     }];
   }
 
+  /* TODO: Re-enable AI decomposition when recursive loop issue is solved
   private async aiDecomposition(prompt: string): Promise<Task[]> {
     try {
       if (!this.aiModel) {
@@ -131,11 +129,48 @@ Now break down the given task:`;
       return this.heuristicDecomposition(prompt);
     }
   }
+  */
 
   private heuristicDecomposition(prompt: string): Task[] {
     const tasks: Task[] = [];
     
-    // Common patterns
+    // Handle common multi-step patterns first
+    const lowerPrompt = prompt.toLowerCase();
+    
+    // Pattern: "search X then create Y"
+    if (/search.*then.*create/.test(lowerPrompt)) {
+      const searchMatch = prompt.match(/search\s+([^\s].*?)\s+then/i);
+      const createMatch = prompt.match(/then.*create\s+([^\s].*?)$/i);
+      
+      if (searchMatch && createMatch) {
+        tasks.push({
+          id: uuidv4(),
+          description: `Search for ${searchMatch[1]}`,
+          dependencies: [],
+          status: TaskStatus.PENDING,
+          retryCount: 0,
+          maxRetries: 2,
+          timeoutMs: 15000,
+          toolCalls: []
+        });
+        
+        const firstTaskId = tasks[0].id;
+        tasks.push({
+          id: uuidv4(),
+          description: `Create ${createMatch[1]}`,
+          dependencies: [firstTaskId],
+          status: TaskStatus.PENDING,
+          retryCount: 0,
+          maxRetries: 2,
+          timeoutMs: 10000,
+          toolCalls: []
+        });
+        
+        return tasks;
+      }
+    }
+    
+    // Common patterns fallback
     const patterns = [
       { regex: /search\s+for\s+(\w+)/gi, template: 'Search for $1', timeout: 15000 },
       { regex: /read\s+(?:the\s+)?file\s+(\S+)/gi, template: 'Read file $1', timeout: 5000 },
@@ -283,6 +318,7 @@ Now break down the given task:`;
     return independentTasks.length > 1;
   }
 
+  /* TODO: Re-enable when AI decomposition is working
   private parseAIResponse(response: string, originalPrompt: string): Task[] {
     const tasks: Task[] = [];
     
@@ -324,4 +360,5 @@ Now break down the given task:`;
     
     return tasks;
   }
+  */
 }

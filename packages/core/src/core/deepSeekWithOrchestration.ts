@@ -4,20 +4,18 @@ import type { Config } from '../config/config.js';
 
 export class DeepSeekWithOrchestration extends DeepSeekWithTools {
   private orchestrator?: DeepSeekOrchestrator;
-  private useOrchestration: boolean = true; // Re-enable to test minimal orchestration
+  private useOrchestration: boolean = true; // Enable orchestration trio
 
   constructor(config: Config) {
     super(config);
-    // Re-enable orchestrator creation for testing
     this.orchestrator = new DeepSeekOrchestrator(this);
-    console.log('🎭 DeepSeekWithOrchestration initialized (orchestrator enabled)');
+    console.log('🎭 DeepSeekWithOrchestration initialized with orchestration trio');
   }
 
   /**
    * Override the main method that contentGenerator calls
    */
   override async *sendMessageStreamWithTools(message: string): AsyncGenerator<string> {
-    console.log('🎯 DeepSeekWithOrchestration.sendMessageStreamWithTools called');
     yield* this.processWithOrchestration(message);
   }
 
@@ -28,150 +26,150 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
     message: string, 
     options?: any
   ): AsyncGenerator<string, void, unknown> {
-    console.log('🚀 Starting processWithOrchestration');
-    
     try {
       // Check if this is a complex task that needs orchestration
       const userMessage = this.extractUserMessageFromPrompt(message);
-      
-      // DEBUG: Log what we're checking
-      console.log(`📊 Extracted user message: "${userMessage.substring(0, 100)}"`);
-      
       const isComplexTask = await this.detectOrchestrationNeeded(userMessage);
-      console.log(`   Result: ${isComplexTask ? '✅ COMPLEX' : '❌ SIMPLE'} - Orchestration ${this.useOrchestration ? 'ENABLED' : 'DISABLED'}`);
       
       if (isComplexTask && this.useOrchestration) {
-        console.log('📊 Orchestration enabled, but falling back to DeepSeek native for now...');
-        
-        // Fall back to DeepSeek native execution for now
-        yield "\n🎭 Complex task detected - using enhanced DeepSeek processing...\n";
-        yield* super.sendMessageStreamWithTools(message);
-        
-        return;
-        
-        /* TODO: Debug the orchestration hanging issue
-        console.log('📊 About to yield orchestration start messages...');
-        yield "🎭 Complex task detected - using orchestration trio...\n";
-        console.log('📊 Yielded first message, about to yield separator...');
-        yield "━".repeat(60) + "\n\n";
-        console.log('📊 Yielded separator, continuing...');
-        
-        // Use the orchestration trio for complex multi-step tasks
-        console.log("🎯 Using orchestration trio for complex task");
+        // Use orchestration trio for complex multi-step tasks
+        console.log('🔍 About to start orchestration trio...');
         
         try {
-          // Test basic orchestrator functionality first
-          console.log('🎯 About to test basic orchestrator functionality...');
+          // Build complete orchestration output
+          let fullOutput = "\n🎭 Complex task detected - using orchestration trio...\n";
+          fullOutput += "━".repeat(60) + "\n\n";
           
-          // For now, just test if we can call the planner directly
-          const planner = (this.orchestrator as any).orchestrator?.planner;
-          if (planner) {
-            console.log('🎯 Testing planner directly...');
-            const plan = await planner.createPlan(userMessage);
-            console.log('🎯 Plan created:', plan);
-            
-            yield `\n📋 Created plan with ${plan.tasks.length} tasks:\n`;
-            for (const task of plan.tasks) {
-              yield `  - ${task.description}\n`;
-            }
-          }
+          console.log('🔍 About to call executeWithOrchestrationTrio...');
+          const orchestrationResults = await this.executeWithOrchestrationTrio(userMessage);
+          console.log('✅ Orchestration trio completed!');
           
-          yield "\n✅ Orchestration test complete!\n";
+          fullOutput += orchestrationResults;
+          
+          // Yield everything at once to avoid async generator issues
+          yield fullOutput;
+          
         } catch (error) {
-        */
-          console.error("Orchestration failed, falling back to direct execution:", error);
+          console.error("Orchestration trio failed:", error);
+          let errorOutput = "\n🎭 Complex task detected - orchestration failed...\n";
+          errorOutput += `\n⚠️ Orchestration error: ${error}\n`;
+          errorOutput += "\n🔄 Falling back to DeepSeek native execution...\n\n";
           
-          // Fall back to direct DeepSeek execution if orchestration fails
-          yield "\n⚠️ Orchestration failed, using direct execution...\n";
-          const asyncIterator = super.sendMessageStreamWithTools(message);
+          yield errorOutput;
           
-          for await (const chunk of asyncIterator) {
-            yield chunk;
-          }
+          // Fallback to native DeepSeek execution
+          yield* super.sendMessageStreamWithTools(message);
         }
         
         return;
       }
       
       // Fall back to parent implementation for simple tasks
-      console.log("ℹ️ Processing with standard DeepSeek flow (simple task or orchestration disabled)");
       yield* super.sendMessageStreamWithTools(message);
       
     } catch (error) {
       console.error('Orchestration error:', error);
-      // Fall back to original implementation
-      yield "⚠️ Orchestration failed, falling back to standard processing...\n";
+      yield "⚠️ Orchestration failed, using standard processing...\n";
       yield* super.sendMessageStreamWithTools(message);
+    }
+  }
+
+  /**
+   * Execute task using orchestration trio (non-generator approach)
+   */
+  private async executeWithOrchestrationTrio(userMessage: string): Promise<string> {
+    console.log('🔍 executeWithOrchestrationTrio called with:', userMessage);
+    
+    if (!this.orchestrator) {
+      throw new Error('Orchestrator not initialized');
+    }
+    console.log('✅ Orchestrator exists');
+
+    // Get the orchestrator components
+    console.log('🔍 Getting internal orchestrator...');
+    const orchestrator = (this.orchestrator as any).orchestrator;
+    if (!orchestrator) {
+      throw new Error('Internal orchestrator not found');
+    }
+    console.log('✅ Internal orchestrator found:', Object.keys(orchestrator));
+
+    let output = "";
+
+    // Phase 1: Planning
+    output += "📋 Planning tasks...\n";
+    console.log('🔍 About to call orchestrator.planner.createPlan...');
+    const plan = await orchestrator.planner.createPlan(userMessage);
+    console.log('✅ Planner.createPlan completed, plan:', plan);
+    output += `\n✅ Created execution plan with ${plan.tasks.length} tasks:\n`;
+    
+    for (const task of plan.tasks) {
+      output += `  • ${task.description}\n`;
     }
     
-    /* TODO: Re-enable when orchestration is working
-    try {
-      // Check if this is a complex task that needs orchestration
-      const userMessage = this.extractUserMessageFromPrompt(message);
+    // Phase 2: Execution
+    output += "\n🔧 Executing tasks...\n";
+    const results = [];
+    
+    for (const task of plan.tasks) {
+      output += `\n⏳ ${task.description}\n`;
       
-      // DEBUG: Log what we're checking
-      console.log(`📊 Extracted user message: "${userMessage.substring(0, 100)}"`);
-      
-      const isComplexTask = await this.detectOrchestrationNeeded(userMessage);
-      console.log(`   Result: ${isComplexTask ? '✅ COMPLEX' : '❌ SIMPLE'} - Orchestration ${this.useOrchestration ? 'ENABLED' : 'DISABLED'}`);
-      
-      console.log(`🔍 Checking condition: isComplexTask=${isComplexTask}, useOrchestration=${this.useOrchestration}`);
-      
-      if (isComplexTask && this.useOrchestration) {
-        console.log('🎭 Entering COMPLEX + ORCHESTRATION ENABLED branch');
-        yield "🎭 Complex task detected - using intelligent multi-step execution...\n";
-        yield "━".repeat(60) + "\n\n";
+      try {
+        console.log(`🔍 About to execute task: ${task.description}`);
         
-        console.log("🎯 About to route complex task through DeepSeek's multi-step handler");
-        console.log("Message length:", message.length);
-        console.log("First 200 chars:", message.substring(0, 200));
+        // Collect results from dependent tasks for context
+        const previousResults: any[] = task.dependencies.length > 0 
+          ? results
+              .filter(r => task.dependencies.includes(r.taskId))
+              .map(r => r.result)
+          : [];
         
-        try {
-          // Pass the ORIGINAL message with full context for best results
-          const asyncIterator = super.sendMessageStreamWithTools(message);
-          console.log("✅ Got async iterator, starting to consume...");
-          
-          let chunkCount = 0;
-          for await (const chunk of asyncIterator) {
-            chunkCount++;
-            console.log(`Chunk ${chunkCount}: ${chunk.substring(0, 50)}...`);
-            yield chunk;
-          }
-          console.log(`✅ Completed with ${chunkCount} chunks`);
-        } catch (error) {
-          console.error("Error in complex task execution:", error);
-          yield `\n❌ Error: ${error}\n`;
+        const result: any = await orchestrator.executor.execute(task, {
+          taskId: task.id,
+          attempt: 1,
+          startTime: Date.now(),
+          timeout: task.timeoutMs,
+          previousResults // Pass previous results for AI orchestration
+        });
+        console.log(`✅ Task completed: ${task.description}, result:`, result);
+        
+        results.push({ taskId: task.id, result });
+        output += `✅ Completed: ${task.description}\n`;
+        
+        // Show result if it's a string and reasonable length
+        if (typeof result === 'string' && result.length < 200) {
+          output += `   → ${result}\n`;
+        } else if (result && typeof result === 'object' && result.summary) {
+          output += `   → ${result.summary}\n`;
         }
         
-        return;
+      } catch (error) {
+        output += `❌ Failed: ${task.description} - ${error}\n`;
+        results.push({ taskId: task.id, error: String(error) });
       }
-      
-      // Fall back to parent implementation for simple tasks
-      console.log("ℹ️ Processing with standard DeepSeek flow (complex task with orchestration disabled OR simple task)");
-      yield* super.sendMessageStreamWithTools(message);
-      
-    } catch (error) {
-      console.error('Orchestration error:', error);
-      // Fall back to original implementation
-      yield "⚠️ Orchestration failed, falling back to standard processing...\n";
-      yield* super.sendMessageStreamWithTools(message);
     }
-    */
+    
+    // Phase 3: Summary
+    const successCount = results.filter(r => !r.error).length;
+    const failCount = results.filter(r => r.error).length;
+    
+    output += `\n📊 Execution Summary:\n`;
+    output += `   ✅ Successful: ${successCount}\n`;
+    if (failCount > 0) {
+      output += `   ❌ Failed: ${failCount}\n`;
+    }
+    output += "\n🎯 Orchestration trio execution complete!\n";
+    
+    return output;
   }
 
   /**
    * Extract user message from the full context
    */
   private extractUserMessageFromPrompt(message: string): string {
-    // The message sent from contentGenerator likely has format:
-    // "This is the Gemini CLI... User Request: <actual request>"
-    // We need to extract JUST the actual user request
-    
     // Try to find "User Request:" marker
     const userRequestIndex = message.lastIndexOf('User Request:');
     if (userRequestIndex !== -1) {
       const afterMarker = message.substring(userRequestIndex + 'User Request:'.length).trim();
-      // Take everything after "User Request:" until "Tools available" or end
       const toolsIndex = afterMarker.indexOf('Tools available');
       if (toolsIndex !== -1) {
         return afterMarker.substring(0, toolsIndex).trim();
@@ -190,12 +188,9 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
       return afterMarker;
     }
     
-    // If no markers found, assume the whole message is the user request
-    // But skip any system context at the beginning
+    // If no markers found, try to extract from Gemini CLI context
     if (message.includes('This is the Gemini CLI')) {
-      // Find the actual question/command (usually after newlines)
       const lines = message.split('\n');
-      // Skip system context lines and find the actual command
       for (let i = lines.length - 1; i >= 0; i--) {
         const line = lines[i].trim();
         if (line && !line.includes('Gemini CLI') && !line.includes('context')) {
@@ -209,12 +204,11 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
 
   /**
    * Detect if a task is complex enough to need orchestration
-   * Focus on ACTUAL complexity, not word count!
    */
   private async detectOrchestrationNeeded(message: string): Promise<boolean> {
     const lowerMessage = message.toLowerCase();
     
-    // ALWAYS use orchestration for multi-step operations
+    // Multi-step operations
     if (/\bthen\b|\band\s+then\b|\bafter\s+that\b/.test(lowerMessage)) {
       console.log(`🎯 Multi-step detected: contains 'then/after'`);
       return true;
@@ -233,19 +227,8 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
       return true;
     }
     
-    // Multiple targets (e.g., "BTC and LTC", "multiple files")
-    if (/\band\b.*\b(and|plus|also|as well)\b/.test(lowerMessage) ||
-        /multiple|several|various|all/.test(lowerMessage)) {
-      console.log(`🎯 Multiple targets detected`);
-      return true;
-    }
-    
-    // Commands that inherently require multiple steps
-    const complexCommands = [
-      'refactor', 'migrate', 'setup', 'configure', 'deploy',
-      'analyze.*fix', 'debug.*repair', 'test.*fix'
-    ];
-    
+    // Complex commands
+    const complexCommands = ['refactor', 'migrate', 'setup', 'configure', 'deploy'];
     for (const cmd of complexCommands) {
       if (new RegExp(cmd, 'i').test(lowerMessage)) {
         console.log(`🎯 Complex command detected: ${cmd}`);
@@ -253,28 +236,17 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
       }
     }
     
-    // Count distinct action verbs (excluding 'test' when used as filename)
-    const actionVerbs = ['search', 'research', 'find', 'create', 'write', 
-                         'update', 'edit', 'add', 'append', 'modify', 
-                         'delete', 'fix', 'build', 'deploy'];
-    
-    // Special handling for 'test' - only count if not part of filename
-    const hasTestAction = /\btest\s+(?!\.txt|\.md|\.json|\.js|\.ts|\.py)/i.test(message);
-    
+    // Multiple distinct actions
+    const actionVerbs = ['search', 'research', 'find', 'create', 'write', 'update', 'edit'];
     const foundActions = actionVerbs.filter(verb => 
-      new RegExp(`\\b${verb}\\b`, 'i').test(message)  // Added word boundary at end
+      new RegExp(`\\b${verb}\\b`, 'i').test(message)
     );
-    
-    if (hasTestAction && !message.toLowerCase().includes('test.')) {
-      foundActions.push('test');
-    }
     
     if (foundActions.length >= 2) {
       console.log(`🎯 Multiple actions: ${foundActions.join(', ')}`);
       return true;
     }
     
-    // Default: simple single-action tasks don't need orchestration
     return false;
   }
 
@@ -307,5 +279,4 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
     this.useOrchestration = use;
     console.log(`🎭 Orchestration ${use ? 'enabled' : 'disabled'}`);
   }
-
 }
