@@ -87,11 +87,20 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     const handleToolExecute = ({ name, args }: any) => {
       setCurrentStatus('tool-execution');
       
+      // Add operation to history
+      const operationId = `tool-${name}-${Date.now()}`;
       setOperations(prev => [...prev, {
-        id: `tool-${name}-${Date.now()}`,
+        id: operationId,
         type: name as any,
         status: 'running',
         title: `${name.charAt(0).toUpperCase() + name.slice(1)}(${Object.keys(args).map(k => k).join(', ')})`,
+        timestamp: new Date()
+      }]);
+      
+      // Add message to chat for operation visibility
+      setMessages(prev => [...prev, {
+        type: 'system',
+        content: `⏺ ${name.charAt(0).toUpperCase() + name.slice(1)}(${Object.keys(args).map(k => args[k]).join(', ')})`,
         timestamp: new Date()
       }]);
     };
@@ -106,6 +115,17 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
             }
           : op
       ));
+      
+      // Add completion message to chat
+      const status = result.success ? 'completed' : 'failed';
+      const icon = result.success ? '⎿' : '❌';
+      const details = result.success ? 'Completed successfully' : `Failed: ${result.error}`;
+      
+      setMessages(prev => [...prev, {
+        type: 'system',
+        content: `  ${icon} ${details}`,
+        timestamp: new Date()
+      }]);
     };
     
     const handleError = (error: any) => {
@@ -272,9 +292,9 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       
       {/* Main controls area - professional layout */}
       <Box flexDirection="column">
-        {/* Input Area - professional single border */}
+        {/* Input Area - professional rounded border */}
         <Box 
-          borderStyle="single" 
+          borderStyle="round" 
           borderColor={isProcessing ? Colors.AccentYellow : Colors.AccentGreen} 
           paddingX={1}
           marginY={1}
@@ -284,16 +304,12 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
           <Text color={Colors.Comment}>│</Text>
         </Box>
         
-        {/* Status Footer - always visible at bottom */}
+        {/* Status Footer - always visible at bottom with help text */}
         <StatusFooter
           status={currentStatus}
           approvalMode={config.getApprovalMode()}
+          helpText="ESC: exit • Ctrl+C: quit • Ctrl+L: clear"
         />
-        
-        {/* Help Text - minimal footer like original */}
-        <Box paddingX={1}>
-          <Text color={Colors.Comment}>ESC: exit • Ctrl+C: quit • Ctrl+L: clear</Text>
-        </Box>
       </Box>
     </Box>
   );

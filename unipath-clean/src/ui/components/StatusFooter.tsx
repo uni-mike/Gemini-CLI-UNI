@@ -6,6 +6,7 @@ import { Colors } from '../Colors.js';
 interface StatusFooterProps {
   status: 'idle' | 'processing' | 'thinking' | 'tool-execution';
   approvalMode: string;
+  helpText?: string;
 }
 
 const getStatusColor = (status: string): string => {
@@ -39,40 +40,51 @@ const getApprovalModeDisplay = (mode: string): string => {
 
 export const StatusFooter: React.FC<StatusFooterProps> = ({ 
   status, 
-  approvalMode
+  approvalMode,
+  helpText
 }) => {
   const statusColor = getStatusColor(status);
   const statusText = getStatusText(status);
   const approvalDisplay = getApprovalModeDisplay(approvalMode);
   
   return (
-    <Box 
-      borderStyle="single" 
-      borderColor={statusColor}
-      paddingX={1}
-      paddingY={0}
-      justifyContent="space-between"
-      width="100%"
-    >
-      {/* Left side: Status with spinner */}
-      <Box flexDirection="row" alignItems="center">
-        {status !== 'idle' && (
-          <>
-            <Box width={2}>
-              <Spinner type="dots" />
-            </Box>
-            <Text color={statusColor}> {statusText}</Text>
-          </>
-        )}
-        {status === 'idle' && (
-          <Text color={statusColor}>● {statusText}</Text>
-        )}
+    <Box flexDirection="column">
+      {/* Main status bar */}
+      <Box 
+        borderStyle="round" 
+        borderColor={statusColor}
+        paddingX={1}
+        paddingY={0}
+        justifyContent="space-between"
+        width="100%"
+      >
+        {/* Left side: Status with spinner */}
+        <Box flexDirection="row" alignItems="center">
+          {status !== 'idle' && (
+            <>
+              <Box width={2}>
+                <Spinner type="dots" />
+              </Box>
+              <Text color={statusColor}> {statusText}</Text>
+            </>
+          )}
+          {status === 'idle' && (
+            <Text color={statusColor}>● {statusText}</Text>
+          )}
+        </Box>
+        
+        {/* Right side: Approval mode */}
+        <Box>
+          <Text color={Colors.Comment}>{approvalDisplay}</Text>
+        </Box>
       </Box>
       
-      {/* Right side: Approval mode */}
-      <Box>
-        <Text color={Colors.Comment}>{approvalDisplay}</Text>
-      </Box>
+      {/* Help text below status bar */}
+      {helpText && (
+        <Box paddingX={1} marginTop={1}>
+          <Text color={Colors.Comment}>{helpText}</Text>
+        </Box>
+      )}
     </Box>
   );
 };
