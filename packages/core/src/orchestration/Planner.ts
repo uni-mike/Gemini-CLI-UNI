@@ -123,21 +123,35 @@ export class Planner {
       return this.createSimpleTasks(prompt);
     }
     
-    // Use AI decomposition for complex tasks with loop protection
+    // ALWAYS use AI decomposition for non-simple tasks
     if (this.aiModel && !this.isDecomposing && complexity !== 'simple') {
-      console.log('🧠 Using AI-powered task decomposition for optimal planning');
-      return await this.aiDecomposition(prompt);
+      console.log('🧠 Using AI-powered task decomposition');
+      const aiTasks = await this.aiDecomposition(prompt);
+      
+      // Only fall back if AI completely failed
+      if (aiTasks.length === 0) {
+        console.error('❌ AI decomposition failed completely, using emergency fallback');
+        // Emergency fallback - at least split on "then"
+        const parts = prompt.split(/\s+then\s+/i);
+        return parts.map((part, index) => ({
+          id: uuidv4(),
+          description: this.normalizeTaskDescription(part.trim()),
+          dependencies: index > 0 ? [parts[index-1]] : [],
+          status: TaskStatus.PENDING,
+          retryCount: 0,
+          maxRetries: 2,
+          timeoutMs: 30000,
+          toolCalls: []
+        }));
+      }
+      
+      return aiTasks;
     }
     
-    // Fallback to heuristic decomposition
-    console.log('📝 Using heuristic decomposition (fallback or loop prevention)');
-    return this.heuristicDecomposition(prompt);
-  }
-
-  private createSimpleTasks(prompt: string): Task[] {
+    // For simple tasks, just create one task
     return [{
       id: uuidv4(),
-      description: prompt,
+      description: this.normalizeTaskDescription(prompt),
       dependencies: [],
       status: TaskStatus.PENDING,
       retryCount: 0,
@@ -147,13 +161,32 @@ export class Planner {
     }];
   }
 
+  private async createSimpleTasks(prompt: string): Promise<Task[]> {
+    // Start with a single task
+    const initialTask: Task = {
+      id: uuidv4(),
+      description: prompt,
+      dependencies: [],
+      status: TaskStatus.PENDING,
+      retryCount: 0,
+      maxRetries: 2,
+      timeoutMs: 30000,
+      toolCalls: []
+    };
+    
+    // Use recursive decomposition to ensure it's truly atomic
+    const atomicTasks = await this.ensureAtomicTasks([initialTask]);
+    
+    return atomicTasks;
+  }
+
   private async aiDecomposition(prompt: string): Promise<Task[]> {
     // Set recursion protection
     this.isDecomposing = true;
     
     try {
       if (!this.aiModel) {
-        return this.heuristicDecomposition(prompt);
+        return await this.createSimpleTasks(prompt);
       }
       
       // Create an enhanced decomposition prompt for AI model
@@ -180,7 +213,7 @@ DECOMPOSE THE REQUEST:`;
       
       // Try different AI model interfaces with timeout and loop protection
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('AI decomposition timeout')), 10000)
+        setTimeout(() => reject(new Error('AI decomposition timeout')), 30000)  // 30 seconds for complex prompts
       );
       
       const aiCallPromise = (async () => {
@@ -213,214 +246,32 @@ DECOMPOSE THE REQUEST:`;
       
       response = await Promise.race([aiCallPromise, timeoutPromise]) as string;
       
-      return this.parseAIResponse(response, prompt);
+      return await this.parseAIResponse(response, prompt);
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.warn('🧠 AI decomposition failed, using heuristic fallback:', errorMessage);
-      return this.heuristicDecomposition(prompt);
+      console.warn('🧠 AI decomposition failed, will retry with simpler prompt:', errorMessage);
+      
+      // Retry with simpler prompt
+      try {
+        const simplePrompt = `Break this into steps: ${prompt}`;
+        const response = await this.aiModel.sendMessageStream(simplePrompt);
+        let fullResponse = '';
+        for await (const chunk of response) {
+          fullResponse += chunk;
+        }
+        return await this.parseAIResponse(fullResponse, prompt);
+      } catch (retryError) {
+        // Return empty array - will be handled by caller
+        console.error('🧠 AI decomposition retry also failed:', retryError);
+        return [];
+      }
     } finally {
       // Always reset recursion protection
       this.isDecomposing = false;
     }
   }
 
-  private heuristicDecomposition(prompt: string): Task[] {
-    console.log('📝 Planner: Using OPERATIONAL-GRADE dynamic decomposition (no hardcoded patterns)');
-    const tasks: Task[] = [];
-    
-    // UNIVERSAL multi-step pattern detection - handles ANY "X then Y" or "X and then Y" patterns
-    const multiStepPatterns = [
-      // Pattern 1: "X then Y"
-      /^(.*?)\s+then\s+(.*?)$/i,
-      // Pattern 2: "X and then Y" 
-      /^(.*?)\s+and\s+then\s+(.*?)$/i,
-      // Pattern 3: "first X, then Y"
-      /^(?:first\s+)?(.*?)(?:,\s*|\s+)then\s+(.*?)$/i,
-      // Pattern 4: "do X followed by Y"
-      /^(.*?)\s+followed\s+by\s+(.*?)$/i,
-      // Pattern 5: "X after that Y"
-      /^(.*?)\s+after\s+that\s+(.*?)$/i,
-      // Pattern 6: "X followed by creating Y" 
-      /^(.*?)\s+followed\s+by\s+creating\s+(.*?)$/i,
-      // Pattern 7: "X followed by generating Y"
-      /^(.*?)\s+followed\s+by\s+generating\s+(.*?)$/i
-    ];
-    
-    // Try each multi-step pattern
-    for (const pattern of multiStepPatterns) {
-      const match = prompt.match(pattern);
-      if (match) {
-        const firstAction = match[1].trim();
-        const secondAction = match[2].trim();
-        
-        console.log(`📝 Planner: Detected multi-step pattern: "${firstAction}" → "${secondAction}"`);
-        
-        // Create first task
-        const firstTask = {
-          id: uuidv4(),
-          description: this.normalizeTaskDescription(firstAction),
-          dependencies: [],
-          status: TaskStatus.PENDING,
-          retryCount: 0,
-          maxRetries: 2,
-          timeoutMs: this.estimateTimeout(firstAction),
-          toolCalls: []
-        };
-        tasks.push(firstTask);
-        
-        // Create second task that depends on first - make it a creation task
-        const normalizedSecond = this.normalizeTaskDescription(secondAction);
-        const secondTask = {
-          id: uuidv4(),
-          description: this.makeSecondTaskCreative(normalizedSecond),
-          dependencies: [firstTask.id],
-          status: TaskStatus.PENDING,
-          retryCount: 0,
-          maxRetries: 2,
-          timeoutMs: this.estimateTimeout(secondAction),
-          toolCalls: []
-        };
-        tasks.push(secondTask);
-        
-        return tasks;
-      }
-    }
-    
-    // Common patterns fallback
-    const patterns = [
-      { regex: /search\s+for\s+(\w+)/gi, template: 'Search for $1', timeout: 15000 },
-      { regex: /read\s+(?:the\s+)?file\s+(\S+)/gi, template: 'Read file $1', timeout: 5000 },
-      { regex: /write\s+(?:to\s+)?(?:the\s+)?file\s+(\S+)/gi, template: 'Write to file $1', timeout: 5000 },
-      { regex: /create\s+(?:a\s+)?(?:new\s+)?(\w+)/gi, template: 'Create $1', timeout: 10000 },
-      { regex: /test\s+(\w+)/gi, template: 'Test $1', timeout: 30000 },
-      { regex: /deploy\s+(?:to\s+)?(\w+)/gi, template: 'Deploy to $1', timeout: 60000 },
-      { regex: /install\s+(\S+)/gi, template: 'Install $1', timeout: 30000 },
-      { regex: /run\s+(\S+)/gi, template: 'Run $1', timeout: 20000 },
-      { regex: /analyze\s+(\w+)/gi, template: 'Analyze $1', timeout: 20000 },
-      { regex: /fix\s+(?:the\s+)?(\w+)/gi, template: 'Fix $1', timeout: 30000 }
-    ];
-
-    // Extract tasks based on patterns
-    for (const pattern of patterns) {
-      let match;
-      while ((match = pattern.regex.exec(prompt)) !== null) {
-        const description = pattern.template.replace('$1', match[1]);
-        tasks.push({
-          id: uuidv4(),
-          description,
-          dependencies: [],
-          status: TaskStatus.PENDING,
-          retryCount: 0,
-          maxRetries: 2,
-          timeoutMs: pattern.timeout,
-          toolCalls: []
-        });
-      }
-    }
-
-    // If no patterns matched, create a single task
-    if (tasks.length === 0) {
-      tasks.push({
-        id: uuidv4(),
-        description: prompt.substring(0, 100),
-        dependencies: [],
-        status: TaskStatus.PENDING,
-        retryCount: 0,
-        maxRetries: 2,
-        timeoutMs: 30000,
-        toolCalls: []
-      });
-    }
-
-    return tasks;
-  }
-
-  /**
-   * Normalize task description to be more actionable
-   */
-  private normalizeTaskDescription(description: string): string {
-    // Remove leading articles and normalize
-    let normalized = description
-      .replace(/^(the|a|an)\s+/i, '')
-      .replace(/\s+and\s*$/i, '') // Remove trailing "and"
-      .trim();
-    
-    // Ensure it starts with a verb for actionability
-    if (!this.startsWithActionVerb(normalized)) {
-      // Try to detect the intent and add appropriate verb
-      if (normalized.includes('best') || normalized.includes('top') || normalized.includes('find')) {
-        normalized = `Search for ${normalized}`;
-      } else if (normalized.includes('analyze') || normalized.includes('analysis')) {
-        normalized = `Analyze ${normalized}`;
-      } else if (normalized.includes('create') || normalized.includes('generate')) {
-        normalized = `Create ${normalized}`;
-      } else if (normalized.includes('compare') || normalized.includes('comparison')) {
-        normalized = `Compare ${normalized}`;
-      } else if (normalized.includes('investigate') || normalized.includes('research')) {
-        // Investigation/research tasks should be searches
-        normalized = `Search for ${normalized.replace(/^(investigate|research)\s+/i, '')}`;
-      } else if (normalized.includes('look up') || normalized.includes('lookup')) {
-        // Lookup tasks should be searches
-        normalized = `Search for ${normalized.replace(/^look\s+up\s+/i, '')}`;
-      } else {
-        // Default to search for unknown patterns
-        normalized = `Search for ${normalized}`;
-      }
-    }
-    
-    return normalized;
-  }
-
-  /**
-   * Convert analysis tasks to creation tasks for better tool execution
-   */
-  private makeSecondTaskCreative(normalizedTask: string): string {
-    // Convert analysis/comparison tasks to file creation tasks
-    if (normalizedTask.toLowerCase().includes('analyze')) {
-      const subject = normalizedTask.replace(/^analyze\s*/i, '').trim();
-      return `Create analysis report for ${subject}`;
-    }
-    
-    if (normalizedTask.toLowerCase().includes('compare')) {
-      const subject = normalizedTask.replace(/^compare\s*/i, '').trim();
-      return `Create comparison report for ${subject}`;
-    }
-    
-    if (normalizedTask.toLowerCase().includes('evaluate')) {
-      const subject = normalizedTask.replace(/^evaluate\s*/i, '').trim();
-      return `Create evaluation report for ${subject}`;
-    }
-    
-    // If it's already a creation task, keep it
-    if (normalizedTask.toLowerCase().includes('create')) {
-      return normalizedTask;
-    }
-    
-    // Default: make it a report creation task
-    return `Create report about ${normalizedTask.toLowerCase().replace(/^process\s*/i, '')}`;
-  }
-
-  /**
-   * Check if description starts with action verb
-   */
-  private startsWithActionVerb(description: string): boolean {
-    const actionVerbs = [
-      'search', 'find', 'look', 'get', 'fetch', 'retrieve',
-      'create', 'make', 'build', 'generate', 'write', 'produce',
-      'analyze', 'examine', 'study', 'review', 'evaluate',
-      'compare', 'contrast', 'assess', 'measure',
-      'test', 'verify', 'validate', 'check',
-      'process', 'handle', 'manage', 'organize'
-    ];
-    
-    const firstWord = description.split(' ')[0].toLowerCase();
-    return actionVerbs.includes(firstWord);
-  }
-
-  /**
-   * Estimate timeout based on task complexity
-   */
   private estimateTimeout(description: string): number {
     const lowerDesc = description.toLowerCase();
     
@@ -547,20 +398,56 @@ DECOMPOSE THE REQUEST:`;
     return independentTasks.length > 1;
   }
 
-  private parseAIResponse(response: string, originalPrompt: string): Task[] {
+  private async parseAIResponse(response: string, originalPrompt: string): Promise<Task[]> {
     console.log('🧠 Parsing AI decomposition response:', response.substring(0, 200) + '...');
     const tasks: Task[] = [];
     
+    // First, strip DeepSeek thinking tags if present
+    let cleanResponse = response;
+    if (response.includes('<think>')) {
+      // Extract content after thinking process
+      const afterThink = response.split('</think>').pop() || response;
+      cleanResponse = afterThink.trim();
+      
+      // Also try to extract from thinking content if it contains steps
+      const thinkContent = response.match(/<think>([\s\S]*?)<\/think>/)?.[1] || '';
+      if (thinkContent.includes('Steps:') || thinkContent.includes('1.')) {
+        const stepsMatch = thinkContent.match(/Steps:[\s\S]*/)?.[0] || thinkContent;
+        cleanResponse = stepsMatch;
+      }
+    }
+    
+    // Helper to clean task descriptions
+    const cleanTaskDescription = (desc: string): string => {
+      // Remove step numbers at start
+      desc = desc.replace(/^(?:step\s+)?\d+[\.:]\s*/i, '');
+      // Remove trailing metadata like "-> This is a distinct step"
+      desc = desc.replace(/\s*->\s*.*$/i, '');
+      // Remove dependency notes
+      desc = desc.replace(/\s*\(.*?depends on.*?\)/gi, '');
+      desc = desc.replace(/\s*This depends on.*$/i, '');
+      // Remove time estimates
+      desc = desc.replace(/\s*\d+\s*minutes?.*$/i, '');
+      // Remove parenthetical notes
+      desc = desc.replace(/\s*\([^)]*\)/g, '');
+      // Clean up quotes
+      desc = desc.replace(/^["']|["']$/g, '');
+      // Normalize whitespace
+      desc = desc.replace(/\s+/g, ' ').trim();
+      return desc;
+    };
+    
     try {
       // First try to parse as JSON array (preferred format)
-      let jsonMatch = response.match(/\[[\s\S]*\]/);
+      let jsonMatch = cleanResponse.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const tasksData = JSON.parse(jsonMatch[0]);
         if (Array.isArray(tasksData)) {
           for (const taskData of tasksData) {
+            const rawDesc = taskData.description || taskData.task || taskData.name || 'Unknown task';
             tasks.push({
               id: uuidv4(),
-              description: taskData.description || taskData.task || taskData.name || 'Unknown task',
+              description: cleanTaskDescription(rawDesc),
               dependencies: [],
               status: TaskStatus.PENDING,
               retryCount: 0,
@@ -581,8 +468,8 @@ DECOMPOSE THE REQUEST:`;
       console.warn('🧠 Failed to parse JSON format, trying numbered list');
     }
     
-    // Fallback: Parse numbered list format
-    const lines = response.split('\n');
+    // Parse numbered list format (also handle cleaned response)
+    const lines = cleanResponse.split('\n');
     const taskPattern = /^\d+\.\s*(.+)/;
     
     for (const line of lines) {
@@ -601,7 +488,7 @@ DECOMPOSE THE REQUEST:`;
         
         tasks.push({
           id: uuidv4(),
-          description: this.normalizeTaskDescription(description),
+          description: cleanTaskDescription(description),
           dependencies: [],
           status: TaskStatus.PENDING,
           retryCount: 0,
@@ -614,12 +501,134 @@ DECOMPOSE THE REQUEST:`;
     
     if (tasks.length > 0) {
       console.log(`🧠 Successfully parsed ${tasks.length} tasks from numbered list format`);
-      this.identifyDependencies(tasks);
-      return tasks;
+      
+      // RECURSIVE DECOMPOSITION - ensure all tasks are atomic
+      const atomicTasks = await this.ensureAtomicTasks(tasks);
+      
+      this.identifyDependencies(atomicTasks);
+      return atomicTasks;
     }
     
-    // Final fallback: Heuristic decomposition
-    console.warn('🧠 AI parsing failed completely, using heuristic fallback');
-    return this.heuristicDecomposition(originalPrompt);
+    // If AI fails, create a single task and let AI recovery handle it
+    console.warn('🧠 AI parsing failed, creating single task for AI recovery');
+    const singleTask: Task = {
+      id: uuidv4(),
+      description: originalPrompt,
+      dependencies: [],
+      status: TaskStatus.PENDING,
+      retryCount: 0,
+      maxRetries: 3,
+      timeoutMs: 60000,
+      toolCalls: []
+    };
+    
+    // Still ensure it's atomic
+    const atomicTasks = await this.ensureAtomicTasks([singleTask]);
+    this.identifyDependencies(atomicTasks);
+    return atomicTasks;
   }
+  
+  /**
+   * Ensure all tasks are atomic by recursively decomposing compound tasks
+   */
+  private async ensureAtomicTasks(tasks: Task[]): Promise<Task[]> {
+    const atomicTasks: Task[] = [];
+    
+    for (const task of tasks) {
+      // Check if task contains multiple steps
+      if (this.isCompoundTask(task.description)) {
+        console.log(`🔄 Decomposing compound task: ${task.description.substring(0, 100)}...`);
+        
+        // Recursively decompose this task
+        const subtasks = await this.decomposeCompoundTask(task);
+        
+        // Recursively ensure subtasks are also atomic
+        const atomicSubtasks = await this.ensureAtomicTasks(subtasks);
+        
+        atomicTasks.push(...atomicSubtasks);
+      } else {
+        // Task is already atomic
+        atomicTasks.push(task);
+      }
+    }
+    
+    return atomicTasks;
+  }
+  
+  /**
+   * Check if a task description contains multiple steps
+   */
+  private isCompoundTask(description: string): boolean {
+    const compoundIndicators = [
+      /\bthen\b/i,
+      /\bafter that\b/i,
+      /\bfinally\b/i,
+      /\bfollowed by\b/i,
+      /\bnext\b/i,
+      /\bsubsequently\b/i,
+      /\b,\s*(then|after|finally)\b/i
+    ];
+    
+    return compoundIndicators.some(pattern => pattern.test(description));
+  }
+  
+  /**
+   * Decompose a compound task into atomic subtasks
+   */
+  private async decomposeCompoundTask(task: Task): Promise<Task[]> {
+    const subtasks: Task[] = [];
+    const description = task.description;
+    
+    // Split on common conjunctions while preserving order
+    const parts = description.split(/\s+(?:then|after that|finally|followed by|next|subsequently)\s+/i);
+    
+    if (parts.length > 1) {
+      let previousTaskId: string | null = null;
+      
+      for (const part of parts) {
+        const cleanPart = part.trim();
+        if (cleanPart.length < 3) continue; // Skip empty parts
+        
+        const subtaskId = uuidv4();
+        subtasks.push({
+          id: subtaskId,
+          description: this.normalizeTaskDescription(cleanPart),
+          dependencies: previousTaskId ? [previousTaskId] : task.dependencies,
+          status: TaskStatus.PENDING,
+          retryCount: 0,
+          maxRetries: task.maxRetries,
+          timeoutMs: this.estimateTimeout(cleanPart),
+          toolCalls: []
+        });
+        previousTaskId = subtaskId;
+      }
+    } else {
+      // Also split on commas if they separate distinct actions
+      const commaParts = description.split(/,\s+(?=\w+\s+)/);
+      
+      if (commaParts.length > 1) {
+        for (const part of commaParts) {
+          const cleanPart = part.trim();
+          if (cleanPart.length < 3) continue;
+          
+          subtasks.push({
+            id: uuidv4(),
+            description: this.normalizeTaskDescription(cleanPart),
+            dependencies: task.dependencies,
+            status: TaskStatus.PENDING,
+            retryCount: 0,
+            maxRetries: task.maxRetries,
+            timeoutMs: this.estimateTimeout(cleanPart),
+            toolCalls: []
+          });
+        }
+      } else {
+        // Task is actually atomic, return as is
+        return [task];
+      }
+    }
+    
+    return subtasks.length > 0 ? subtasks : [task];
+  }
+  
 }

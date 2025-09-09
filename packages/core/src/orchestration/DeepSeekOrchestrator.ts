@@ -74,11 +74,18 @@ export class DeepSeekOrchestrator {
               messages: [
                 {
                   role: 'system',
-                  content: 'You are a task decomposition expert. Break down complex tasks into atomic, executable steps. Return ONLY a JSON array or numbered list.'
+                  content: `You are a task decomposition expert. Break down complex tasks into atomic, executable steps.
+
+IMPORTANT: Return ONLY a numbered list. No thinking, no explanations, just:
+1. First task
+2. Second task
+3. Third task
+
+Each task must be specific and actionable. Use verbs like: read, write, create, edit, run, search, etc.`
                 },
                 {
                   role: 'user',
-                  content: prompt
+                  content: `Break this down into numbered steps: ${prompt}`
                 }
               ],
               temperature: 0.3,  // Lower temperature for more consistent decomposition
