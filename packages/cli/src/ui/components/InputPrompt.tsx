@@ -22,7 +22,7 @@ import type { Key } from '../hooks/useKeypress.js';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { keyMatchers, Command } from '../keyMatchers.js';
 import type { CommandContext, SlashCommand } from '../commands/types.js';
-import type { Config } from '@unipath/unipath-cli-core';
+import type { Config } from '../.././index.js';
 import { parseInputForHighlighting } from '../utils/highlight.js';
 import {
   clipboardHasImage,

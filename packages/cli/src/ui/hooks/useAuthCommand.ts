@@ -6,11 +6,11 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType, type Config } from '@unipath/unipath-cli-core';
+import { AuthType, type Config } from '../.././index.js';
 import {
   clearCachedCredentialFile,
   getErrorMessage,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 import { runExitCleanup } from '../../utils/cleanup.js';
 
 export const useAuthCommand = (

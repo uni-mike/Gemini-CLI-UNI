@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config, ToolCallRequestInfo } from '@unipath/unipath-cli-core';
+import type { Config, ToolCallRequestInfo } from './index.js';
 import {
   executeToolCall,
   shutdownTelemetry,
@@ -13,7 +13,7 @@ import {
   parseAndFormatApiError,
   FatalInputError,
   FatalTurnLimitedError,
-} from '@unipath/unipath-cli-core';
+} from './index.js';
 import type { Content, Part } from '@google/genai';
 
 import { ConsolePatcher } from './ui/utils/ConsolePatcher.js';

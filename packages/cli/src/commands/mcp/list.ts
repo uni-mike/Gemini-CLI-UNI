@@ -7,8 +7,8 @@
 // File for 'gemini mcp list' command
 import type { CommandModule } from 'yargs';
 import { loadSettings } from '../../config/settings.js';
-import type { MCPServerConfig } from '@unipath/unipath-cli-core';
-import { MCPServerStatus, createTransport } from '@unipath/unipath-cli-core';
+import type { MCPServerConfig } from '../.././index.js';
+import { MCPServerStatus, createTransport } from '../.././index.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { loadExtensions } from '../../config/extension.js';
 

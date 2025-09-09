@@ -7,11 +7,11 @@
 import { useState, useCallback } from 'react';
 import type { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { type HistoryItem, MessageType } from '../types.js';
-import type { EditorType } from '@unipath/unipath-cli-core';
+import type { EditorType } from '../.././index.js';
 import {
   allowEditorTypeInSandbox,
   checkHasEditorType,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 
 interface UseEditorSettingsReturn {
   isEditorDialogOpen: boolean;

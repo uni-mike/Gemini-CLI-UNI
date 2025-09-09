@@ -8,7 +8,7 @@ import type {
   CompressionStatus,
   ToolCallConfirmationDetails,
   ToolResultDisplay,
-} from '@unipath/unipath-cli-core';
+} from '.././index.js';
 import type { PartListUnion } from '@google/genai';
 
 // Only defining the state enum needed by the UI

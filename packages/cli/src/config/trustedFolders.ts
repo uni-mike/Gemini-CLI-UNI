@@ -11,7 +11,7 @@ import {
   getErrorMessage,
   isWithinRoot,
   getIdeTrust,
-} from '@unipath/unipath-cli-core';
+} from '.././index.js';
 import type { Settings } from './settings.js';
 import stripJsonComments from 'strip-json-comments';
 

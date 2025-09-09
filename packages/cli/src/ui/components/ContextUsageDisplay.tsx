@@ -6,7 +6,7 @@
 
 import { Text } from 'ink';
 import { Colors } from '../colors.js';
-import { tokenLimit } from '@unipath/unipath-cli-core';
+import { tokenLimit } from '../.././index.js';
 
 export const ContextUsageDisplay = ({
   promptTokenCount,

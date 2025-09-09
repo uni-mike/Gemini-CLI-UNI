@@ -5,11 +5,11 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import type { Config } from '@unipath/unipath-cli-core';
+import type { Config } from '../.././index.js';
 import {
   DEFAULT_GEMINI_FLASH_LITE_MODEL,
   getResponseText,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 import type { Content, GenerateContentConfig } from '@google/genai';
 import type { TextBuffer } from '../components/shared/text-buffer.js';
 import { isSlashCommand } from '../utils/commandUtils.js';

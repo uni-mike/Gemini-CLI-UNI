@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { DetectedIde } from '@unipath/unipath-cli-core';
-import { getIdeInfo } from '@unipath/unipath-cli-core';
+import type { DetectedIde } from '.././index.js';
+import { getIdeInfo } from '.././index.js';
 import { Box, Text } from 'ink';
 import type { RadioSelectItem } from './components/shared/RadioButtonSelect.js';
 import { RadioButtonSelect } from './components/shared/RadioButtonSelect.js';

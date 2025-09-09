@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { uiTelemetryService } from '@unipath/unipath-cli-core';
+import { uiTelemetryService } from '../.././index.js';
 import type { SlashCommand } from './types.js';
 import { CommandKind } from './types.js';
 

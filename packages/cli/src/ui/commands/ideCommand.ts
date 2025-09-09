@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config, IdeClient, File } from '@unipath/unipath-cli-core';
+import type { Config, IdeClient, File } from '../.././index.js';
 import {
   getIdeInstaller,
   IDEConnectionStatus,
   ideContext,
   GEMINI_CLI_COMPANION_EXTENSION_NAME,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 import path from 'node:path';
 import type {
   CommandContext,

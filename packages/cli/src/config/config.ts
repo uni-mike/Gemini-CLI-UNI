@@ -15,7 +15,7 @@ import type {
   TelemetryTarget,
   FileFilteringOptions,
   MCPServerConfig,
-} from '@unipath/unipath-cli-core';
+} from '.././index.js';
 import { extensionsCommand } from '../commands/extensions.js';
 import {
   Config,
@@ -30,7 +30,7 @@ import {
   ShellTool,
   EditTool,
   WriteFileTool,
-} from '@unipath/unipath-cli-core';
+} from '.././index.js';
 import type { Settings } from './settings.js';
 
 import type { Extension } from './extension.js';

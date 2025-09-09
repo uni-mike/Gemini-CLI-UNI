@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ToolConfirmationOutcome } from '@unipath/unipath-cli-core';
+import { ToolConfirmationOutcome } from '../.././index.js';
 import { Box, Text } from 'ink';
 import type React from 'react';
 import { Colors } from '../colors.js';

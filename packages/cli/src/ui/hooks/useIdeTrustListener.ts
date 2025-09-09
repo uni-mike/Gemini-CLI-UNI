@@ -5,8 +5,8 @@
  */
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import type { Config } from '@unipath/unipath-cli-core';
-import { ideContext } from '@unipath/unipath-cli-core';
+import type { Config } from '../.././index.js';
+import { ideContext } from '../.././index.js';
 
 /**
  * This hook listens for trust status updates from the IDE companion extension.

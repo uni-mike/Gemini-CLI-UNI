@@ -12,7 +12,7 @@ import {
   type SlashCommandActionReturn,
   CommandKind,
 } from './types.js';
-import type { Config } from '@unipath/unipath-cli-core';
+import type { Config } from '../.././index.js';
 
 async function restoreAction(
   context: CommandContext,

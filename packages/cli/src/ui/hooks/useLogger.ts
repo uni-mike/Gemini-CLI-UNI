@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import type { Storage } from '@unipath/unipath-cli-core';
-import { sessionId, Logger } from '@unipath/unipath-cli-core';
+import type { Storage } from '../.././index.js';
+import { sessionId, Logger } from '../.././index.js';
 
 /**
  * Hook to manage the logger instance.

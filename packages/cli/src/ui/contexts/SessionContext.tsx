@@ -14,8 +14,8 @@ import {
   useEffect,
 } from 'react';
 
-import type { SessionMetrics, ModelMetrics } from '@unipath/unipath-cli-core';
-import { uiTelemetryService, sessionId } from '@unipath/unipath-cli-core';
+import type { SessionMetrics, ModelMetrics } from '../.././index.js';
+import { uiTelemetryService, sessionId } from '../.././index.js';
 
 // --- Interface Definitions ---
 

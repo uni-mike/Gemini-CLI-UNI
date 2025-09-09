@@ -7,7 +7,7 @@
 import {
   flatMapTextParts,
   readPathFromWorkspace,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 import type { CommandContext } from '../../ui/commands/types.js';
 import { MessageType } from '../../ui/types.js';
 import {

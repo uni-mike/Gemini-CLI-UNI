@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { SandboxConfig } from '@unipath/unipath-cli-core';
-import { FatalSandboxError } from '@unipath/unipath-cli-core';
+import type { SandboxConfig } from '.././index.js';
+import { FatalSandboxError } from '.././index.js';
 import commandExists from 'command-exists';
 import * as os from 'node:os';
 import { getPackageJson } from '../utils/package.js';

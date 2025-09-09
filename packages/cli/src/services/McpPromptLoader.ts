@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config } from '@unipath/unipath-cli-core';
-import { getErrorMessage, getMCPServerPrompts } from '@unipath/unipath-cli-core';
+import type { Config } from '.././index.js';
+import { getErrorMessage, getMCPServerPrompts } from '.././index.js';
 import type {
   CommandContext,
   SlashCommand,

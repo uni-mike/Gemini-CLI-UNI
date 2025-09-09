@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config } from '@unipath/unipath-cli-core';
-import { AuthType } from '@unipath/unipath-cli-core';
+import type { Config } from './index.js';
+import { AuthType } from './index.js';
 import { USER_SETTINGS_PATH } from './config/settings.js';
 import { validateAuthMethod } from './config/auth.js';
 import { type LoadedSettings } from './config/settings.js';

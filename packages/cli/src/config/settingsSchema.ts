@@ -10,7 +10,7 @@ import type {
   TelemetrySettings,
   AuthType,
   ChatCompressionSettings,
-} from '@unipath/unipath-cli-core';
+} from '.././index.js';
 import type { CustomTheme } from '../ui/themes/theme.js';
 
 export enum MergeStrategy {

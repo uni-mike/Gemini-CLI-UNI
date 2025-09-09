@@ -10,7 +10,7 @@ import {
   type CodeAssistServer,
   UserTierId,
   getCodeAssistServer,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 
 export interface PrivacyState {
   isLoading: boolean;

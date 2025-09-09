@@ -16,7 +16,7 @@ import type {
   ThoughtSummary,
   ToolCallRequestInfo,
   GeminiErrorEventValue,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 import {
   GeminiEventType as ServerGeminiEventType,
   getErrorMessage,
@@ -33,7 +33,7 @@ import {
   parseAndFormatApiError,
   getCodeAssistServer,
   UserTierId,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 import { type Part, type PartListUnion, FinishReason } from '@google/genai';
 import type {
   HistoryItem,

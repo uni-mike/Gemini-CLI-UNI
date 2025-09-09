@@ -7,7 +7,7 @@
 import type React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import { type Config } from '@unipath/unipath-cli-core';
+import { type Config } from '../.././index.js';
 
 interface TipsProps {
   config: Config;

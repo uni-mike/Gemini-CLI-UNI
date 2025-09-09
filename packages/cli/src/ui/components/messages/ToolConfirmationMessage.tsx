@@ -14,8 +14,8 @@ import type {
   ToolExecuteConfirmationDetails,
   ToolMcpConfirmationDetails,
   Config,
-} from '@unipath/unipath-cli-core';
-import { ToolConfirmationOutcome } from '@unipath/unipath-cli-core';
+} from '../../.././index.js';
+import { ToolConfirmationOutcome } from '../../.././index.js';
 import type { RadioSelectItem } from '../shared/RadioButtonSelect.js';
 import { RadioButtonSelect } from '../shared/RadioButtonSelect.js';
 import { MaxSizedBox } from '../shared/MaxSizedBox.js';

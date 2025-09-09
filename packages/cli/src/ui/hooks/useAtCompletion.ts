@@ -5,8 +5,8 @@
  */
 
 import { useEffect, useReducer, useRef } from 'react';
-import type { Config, FileSearch } from '@unipath/unipath-cli-core';
-import { FileSearchFactory, escapePath } from '@unipath/unipath-cli-core';
+import type { Config, FileSearch } from '../.././index.js';
+import { FileSearchFactory, escapePath } from '../.././index.js';
 import type { Suggestion } from '../components/SuggestionsDisplay.js';
 import { MAX_SUGGESTIONS_TO_SHOW } from '../components/SuggestionsDisplay.js';
 

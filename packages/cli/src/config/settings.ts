@@ -14,7 +14,7 @@ import {
   UNIPATH_CONFIG_DIR as UNIPATH_DIR,
   getErrorMessage,
   Storage,
-} from '@unipath/unipath-cli-core';
+} from '.././index.js';
 import stripJsonComments from 'strip-json-comments';
 import { DefaultLight } from '../ui/themes/default-light.js';
 import { DefaultDark } from '../ui/themes/default.js';

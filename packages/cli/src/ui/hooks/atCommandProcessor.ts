@@ -7,12 +7,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { PartListUnion, PartUnion } from '@google/genai';
-import type { AnyToolInvocation, Config } from '@unipath/unipath-cli-core';
+import type { AnyToolInvocation, Config } from '../.././index.js';
 import {
   getErrorMessage,
   isNodeError,
   unescapePath,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 import type { HistoryItem, IndividualToolCallDisplay } from '../types.js';
 import { ToolCallStatus } from '../types.js';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';

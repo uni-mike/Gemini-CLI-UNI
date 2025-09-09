@@ -19,8 +19,8 @@ import type {
   ToolCall,
   Status as CoreStatus,
   EditorType,
-} from '@unipath/unipath-cli-core';
-import { CoreToolScheduler } from '@unipath/unipath-cli-core';
+} from '../.././index.js';
+import { CoreToolScheduler } from '../.././index.js';
 import { useCallback, useState, useMemo } from 'react';
 import type {
   HistoryItemToolGroup,

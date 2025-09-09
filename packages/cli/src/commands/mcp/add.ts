@@ -7,7 +7,7 @@
 // File for 'gemini mcp add' command
 import type { CommandModule } from 'yargs';
 import { loadSettings, SettingScope } from '../../config/settings.js';
-import type { MCPServerConfig } from '@unipath/unipath-cli-core';
+import type { MCPServerConfig } from '../.././index.js';
 
 async function addMcpServer(
   name: string,

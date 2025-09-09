@@ -8,7 +8,7 @@ import {
   allowEditorTypeInSandbox,
   checkHasEditorType,
   type EditorType,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 
 export interface EditorDisplay {
   name: string;

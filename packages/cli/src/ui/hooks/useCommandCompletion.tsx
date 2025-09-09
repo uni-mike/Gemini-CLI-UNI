@@ -18,7 +18,7 @@ import {
   usePromptCompletion,
   PROMPT_COMPLETION_MIN_LENGTH,
 } from './usePromptCompletion.js';
-import type { Config } from '@unipath/unipath-cli-core';
+import type { Config } from '../.././index.js';
 import { useCompletion } from './useCompletion.js';
 
 export enum CompletionMode {

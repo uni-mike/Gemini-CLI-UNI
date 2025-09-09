@@ -11,7 +11,7 @@ import type {
   GeminiChat,
   ToolResult,
   ToolCallConfirmationDetails,
-} from '@unipath/unipath-cli-core';
+} from '.././index.js';
 import {
   AuthType,
   logToolCall,
@@ -25,7 +25,7 @@ import {
   MCPServerConfig,
   DiscoveredMCPTool,
   StreamEventType,
-} from '@unipath/unipath-cli-core';
+} from '.././index.js';
 import * as acp from './acp.js';
 import { AcpFileSystemService } from './fileSystemService.js';
 import { Readable, Writable } from 'node:stream';

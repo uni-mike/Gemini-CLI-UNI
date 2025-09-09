@@ -16,8 +16,8 @@ import {
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import type { LoadedSettings } from '../../config/settings.js';
 import { SettingScope } from '../../config/settings.js';
-import type { EditorType } from '@unipath/unipath-cli-core';
-import { isEditorAvailable } from '@unipath/unipath-cli-core';
+import type { EditorType } from '../.././index.js';
+import { isEditorAvailable } from '../.././index.js';
 import { useKeypress } from '../hooks/useKeypress.js';
 
 interface EditorDialogProps {

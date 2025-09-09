@@ -7,7 +7,7 @@
 import type React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import { ApprovalMode } from '@unipath/unipath-cli-core';
+import { ApprovalMode } from '../.././index.js';
 
 interface AutoAcceptIndicatorProps {
   approvalMode: ApprovalMode;

@@ -135,7 +135,8 @@
       "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"what is 2+2?\" --non-interactive)",
       "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"what is 3+3?\")",
       "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"create test-react-ink.txt with content ''Testing React Ink UI!''\")",
-      "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"what is 4+4?\")"
+      "Bash(APPROVAL_MODE=yolo ./start-deepseek-fresh.sh --prompt \"what is 4+4?\")",
+      "Bash(./fix-imports.sh)"
     ],
     "deny": [],
     "ask": []

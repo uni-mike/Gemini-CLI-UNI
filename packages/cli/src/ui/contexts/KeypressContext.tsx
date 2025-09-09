@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config } from '@unipath/unipath-cli-core';
+import type { Config } from '../.././index.js';
 import {
   KittySequenceOverflowEvent,
   logKittySequenceOverflow,
-} from '@unipath/unipath-cli-core';
+} from '../.././index.js';
 import { useStdin } from 'ink';
 import type React from 'react';
 import {

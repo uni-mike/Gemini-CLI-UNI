@@ -9,8 +9,8 @@ import path from 'node:path';
 import toml from '@iarna/toml';
 import { glob } from 'glob';
 import { z } from 'zod';
-import type { Config } from '@unipath/unipath-cli-core';
-import { Storage } from '@unipath/unipath-cli-core';
+import type { Config } from '.././index.js';
+import { Storage } from '.././index.js';
 import type { ICommandLoader } from './types.js';
 import type {
   CommandContext,
