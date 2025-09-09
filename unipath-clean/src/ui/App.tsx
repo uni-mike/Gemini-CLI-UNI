@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
+import { Box, Text, useInput, useApp, Static } from 'ink';
 import { Config } from '../config/Config.js';
 import { Orchestrator } from '../core/orchestrator.js';
 import { OrchestrationUI } from './OrchestrationUI.js';
@@ -235,18 +235,26 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
 
   return (
     <Box flexDirection="column" width="90%">
-      {/* Header and Operations */}
-      <Header 
-        model={config.getModel()}
-        approvalMode={config.getApprovalMode()}
-        version="1.0.0"
-      />
-      <OperationHistory operations={operations} maxDisplay={8} />
-      
-      {/* Messages Area */}
-      <Box flexDirection="column" flexGrow={1} paddingX={1} overflow="hidden">
-        {messages.slice(-8).map((msg, i) => (
-          <Box key={i} marginY={1} marginBottom={2}>
+      {/* Static Header - professional layout like original UNIPATH */}
+      <Static items={[
+        <Box flexDirection="column" key="header">
+          <Header 
+            model={config.getModel()}
+            approvalMode={config.getApprovalMode()}
+            version="1.0.0"
+          />
+          
+          {/* Operation History - integrated into static header */}
+          {operations.length > 0 && (
+            <Box marginBottom={1}>
+              <OperationHistory operations={operations} maxDisplay={5} />
+            </Box>
+          )}
+        </Box>,
+        
+        /* Static message history like original UNIPATH */
+        ...messages.slice(-8).map((msg, i) => (
+          <Box key={`msg-${i}`} marginBottom={1} paddingX={1}>
             {msg.type === 'user' && (
               <Text color={Colors.AccentCyan}>{'▶ '}{msg.content}</Text>
             )}
@@ -257,29 +265,35 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
               <Text color={Colors.AccentYellow}>{'⚠ '}{msg.content}</Text>
             )}
           </Box>
-        ))}
-      </Box>
+        ))
+      ]}>
+        {(item) => item}
+      </Static>
       
-      {/* Input Area */}
-      <Box 
-        borderStyle="single" 
-        borderColor={isProcessing ? Colors.AccentYellow : Colors.AccentGreen} 
-        paddingX={1}
-      >
-        <Text color={Colors.AccentGreen}>{'▶ '}</Text>
-        <Text color={Colors.Foreground}>{input}</Text>
-        <Text color={Colors.Comment}>│</Text>
-      </Box>
-      
-      {/* Persistent Status Footer */}
-      <StatusFooter
-        status={currentStatus}
-        approvalMode={config.getApprovalMode()}
-      />
-      
-      {/* Help Text */}
-      <Box paddingX={1}>
-        <Text color={Colors.Comment}>ESC: exit • Ctrl+C: quit • Ctrl+L: clear</Text>
+      {/* Main controls area - professional layout */}
+      <Box flexDirection="column">
+        {/* Input Area - professional single border */}
+        <Box 
+          borderStyle="single" 
+          borderColor={isProcessing ? Colors.AccentYellow : Colors.AccentGreen} 
+          paddingX={1}
+          marginY={1}
+        >
+          <Text color={Colors.AccentGreen}>{'▶ '}</Text>
+          <Text color={Colors.Foreground}>{input}</Text>
+          <Text color={Colors.Comment}>│</Text>
+        </Box>
+        
+        {/* Status Footer - always visible at bottom */}
+        <StatusFooter
+          status={currentStatus}
+          approvalMode={config.getApprovalMode()}
+        />
+        
+        {/* Help Text - minimal footer like original */}
+        <Box paddingX={1}>
+          <Text color={Colors.Comment}>ESC: exit • Ctrl+C: quit • Ctrl+L: clear</Text>
+        </Box>
       </Box>
     </Box>
   );
