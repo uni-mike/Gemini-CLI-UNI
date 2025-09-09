@@ -2,12 +2,23 @@
  * RipGrep Tool for advanced searching
  */
 
-import { Tool, ToolResult } from './base.js';
+import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { spawn } from 'child_process';
 
 export class RipGrepTool extends Tool {
   name = 'rg';
   description = 'Fast text search with ripgrep';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'pattern', type: 'string', required: true, description: 'Search pattern (regex)' },
+    { name: 'path', type: 'string', required: false, default: '.', description: 'Path to search' },
+    { name: 'case_insensitive', type: 'boolean', required: false, default: false, description: 'Case insensitive search' },
+    { name: 'word_regexp', type: 'boolean', required: false, default: false, description: 'Match whole words only' },
+    { name: 'fixed_strings', type: 'boolean', required: false, default: false, description: 'Treat pattern as literal string' },
+    { name: 'type', type: 'string', required: false, description: 'File type filter (e.g., js, py, rust)' },
+    { name: 'glob', type: 'string', required: false, description: 'Include files matching glob' },
+    { name: 'max_count', type: 'number', required: false, description: 'Max matches per file' }
+  ];
   
   async execute(args: any): Promise<ToolResult> {
     try {

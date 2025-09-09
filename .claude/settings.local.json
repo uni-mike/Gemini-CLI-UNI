@@ -175,7 +175,9 @@
       "Bash(DEBUG=true gtimeout 10 ./start-clean.sh --prompt \"what is 2+2?\" --non-interactive)",
       "Bash(DEBUG=true timeout 5 ./start-clean.sh)",
       "Bash(DEBUG=true timeout 10 ./start-clean.sh)",
-      "Bash(DEBUG=true gtimeout 15 ./start-clean.sh)"
+      "Bash(DEBUG=true gtimeout 15 ./start-clean.sh)",
+      "Bash(DEBUG=true gtimeout 10 ./start-clean.sh --prompt \"list all available tools\" --non-interactive)",
+      "Bash(DEBUG=true timeout 10 ./start-clean.sh --prompt \"list all available tools\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

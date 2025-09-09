@@ -2,13 +2,20 @@
  * Memory Tool for persistent context
  */
 
-import { Tool, ToolResult } from './base.js';
+import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { writeFile, readFile, access } from 'fs/promises';
 import { constants } from 'fs';
 
 export class MemoryTool extends Tool {
   name = 'memory';
   description = 'Store and retrieve information across sessions';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'action', type: 'string', required: false, default: 'get', enum: ['set', 'get', 'delete', 'list', 'clear'], description: 'Memory operation to perform' },
+    { name: 'key', type: 'string', required: false, description: 'Memory key to operate on' },
+    { name: 'value', type: 'string', required: false, description: 'Value to store (for set action)' }
+  ];
+  
   private memoryFile = '.unipath-memory.json';
   private memory: Record<string, any> = {};
   

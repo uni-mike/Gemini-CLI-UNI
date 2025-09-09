@@ -2,7 +2,7 @@
  * Write File Tool with advanced features
  */
 
-import { Tool, ToolResult } from './base.js';
+import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { writeFile, mkdir, access, readFile } from 'fs/promises';
 import { dirname } from 'path';
 import { constants } from 'fs';
@@ -10,6 +10,14 @@ import { constants } from 'fs';
 export class WriteFileTool extends Tool {
   name = 'write_file';
   description = 'Write content to files with backup and directory creation';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'file_path', type: 'string', required: true, description: 'Path to file to write' },
+    { name: 'content', type: 'string', required: true, description: 'Content to write to file' },
+    { name: 'create_backup', type: 'boolean', required: false, default: false, description: 'Create backup before overwriting' },
+    { name: 'append', type: 'boolean', required: false, default: false, description: 'Append to file instead of overwriting' },
+    { name: 'encoding', type: 'string', required: false, default: 'utf8', description: 'File encoding' }
+  ];
   
   async execute(args: any): Promise<ToolResult> {
     try {

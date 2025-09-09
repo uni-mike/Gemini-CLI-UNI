@@ -2,13 +2,21 @@
  * Read File Tool with advanced features
  */
 
-import { Tool, ToolResult } from './base.js';
+import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { readFile, access } from 'fs/promises';
 import { constants } from 'fs';
 
 export class ReadFileTool extends Tool {
   name = 'read_file';
   description = 'Read file contents with options for partial reading and encoding';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'file_path', type: 'string', required: true, description: 'Path to file to read' },
+    { name: 'encoding', type: 'string', required: false, default: 'utf8', description: 'File encoding' },
+    { name: 'start', type: 'number', required: false, default: 0, description: 'Start position in bytes' },
+    { name: 'end', type: 'number', required: false, description: 'End position in bytes' },
+    { name: 'lines', type: 'number', required: false, description: 'Number of lines to read' }
+  ];
   
   async execute(args: any): Promise<ToolResult> {
     try {

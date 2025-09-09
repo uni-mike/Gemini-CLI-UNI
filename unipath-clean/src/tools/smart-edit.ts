@@ -2,12 +2,23 @@
  * Smart Edit Tool with advanced editing capabilities
  */
 
-import { Tool, ToolResult } from './base.js';
+import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { readFile, writeFile } from 'fs/promises';
 
 export class SmartEditTool extends Tool {
   name = 'smart_edit';
   description = 'Advanced file editing with pattern matching and validation';
+  
+  parameterSchema: ParameterSchema[] = [
+    { name: 'file_path', type: 'string', required: true, description: 'File to edit' },
+    { name: 'operation', type: 'string', required: false, default: 'replace', enum: ['replace', 'insert', 'append', 'prepend', 'delete'], description: 'Edit operation' },
+    { name: 'pattern', type: 'string', required: false, description: 'Pattern to search (for replace/delete)' },
+    { name: 'replacement', type: 'string', required: false, description: 'Replacement text' },
+    { name: 'text', type: 'string', required: false, description: 'Text to insert/append/prepend' },
+    { name: 'line_number', type: 'number', required: false, description: 'Line number for insert operation' },
+    { name: 'regex', type: 'boolean', required: false, default: false, description: 'Use regex for pattern matching' },
+    { name: 'all', type: 'boolean', required: false, default: false, description: 'Replace all occurrences' }
+  ];
   
   async execute(args: any): Promise<ToolResult> {
     try {
