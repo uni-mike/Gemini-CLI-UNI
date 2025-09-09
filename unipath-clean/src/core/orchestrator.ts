@@ -5,7 +5,6 @@
 
 import { EventEmitter } from 'events';
 import { DeepSeekClient } from '../llm/deepseek-client.js';
-import { MockLLMClient } from '../llm/mock-client.js';
 import { Config } from '../config/Config.js';
 import { Message } from '../llm/provider.js';
 import { Planner } from './planner.js';
@@ -28,7 +27,7 @@ export interface TrioMessage {
 }
 
 export class Orchestrator extends EventEmitter {
-  private client: DeepSeekClient | MockLLMClient;
+  private client: DeepSeekClient;
   private config: Config;
   private conversation: Message[] = [];
   private toolsUsed: string[] = [];
@@ -59,21 +58,16 @@ export class Orchestrator extends EventEmitter {
       taskHistory: []
     };
     
-    // Use real client if API key is available
-    if (process.env.API_KEY) {
-      this.client = new DeepSeekClient();
-    } else {
-      console.warn('⚠️  No API_KEY found, using mock client');
-      this.client = new MockLLMClient();
-    }
+    // Use real client (API key required)
+    this.client = new DeepSeekClient();
     
     // Forward events from trio components
     this.setupTrioEvents();
     
     // Forward LLM events (only used for final response generation)
-    this.client.on('start', (data) => this.emit('llm-start', data));
-    this.client.on('complete', (data) => this.emit('llm-complete', data));
-    this.client.on('error', (error) => this.emit('llm-error', error));
+    this.client.on('start', (data: any) => this.emit('llm-start', data));
+    this.client.on('complete', (data: any) => this.emit('llm-complete', data));
+    this.client.on('error', (error: any) => this.emit('llm-error', error));
   }
   
   private setupTrioEvents() {

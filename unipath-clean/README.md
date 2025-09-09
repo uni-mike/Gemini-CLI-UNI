@@ -1,6 +1,6 @@
 # UNIPATH Clean Architecture
 
-🚀 Clean, simple, unified CLI with React Ink UI
+🚀 Clean, unified CLI with Planner-Executor-Orchestrator trio and dynamic tool system
 
 ## Structure
 
@@ -9,21 +9,23 @@ unipath-clean/
 ├── src/
 │   ├── cli.tsx          # Main entry point
 │   ├── config/          # Unified configuration
-│   ├── core/            # Core functionality (DeepSeek, etc)
+│   ├── core/            # Orchestrator, Planner, Executor
+│   ├── llm/             # DeepSeek R1 integration
 │   ├── ui/              # React Ink UI components
-│   ├── tools/           # Tool integrations
+│   ├── tools/           # Dynamic tool system with schemas
 │   └── utils/           # Utilities
-├── dist/                # Compiled output
-└── start-clean.sh       # Start script
+├── start-clean.sh       # Main start script
+└── TOOLS.md             # Tool system documentation
 ```
 
 ## Features
 
-- ✅ Clean React Ink UI with visual orchestration
-- ✅ DeepSeek R1 integration with event-driven architecture
-- ✅ Simple unified Config class
-- ✅ No complex package separation
-- ✅ Direct UI bridge (no console patching)
+- ✅ Planner-Executor-Orchestrator trio architecture
+- ✅ Dynamic tool discovery with parameter schemas
+- ✅ DeepSeek R1 integration (NO MOCKS, NO HARDCODING)
+- ✅ React Ink UI with visual orchestration
+- ✅ Event-driven architecture
+- ✅ All tools inherit base class with getAvailableTools()
 
 ## Usage
 
@@ -46,6 +48,11 @@ npm run build
 npm start
 ```
 
-## Old Structure
+## Available Tools
 
-The previous complex multi-package structure has been moved to `_OLD/` folder.
+13 production-ready tools with full parameter schemas:
+- bash, edit, file, git, glob, grep, ls
+- memory, read-file, rip-grep, smart-edit
+- web (search & fetch), write-file
+
+See TOOLS.md for detailed documentation.

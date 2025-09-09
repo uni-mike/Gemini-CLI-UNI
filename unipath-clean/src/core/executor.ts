@@ -5,7 +5,6 @@
 
 import { EventEmitter } from 'events';
 import { Task, TaskPlan } from './planner.js';
-import { toolManager } from '../tools/tool-manager.js';
 import { globalRegistry } from '../tools/registry.js';
 
 export interface ExecutionContext {
