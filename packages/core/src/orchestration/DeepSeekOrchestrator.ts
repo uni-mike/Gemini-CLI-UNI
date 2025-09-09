@@ -21,9 +21,9 @@ export class DeepSeekOrchestrator {
       maxRetries: 2,
       progressCallback: (progress) => this.handleProgress(progress),
       healthCheckInterval: 5000,
-      // Disable AI model in orchestration to prevent recursive loops
-      // The orchestration trio should use heuristic decomposition
-      aiModel: undefined
+      // Pass a safe AI interface that won't cause recursion
+      aiModel: this.createSafeAIInterface(deepSeek),
+      isOrchestrationContext: true  // Flag to prevent recursive orchestration
     });
 
     // Set up event listeners
@@ -33,6 +33,78 @@ export class DeepSeekOrchestrator {
     if (deepSeek) {
       this.integrateDeepSeekTools();
     }
+  }
+
+  /**
+   * Creates a safe AI interface that won't trigger recursive orchestration
+   * This allows the Planner to use AI decomposition without causing loops
+   */
+  private createSafeAIInterface(deepSeek: any): any {
+    if (!deepSeek) return undefined;
+    
+    // Use DeepSeek configuration from .env.deepseek or the instance config
+    const config = deepSeek.config || {};
+    
+    // DeepSeek endpoint format: https://[resource].services.ai.azure.com/models
+    const endpoint = config.endpoint || process.env['ENDPOINT'] || 'https://unipathai7556217047.services.ai.azure.com/models';
+    const apiKey = config.apiKey || process.env['API_KEY'] || '9c5d0679299045e9bd3513baf6ae0e86';
+    const model = config.model || process.env['MODEL'] || 'DeepSeek-R1-0528';
+    const apiVersion = config.apiVersion || process.env['API_VERSION'] || '2024-05-01-preview';
+    
+    if (!endpoint || !apiKey) {
+      console.warn('Missing DeepSeek configuration for AI decomposition');
+      return undefined;  // Fall back to heuristics
+    }
+    
+    // Create a lightweight AI interface that makes direct HTTP calls to DeepSeek
+    return {
+      sendMessageStream: async function* (prompt: string) {
+        try {
+          // DeepSeek API endpoint format
+          const url = `${endpoint}/chat/completions?api-version=${apiVersion}`;
+          
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'api-key': apiKey
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are a task decomposition expert. Break down complex tasks into atomic, executable steps. Return ONLY a JSON array or numbered list.'
+                },
+                {
+                  role: 'user',
+                  content: prompt
+                }
+              ],
+              temperature: 0.3,  // Lower temperature for more consistent decomposition
+              max_tokens: 500,   // Limit response size for decomposition
+              stream: false      // Use non-streaming for simplicity
+            })
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.warn(`DeepSeek API error ${response.status}:`, errorText);
+            throw new Error(`API call failed: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content || '';
+          
+          // Yield the complete response
+          yield content;
+          
+        } catch (error) {
+          console.warn('Direct DeepSeek AI call failed, using heuristics:', error);
+          throw error;  // Let Planner fall back to heuristics
+        }
+      }
+    };
   }
 
   async *orchestratePrompt(prompt: string): AsyncGenerator<string> {

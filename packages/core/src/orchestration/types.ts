@@ -60,6 +60,7 @@ export interface OrchestratorConfig {
   progressCallback?: (progress: Progress) => void;
   healthCheckInterval: number;
   aiModel?: any;
+  isOrchestrationContext?: boolean;  // Flag to prevent recursive orchestration
 }
 
 export interface Progress {
