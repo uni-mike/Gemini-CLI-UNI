@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Box, Text, Newline } from 'ink';
-import { TrioMessage } from '../core/orchestrator-trio';
+import { TrioMessage } from '../core/orchestrator-trio.js';
 
 interface TrioVisualizationProps {
   messages: TrioMessage[];

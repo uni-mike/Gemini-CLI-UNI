@@ -88,11 +88,36 @@ export class DeepSeekClient extends EventEmitter {
         return JSON.stringify(choice.message.tool_calls);
       }
       
-      // Clean up response - remove <think> tags if present
+      // Clean up response - remove DeepSeek reasoning tokens
       let content = choice.message.content;
+      
+      // Remove <think> tags (standard format)
       content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-      // Also clean up any stray closing tags
       content = content.replace(/<\/think>/g, '').trim();
+      
+      // For DeepSeek R1: If content is very long and contains reasoning patterns,
+      // try to extract just the final answer
+      if (content.length > 500) {
+        // Look for common patterns that mark the start of the final answer
+        const finalAnswerMarkers = [
+          /(?:^|\n\n)(?:The current price of Bitcoin|The price of Bitcoin|Bitcoin.*?is|BTC.*?is)\s*.*?\$[\d,]+/i,
+          /(?:^|\n\n)(?:Based on|Given|After analyzing|In summary|To answer your question|The answer is|Here'?s the|Current)/i,
+          /(?:^|\n\n)\*\*.*?\*\*/,  // Bold text often marks final answers
+          /(?:^|\n\n)[A-Z][^.]*\$[\d,]+.*USD/  // Price statements
+        ];
+        
+        for (const marker of finalAnswerMarkers) {
+          const match = content.match(marker);
+          if (match && match.index !== undefined) {
+            const candidateAnswer = content.substring(match.index).trim();
+            // If the candidate is much shorter than the original, it's likely the clean answer
+            if (candidateAnswer.length < content.length * 0.4 && candidateAnswer.length > 20) {
+              content = candidateAnswer;
+              break;
+            }
+          }
+        }
+      }
       
       this.emit('complete', content);
       return content;

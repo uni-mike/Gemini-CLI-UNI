@@ -46,6 +46,11 @@ export class Orchestrator extends EventEmitter {
     this.emit('orchestration-start', { prompt });
     this.toolsUsed = [];
     
+    // Handle slash commands
+    if (prompt.startsWith('/')) {
+      return this.handleSlashCommand(prompt.toLowerCase());
+    }
+    
     // Add user message
     this.conversation.push({ role: 'user', content: prompt });
     
@@ -248,6 +253,91 @@ export class Orchestrator extends EventEmitter {
   private async requestApproval(toolName: string, args: any): Promise<boolean> {
     // For now, auto-approve in autoEdit mode
     return this.config.getApprovalMode() === 'autoEdit';
+  }
+  
+  private handleSlashCommand(command: string): ExecutionResult {
+    const tools = globalRegistry.list();
+    
+    if (command === '/help' || command === '/?') {
+      const helpText = `🎭 Flexi-CLI - Help
+
+Available Commands:
+  /help, /?           - Show this help message
+  /quit, /exit        - Exit the CLI
+  /clear              - Clear the screen and history
+  /status             - Show system status
+  /tools              - List available tools
+
+Available Tools:
+${tools.map(name => `  ${name} - ${globalRegistry.get(name)?.description || 'No description'}`).join('\n')}
+
+Usage: Just type your request in natural language and I'll help you with it!`;
+      
+      setTimeout(() => {
+        this.emit('orchestration-complete', { response: helpText });
+      }, 100);
+      
+      return { success: true, response: helpText };
+      
+    } else if (command === '/status') {
+      const statusText = `🔧 System Status:
+  Model: ${this.config.getModel()}
+  Approval Mode: ${this.config.getApprovalMode()}
+  Interactive: ${this.config.isInteractive()}
+  Tools: ${tools.length}
+  Conversation: ${this.conversation.length} messages`;
+      
+      setTimeout(() => {
+        this.emit('orchestration-complete', { response: statusText });
+      }, 100);
+      
+      return { success: true, response: statusText };
+      
+    } else if (command === '/tools') {
+      const toolsText = `🛠️ Available Tools:
+
+${tools.map(name => {
+  const tool = globalRegistry.get(name)!;
+  return `${name}:
+  Description: ${tool.description}
+  Parameters: ${JSON.stringify(this.getToolProperties(name), null, 2)}`;
+}).join('\n\n')}`;
+      
+      setTimeout(() => {
+        this.emit('orchestration-complete', { response: toolsText });
+      }, 100);
+      
+      return { success: true, response: toolsText };
+      
+    } else if (command === '/quit' || command === '/exit') {
+      const goodbyeText = 'Goodbye! Thanks for using Flexi-CLI! 👋';
+      
+      setTimeout(() => {
+        this.emit('orchestration-complete', { response: goodbyeText });
+        // In non-interactive mode, we can't exit the process, just return
+      }, 100);
+      
+      return { success: true, response: goodbyeText };
+      
+    } else if (command === '/clear') {
+      this.clearConversation();
+      const clearText = 'Screen and history cleared! 🧹';
+      
+      setTimeout(() => {
+        this.emit('orchestration-complete', { response: clearText });
+      }, 100);
+      
+      return { success: true, response: clearText };
+      
+    } else {
+      const errorText = `Unknown command: ${command}. Type /help for available commands.`;
+      
+      setTimeout(() => {
+        this.emit('orchestration-complete', { response: errorText });
+      }, 100);
+      
+      return { success: false, response: errorText };
+    }
   }
   
   getConversation(): Message[] {
