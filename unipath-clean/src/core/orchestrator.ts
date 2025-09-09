@@ -82,6 +82,9 @@ export class Orchestrator extends EventEmitter {
         this.conversation.push({ role: 'assistant', content: response });
       }
       
+      if (process.env.DEBUG === 'true') {
+        console.log('🚀 Emitting orchestration-complete with:', finalResponse?.substring(0, 100) + (finalResponse?.length > 100 ? '...' : ''));
+      }
       this.emit('orchestration-complete', { response: finalResponse });
       
       return {

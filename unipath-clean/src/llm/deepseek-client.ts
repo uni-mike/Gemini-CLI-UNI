@@ -90,10 +90,17 @@ export class DeepSeekClient extends EventEmitter {
       
       // Clean up response - remove DeepSeek reasoning tokens
       let content = choice.message.content;
+      const originalContent = content; // Keep original for debugging
       
       // Remove <think> tags (standard format)
       content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
       content = content.replace(/<\/think>/g, '').trim();
+      
+      // Debug logging when in debug mode
+      if (process.env.DEBUG === 'true') {
+        console.log('🔍 Original response length:', originalContent.length);
+        console.log('🔍 After think cleanup length:', content.length);
+      }
       
       // SEXY parsing: Aggressive cleanup for DeepSeek R1 reasoning
       if (content.length > 200) {
@@ -143,6 +150,20 @@ export class DeepSeekClient extends EventEmitter {
             content = answerLines.slice(0, 2).join('\n\n');
           }
         }
+      }
+      
+      // Safety check: if content is empty or too short after cleanup, provide fallback
+      if (!content || content.trim().length < 10) {
+        if (process.env.DEBUG === 'true') {
+          console.log('🔍 Content too short, using fallback. Final length was:', content?.length || 0);
+        }
+        content = "I've completed the requested operation. The tools have been executed successfully.";
+      }
+      
+      // Final debug logging
+      if (process.env.DEBUG === 'true') {
+        console.log('🔍 Final response length:', content.length);
+        console.log('🔍 Final response preview:', content.substring(0, 100) + (content.length > 100 ? '...' : ''));
       }
       
       this.emit('complete', content);

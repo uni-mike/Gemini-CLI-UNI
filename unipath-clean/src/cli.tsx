@@ -88,8 +88,21 @@ async function main() {
     // Render React Ink UI
     const instance = render(<App config={config} orchestrator={orchestrator} />);
     
-    process.on('exit', () => {
-      instance.unmount();
+    // Prevent the process from exiting in interactive mode
+    await new Promise<void>((resolve) => {
+      process.on('SIGINT', () => {
+        instance.unmount();
+        resolve();
+      });
+      
+      process.on('SIGTERM', () => {
+        instance.unmount();
+        resolve();
+      });
+      
+      process.on('exit', () => {
+        instance.unmount();
+      });
     });
   } else {
     // Non-interactive mode without prompt

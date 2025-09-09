@@ -170,7 +170,12 @@
       "Bash(DEBUG=true timeout 2 ./start-clean.sh)",
       "Bash(DEBUG=true ./start-unipath.sh --prompt \"what is 2+2?\" --non-interactive)",
       "Bash(DEBUG=true timeout 10 ./start-clean.sh --prompt \"What is 5+5?\" --non-interactive)",
-      "Bash(DEBUG=true gtimeout 10 ./start-clean.sh --prompt \"What is 5+5?\" --non-interactive)"
+      "Bash(DEBUG=true gtimeout 10 ./start-clean.sh --prompt \"What is 5+5?\" --non-interactive)",
+      "Bash(DEBUG=true timeout 10 ./start-clean.sh --prompt \"what is 2+2?\" --non-interactive)",
+      "Bash(DEBUG=true gtimeout 10 ./start-clean.sh --prompt \"what is 2+2?\" --non-interactive)",
+      "Bash(DEBUG=true timeout 5 ./start-clean.sh)",
+      "Bash(DEBUG=true timeout 10 ./start-clean.sh)",
+      "Bash(DEBUG=true gtimeout 15 ./start-clean.sh)"
     ],
     "deny": [],
     "ask": []

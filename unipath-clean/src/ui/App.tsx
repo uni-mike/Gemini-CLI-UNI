@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput, useApp, Static, useStdin } from 'ink';
+import { Box, Text, useApp, Static, useStdin, useInput } from 'ink';
 import { Config } from '../config/Config.js';
 import { Orchestrator } from '../core/orchestrator.js';
-import { OrchestrationUI } from './OrchestrationUI.js';
 import { Header } from './components/Header.js';
 import { OperationHistory, Operation } from './components/OperationHistory.js';
 import { SessionSummary } from './components/SessionSummary.js';
@@ -31,12 +30,23 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
   const [sessionStartTime] = useState(new Date());
   const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'thinking' | 'tool-execution'>('idle');
   
-  // Only use input handling if raw mode is supported
-  const { stdin } = useStdin();
-  const rawModeSupported = stdin && stdin.isTTY && !process.env.CI;
-  
+  // Check if raw mode is supported - disable in CI/non-TTY environments
+  const [rawModeSupported] = useState(() => {
+    try {
+      // Disable in CI, non-TTY, or when explicitly disabled
+      if (process.env.CI || !process.stdin.isTTY || process.env.DISABLE_RAW_MODE === 'true') {
+        return false;
+      }
+      // Check if setRawMode function exists and works
+      return typeof process.stdin.setRawMode === 'function';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // Enable input handling only if raw mode is supported
   useInput((input, key) => {
-    if (!rawModeSupported || isProcessing) return; // Skip if raw mode not supported
+    if (!rawModeSupported || isProcessing) return;
     
     if (key.return) {
       handleSubmit();
@@ -47,12 +57,21 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     } else if (key.ctrl && input === 'c') {
       handleExit();
     } else if (key.ctrl && input === 'l') {
-      // Clear screen
       setMessages([]);
+      setOperations([]);
     } else {
       setInput(prev => prev + input);
     }
-  }, { isActive: rawModeSupported });
+  }, { isActive: rawModeSupported }); // Enable when raw mode is supported
+  
+  // Keep app alive always
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Just keep the app alive
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
   useEffect(() => {
     // Subscribe to orchestrator events for message updates and operations
@@ -80,6 +99,10 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     };
 
     const handleComplete = ({ response }: any) => {
+      if (process.env.DEBUG === 'true') {
+        console.log('🎯 handleComplete called with response:', response?.substring(0, 100) + (response?.length > 100 ? '...' : ''));
+      }
+      
       setCurrentStatus('idle');
       
       // Mark thinking as completed
@@ -341,20 +364,26 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
         {/* Input Area - professional rounded border */}
         <Box 
           borderStyle="round" 
-          borderColor={isProcessing ? Colors.AccentYellow : Colors.AccentGreen} 
+          borderColor={rawModeSupported ? (isProcessing ? Colors.AccentYellow : Colors.AccentGreen) : Colors.AccentRed} 
           paddingX={1}
           marginY={1}
         >
-          <Text color={Colors.AccentGreen}>{'▶ '}</Text>
-          <Text color={Colors.Foreground}>{input}</Text>
-          <Text color={Colors.Comment}>│</Text>
+          {rawModeSupported ? (
+            <>
+              <Text color={Colors.AccentGreen}>{'▶ '}</Text>
+              <Text color={Colors.Foreground}>{input}</Text>
+              <Text color={Colors.Comment}>│</Text>
+            </>
+          ) : (
+            <Text color={Colors.AccentRed}>⚠ Interactive input not supported - use --prompt flag</Text>
+          )}
         </Box>
         
         {/* Status Footer - always visible at bottom with help text */}
         <StatusFooter
           status={currentStatus}
           approvalMode={config.getApprovalMode()}
-          helpText="ESC: exit • Ctrl+C: quit • Ctrl+L: clear"
+          helpText={rawModeSupported ? "ESC: exit • Ctrl+C: quit • Ctrl+L: clear" : 'Use: ./start-clean.sh --prompt "your command" --non-interactive'}
         />
       </Box>
     </Box>
