@@ -29,10 +29,11 @@ export class Orchestrator extends EventEmitter {
       defaultTimeoutMs: config.defaultTimeoutMs || 30000,
       maxRetries: config.maxRetries || 2,
       progressCallback: config.progressCallback,
-      healthCheckInterval: config.healthCheckInterval || 5000
+      healthCheckInterval: config.healthCheckInterval || 5000,
+      aiModel: (config as any).aiModel
     };
 
-    this.planner = new Planner();
+    this.planner = new Planner((config as any).aiModel);
     this.executor = new Executor();
     this.activeTasks = new Map();
     this.taskQueue = [];
@@ -41,11 +42,14 @@ export class Orchestrator extends EventEmitter {
   }
 
   async orchestrate(prompt: string): Promise<any> {
-    console.log('🎭 Orchestrator: Starting orchestration for prompt');
+    console.log('🎭 Orchestrator: Starting orchestration for prompt:', prompt.substring(0, 100));
     
     try {
       // Phase 1: Planning
+      console.log('📋 Orchestrator: Starting planning phase...');
       this.emit('phase', { phase: 'planning', message: 'Analyzing and planning tasks...' });
+      
+      console.log('📋 Orchestrator: About to call planner.createPlan...');
       const plan = await this.planner.createPlan(prompt);
       
       console.log(`📋 Orchestrator: Created plan with ${plan.tasks.length} tasks`);

@@ -14,12 +14,14 @@ export class DeepSeekOrchestrator {
     this.progressTracker = new ProgressTracker();
     
     // Configure orchestrator with progress callback
+    // Pass the DeepSeek client to the orchestrator for AI planning
     this.orchestrator = new Orchestrator({
       maxConcurrentTasks: 3,
       defaultTimeoutMs: 30000,
       maxRetries: 2,
       progressCallback: (progress) => this.handleProgress(progress),
-      healthCheckInterval: 5000
+      healthCheckInterval: 5000,
+      aiModel: deepSeek ? (deepSeek as any).getClient() : undefined
     });
 
     // Set up event listeners
@@ -31,22 +33,54 @@ export class DeepSeekOrchestrator {
     }
   }
 
-  async orchestratePrompt(prompt: string): Promise<any> {
+  async *orchestratePrompt(prompt: string): AsyncGenerator<string> {
     console.log('\n🎭 Starting DeepSeek Orchestration');
+    console.log('Prompt:', prompt);
     console.log('━'.repeat(60));
     
     this.progressTracker.start();
+    const startTime = Date.now();
     
     try {
+      // Yield initial status
+      yield "📋 Planning tasks...\n";
+      
       const result = await this.orchestrator.orchestrate(prompt);
       
-      const duration = Date.now() - Date.now(); // Will be fixed
+      const duration = Date.now() - startTime;
       this.progressTracker.displaySummary(this.orchestrator.getStatus(), duration);
       
-      return result;
+      // Format and yield the results
+      if (Array.isArray(result)) {
+        let hasResults = false;
+        for (const taskResult of result) {
+          if (taskResult && taskResult.result) {
+            hasResults = true;
+            yield `\n${taskResult.result}\n`;
+          }
+        }
+        if (!hasResults) {
+          yield "\n✅ All tasks completed successfully!\n";
+        }
+      } else if (result) {
+        yield `\n${JSON.stringify(result, null, 2)}\n`;
+      }
+      
+      yield "\n✨ Orchestration complete!\n";
     } catch (error) {
+      console.error('Orchestration trio failed:', error);
       this.progressTracker.displayError(error as Error);
-      throw error;
+      
+      // Fall back to DeepSeek direct execution only on failure
+      yield `\n⚠️ Orchestration trio failed: ${error}\n`;
+      yield "\n🔄 Falling back to DeepSeek direct execution...\n";
+      
+      if (this.deepSeek) {
+        // Use DeepSeek's native multi-step handling as fallback
+        yield* this.deepSeek.sendMessageStreamWithTools(prompt);
+      } else {
+        yield '❌ DeepSeek client not available\n';
+      }
     } finally {
       this.progressTracker.stop();
     }
@@ -124,28 +158,63 @@ export class DeepSeekOrchestrator {
     // Register DeepSeek tools with the Executor
     const executor = (this.orchestrator as any).executor as Executor;
     
+    // Get the actual tool executor from DeepSeek
+    const toolExecutor = (this.deepSeek as any).getToolExecutor();
+    if (!toolExecutor) {
+      console.warn('⚠️ DeepSeek tool executor not available');
+      return;
+    }
+    
     // Map of tool names to DeepSeek tool implementations
     const toolMap = {
       'read_file': async (args: any) => {
-        return await (this.deepSeek as any).executeToolDirectly('read_file', args);
+        const result = await toolExecutor.execute({
+          name: 'read_file',
+          arguments: args
+        });
+        return result.success ? result.result : `Error: ${result.error}`;
       },
       'write_file': async (args: any) => {
-        return await (this.deepSeek as any).executeToolDirectly('write_file', args);
+        const result = await toolExecutor.execute({
+          name: 'write_file',
+          arguments: args
+        });
+        return result.success ? result.result : `Error: ${result.error}`;
       },
       'edit_file': async (args: any) => {
-        return await (this.deepSeek as any).executeToolDirectly('edit', args);
+        const result = await toolExecutor.execute({
+          name: 'edit',
+          arguments: args
+        });
+        return result.success ? result.result : `Error: ${result.error}`;
       },
       'search_file_content': async (args: any) => {
-        return await (this.deepSeek as any).executeToolDirectly('grep', args);
+        const result = await toolExecutor.execute({
+          name: 'grep',
+          arguments: args
+        });
+        return result.success ? result.result : `Error: ${result.error}`;
       },
       'shell': async (args: any) => {
-        return await (this.deepSeek as any).executeToolDirectly('shell', args);
+        const result = await toolExecutor.execute({
+          name: 'shell',
+          arguments: args
+        });
+        return result.success ? result.result : `Error: ${result.error}`;
       },
       'web_search': async (args: any) => {
-        return await (this.deepSeek as any).executeToolDirectly('web_search', args);
+        const result = await toolExecutor.execute({
+          name: 'web_search',
+          arguments: args
+        });
+        return result.success ? result.result : `Error: ${result.error}`;
       },
       'ls': async (args: any) => {
-        return await (this.deepSeek as any).executeToolDirectly('ls', args);
+        const result = await toolExecutor.execute({
+          name: 'ls',
+          arguments: args
+        });
+        return result.success ? result.result : `Error: ${result.error}`;
       }
     };
 

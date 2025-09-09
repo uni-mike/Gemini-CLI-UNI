@@ -121,7 +121,8 @@
       "Bash(./test-final-comprehensive.sh:*)",
       "Bash(./comprehensive-test.sh)",
       "Bash(APPROVAL_MODE=yolo timeout 10 ./start-deepseek.sh --prompt \"What is 2 + 2?\" --non-interactive)",
-      "Bash(./test-all-features.sh:*)"
+      "Bash(./test-all-features.sh:*)",
+      "Bash(APPROVAL_MODE=yolo timeout 30 ./start-deepseek.sh --prompt \"search Bitcoin price then create btc-report.txt\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

@@ -10,13 +10,17 @@ export class Planner {
   }
 
   async createPlan(prompt: string): Promise<TaskPlan> {
-    console.log('📝 Planner: Analyzing prompt for task decomposition');
+    console.log('📝 Planner: Analyzing prompt for task decomposition:', prompt);
     
     // Analyze complexity
+    console.log('📝 Planner: Analyzing complexity...');
     const complexity = this.analyzeComplexity(prompt);
+    console.log('📝 Planner: Complexity determined:', complexity);
     
     // Decompose into tasks
+    console.log('📝 Planner: Starting task decomposition...');
     const tasks = await this.decomposeTasks(prompt, complexity);
+    console.log(`📝 Planner: Decomposed into ${tasks.length} tasks:`, tasks.map(t => t.description));
     
     // Identify dependencies
     this.identifyDependencies(tasks);
@@ -86,12 +90,42 @@ export class Planner {
 
   private async aiDecomposition(prompt: string): Promise<Task[]> {
     try {
-      // This would call the AI model
-      // const response = await this.aiModel.complete(decompositionPrompt);
-      // return this.parseAIResponse(response);
+      if (!this.aiModel) {
+        return this.heuristicDecomposition(prompt);
+      }
       
-      // For now, fallback to heuristic
-      return this.heuristicDecomposition(prompt);
+      // Create a decomposition prompt for the AI model
+      const decompositionPrompt = `Break down this task into individual steps that can be executed:
+
+${prompt}
+
+Respond with a numbered list of specific tasks. Each task should be:
+- A single, atomic action
+- Clear and specific
+- Include any dependencies
+
+Example format:
+1. Search for Bitcoin price information
+2. Create btc-report.txt file with the price data
+
+Now break down the given task:`;
+      
+      // Call the AI model (assuming it has a sendMessage method)
+      let response = '';
+      if (typeof this.aiModel.sendMessageStream === 'function') {
+        // If it's a DeepSeek client, use streaming
+        for await (const chunk of this.aiModel.sendMessageStream(decompositionPrompt)) {
+          response += chunk;
+        }
+      } else if (typeof this.aiModel.complete === 'function') {
+        // Generic completion method
+        response = await this.aiModel.complete(decompositionPrompt);
+      } else {
+        // No suitable method found
+        return this.heuristicDecomposition(prompt);
+      }
+      
+      return this.parseAIResponse(response, prompt);
     } catch (error) {
       console.warn('AI decomposition failed, using heuristic', error);
       return this.heuristicDecomposition(prompt);
@@ -247,5 +281,47 @@ export class Planner {
     // Check if there are independent tasks that can run in parallel
     const independentTasks = tasks.filter(t => t.dependencies.length === 0);
     return independentTasks.length > 1;
+  }
+
+  private parseAIResponse(response: string, originalPrompt: string): Task[] {
+    const tasks: Task[] = [];
+    
+    // Parse numbered list from AI response
+    const lines = response.split('\n');
+    const taskPattern = /^\d+\.\s+(.+)/;
+    
+    for (const line of lines) {
+      const match = line.match(taskPattern);
+      if (match) {
+        const description = match[1].trim();
+        
+        // Determine timeout based on task type
+        let timeout = 30000; // default 30s
+        if (description.toLowerCase().includes('search')) timeout = 15000;
+        if (description.toLowerCase().includes('create') || description.toLowerCase().includes('write')) timeout = 10000;
+        if (description.toLowerCase().includes('test')) timeout = 60000;
+        
+        tasks.push({
+          id: uuidv4(),
+          description,
+          dependencies: [],
+          status: TaskStatus.PENDING,
+          retryCount: 0,
+          maxRetries: 2,
+          timeoutMs: timeout,
+          toolCalls: []
+        });
+      }
+    }
+    
+    // If no tasks were parsed, fall back to heuristic
+    if (tasks.length === 0) {
+      return this.heuristicDecomposition(originalPrompt);
+    }
+    
+    // Identify dependencies based on task order and content
+    this.identifyDependencies(tasks);
+    
+    return tasks;
   }
 }

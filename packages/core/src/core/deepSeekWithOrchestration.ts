@@ -3,18 +3,21 @@ import { DeepSeekOrchestrator } from '../orchestration/DeepSeekOrchestrator.js';
 import type { Config } from '../config/config.js';
 
 export class DeepSeekWithOrchestration extends DeepSeekWithTools {
-  private orchestrator: DeepSeekOrchestrator;
-  private useOrchestration: boolean = true; // Enable orchestration detection and smart routing
+  private orchestrator?: DeepSeekOrchestrator;
+  private useOrchestration: boolean = true; // Re-enable to test minimal orchestration
 
   constructor(config: Config) {
     super(config);
+    // Re-enable orchestrator creation for testing
     this.orchestrator = new DeepSeekOrchestrator(this);
+    console.log('🎭 DeepSeekWithOrchestration initialized (orchestrator enabled)');
   }
 
   /**
    * Override the main method that contentGenerator calls
    */
   override async *sendMessageStreamWithTools(message: string): AsyncGenerator<string> {
+    console.log('🎯 DeepSeekWithOrchestration.sendMessageStreamWithTools called');
     yield* this.processWithOrchestration(message);
   }
 
@@ -25,6 +28,8 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
     message: string, 
     options?: any
   ): AsyncGenerator<string, void, unknown> {
+    console.log('🚀 Starting processWithOrchestration');
+    
     try {
       // Check if this is a complex task that needs orchestration
       const userMessage = this.extractUserMessageFromPrompt(message);
@@ -33,26 +38,106 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
       console.log(`📊 Extracted user message: "${userMessage.substring(0, 100)}"`);
       
       const isComplexTask = await this.detectOrchestrationNeeded(userMessage);
-      console.log(`   Result: ${isComplexTask ? '✅ COMPLEX - Using orchestration' : '❌ SIMPLE - Direct execution'}`);
+      console.log(`   Result: ${isComplexTask ? '✅ COMPLEX' : '❌ SIMPLE'} - Orchestration ${this.useOrchestration ? 'ENABLED' : 'DISABLED'}`);
       
       if (isComplexTask && this.useOrchestration) {
-        yield "🎭 Complex task detected - executing with intelligent routing...\n";
+        console.log('📊 Orchestration enabled, but falling back to DeepSeek native for now...');
+        
+        // Fall back to DeepSeek native execution for now
+        yield "\n🎭 Complex task detected - using enhanced DeepSeek processing...\n";
+        yield* super.sendMessageStreamWithTools(message);
+        
+        return;
+        
+        /* TODO: Debug the orchestration hanging issue
+        console.log('📊 About to yield orchestration start messages...');
+        yield "🎭 Complex task detected - using orchestration trio...\n";
+        console.log('📊 Yielded first message, about to yield separator...');
         yield "━".repeat(60) + "\n\n";
+        console.log('📊 Yielded separator, continuing...');
         
-        // Complex tasks are handled by DeepSeek directly
-        // The orchestration system (Planner/Executor/Orchestrator) is not properly connected
-        // so we use DeepSeek's native multi-step capabilities
-        console.log("🎯 Routing complex task to DeepSeek for execution");
-        
-        // Important: Pass the ORIGINAL message, not the extracted one
-        // DeepSeek needs the full context
-        const asyncIterator = super.sendMessageStreamWithTools(message);
+        // Use the orchestration trio for complex multi-step tasks
+        console.log("🎯 Using orchestration trio for complex task");
         
         try {
+          // Test basic orchestrator functionality first
+          console.log('🎯 About to test basic orchestrator functionality...');
+          
+          // For now, just test if we can call the planner directly
+          const planner = (this.orchestrator as any).orchestrator?.planner;
+          if (planner) {
+            console.log('🎯 Testing planner directly...');
+            const plan = await planner.createPlan(userMessage);
+            console.log('🎯 Plan created:', plan);
+            
+            yield `\n📋 Created plan with ${plan.tasks.length} tasks:\n`;
+            for (const task of plan.tasks) {
+              yield `  - ${task.description}\n`;
+            }
+          }
+          
+          yield "\n✅ Orchestration test complete!\n";
+        } catch (error) {
+        */
+          console.error("Orchestration failed, falling back to direct execution:", error);
+          
+          // Fall back to direct DeepSeek execution if orchestration fails
+          yield "\n⚠️ Orchestration failed, using direct execution...\n";
+          const asyncIterator = super.sendMessageStreamWithTools(message);
+          
           for await (const chunk of asyncIterator) {
             yield chunk;
           }
-          yield "\n✨ Complex task complete!\n";
+        }
+        
+        return;
+      }
+      
+      // Fall back to parent implementation for simple tasks
+      console.log("ℹ️ Processing with standard DeepSeek flow (simple task or orchestration disabled)");
+      yield* super.sendMessageStreamWithTools(message);
+      
+    } catch (error) {
+      console.error('Orchestration error:', error);
+      // Fall back to original implementation
+      yield "⚠️ Orchestration failed, falling back to standard processing...\n";
+      yield* super.sendMessageStreamWithTools(message);
+    }
+    
+    /* TODO: Re-enable when orchestration is working
+    try {
+      // Check if this is a complex task that needs orchestration
+      const userMessage = this.extractUserMessageFromPrompt(message);
+      
+      // DEBUG: Log what we're checking
+      console.log(`📊 Extracted user message: "${userMessage.substring(0, 100)}"`);
+      
+      const isComplexTask = await this.detectOrchestrationNeeded(userMessage);
+      console.log(`   Result: ${isComplexTask ? '✅ COMPLEX' : '❌ SIMPLE'} - Orchestration ${this.useOrchestration ? 'ENABLED' : 'DISABLED'}`);
+      
+      console.log(`🔍 Checking condition: isComplexTask=${isComplexTask}, useOrchestration=${this.useOrchestration}`);
+      
+      if (isComplexTask && this.useOrchestration) {
+        console.log('🎭 Entering COMPLEX + ORCHESTRATION ENABLED branch');
+        yield "🎭 Complex task detected - using intelligent multi-step execution...\n";
+        yield "━".repeat(60) + "\n\n";
+        
+        console.log("🎯 About to route complex task through DeepSeek's multi-step handler");
+        console.log("Message length:", message.length);
+        console.log("First 200 chars:", message.substring(0, 200));
+        
+        try {
+          // Pass the ORIGINAL message with full context for best results
+          const asyncIterator = super.sendMessageStreamWithTools(message);
+          console.log("✅ Got async iterator, starting to consume...");
+          
+          let chunkCount = 0;
+          for await (const chunk of asyncIterator) {
+            chunkCount++;
+            console.log(`Chunk ${chunkCount}: ${chunk.substring(0, 50)}...`);
+            yield chunk;
+          }
+          console.log(`✅ Completed with ${chunkCount} chunks`);
         } catch (error) {
           console.error("Error in complex task execution:", error);
           yield `\n❌ Error: ${error}\n`;
@@ -62,6 +147,7 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
       }
       
       // Fall back to parent implementation for simple tasks
+      console.log("ℹ️ Processing with standard DeepSeek flow (complex task with orchestration disabled OR simple task)");
       yield* super.sendMessageStreamWithTools(message);
       
     } catch (error) {
@@ -70,6 +156,7 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
       yield "⚠️ Orchestration failed, falling back to standard processing...\n";
       yield* super.sendMessageStreamWithTools(message);
     }
+    */
   }
 
   /**
@@ -195,19 +282,25 @@ export class DeepSeekWithOrchestration extends DeepSeekWithTools {
    * Control methods for orchestration
    */
   public pauseOrchestration(): void {
-    this.orchestrator.pause();
+    if (this.orchestrator) {
+      this.orchestrator.pause();
+    }
   }
 
   public resumeOrchestration(): void {
-    this.orchestrator.resume();
+    if (this.orchestrator) {
+      this.orchestrator.resume();
+    }
   }
 
   public abortOrchestration(): void {
-    this.orchestrator.abort();
+    if (this.orchestrator) {
+      this.orchestrator.abort();
+    }
   }
 
   public getOrchestrationStatus(): any {
-    return this.orchestrator.getStatus();
+    return this.orchestrator?.getStatus();
   }
 
   public setUseOrchestration(use: boolean): void {

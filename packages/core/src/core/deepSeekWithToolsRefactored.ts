@@ -72,6 +72,20 @@ export class DeepSeekWithTools {
   }
 
   /**
+   * Get the tool executor (for orchestration integration)
+   */
+  getToolExecutor(): any {
+    return (this.client as any).executor;
+  }
+
+  /**
+   * Get the DeepSeek client (for AI model access)
+   */
+  getClient(): any {
+    return this.client;
+  }
+
+  /**
    * Get model name
    */
   getModel(): string {

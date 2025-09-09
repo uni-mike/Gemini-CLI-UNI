@@ -59,6 +59,7 @@ export interface OrchestratorConfig {
   maxRetries: number;
   progressCallback?: (progress: Progress) => void;
   healthCheckInterval: number;
+  aiModel?: any;
 }
 
 export interface Progress {
