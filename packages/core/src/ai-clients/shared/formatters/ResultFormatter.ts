@@ -148,7 +148,37 @@ export class ResultFormatter {
       return 'No results found';
     }
     
-    return `Found ${resultCount} results (ctrl+r to expand)`;
+    // ALWAYS show the actual search results!
+    // Extract key information like prices, answers, etc.
+    const lines = result.split('\n');
+    const output: string[] = [];
+    
+    // Look for answer box or price info first
+    const answerLine = lines.find(l => l.toLowerCase().includes('answer:') || l.toLowerCase().includes('price:'));
+    if (answerLine) {
+      output.push(colorize('📊 ' + answerLine.trim(), AnsiColors.yellow));
+      output.push('');
+    }
+    
+    // Show top results
+    let resultNum = 0;
+    for (const line of lines) {
+      if (line.match(/^\d+\./)) {
+        resultNum++;
+        if (resultNum <= 5) { // Show top 5 results
+          output.push(line);
+        }
+      } else if (resultNum > 0 && resultNum <= 5 && line.trim()) {
+        // Include details for top results
+        output.push('  ' + line.substring(0, 100));
+      }
+    }
+    
+    if (resultCount > 5) {
+      output.push(colorize(`\n  ... and ${resultCount - 5} more results`, AnsiColors.dim));
+    }
+    
+    return output.join('\n');
   }
 
   private formatSearchResult(result: string): string {
