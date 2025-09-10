@@ -191,22 +191,22 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
             // Show the git-diff style output directly with special type
             setMessages(prev => [...prev, {
               type: 'diff' as any, // Special type for diff output
-              content: `⎿  ${result.output}`,
+              content: ` ⎿ ${result.output}`,
               timestamp: new Date()
             }]);
           } else {
             const lines = result.output.split('\n').length;
-            const completionText = `⎿  ${lines > 1 ? `Found ${lines} lines` : result.output.substring(0, 60)}${result.output.length > 60 ? '...' : ''} (ctrl+r to expand)`;
+            const completionText = `⎿ ${lines > 1 ? `Found ${lines} lines` : result.output.substring(0, 60)}${result.output.length > 60 ? '...' : ''} (ctrl+r to expand)`;
             setMessages(prev => [...prev, {
               type: 'assistant', 
-              content: `  ${completionText}`,
+              content: ` ${completionText}`,
               timestamp: new Date()
             }]);
           }
         } else {
           setMessages(prev => [...prev, {
             type: 'assistant', 
-            content: '  ⎿  Completed successfully',
+            content: ' ⎿ Completed successfully',
             timestamp: new Date()
           }]);
         }
@@ -375,13 +375,22 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
         </Box>,
         
         /* Static message history - show all messages */
-        ...messages.map((msg, i) => (
-          <Box key={`msg-${i}`} marginBottom={1} paddingX={1}>
+        ...messages.map((msg, i) => {
+          // Ultra-tight spacing for perfect parent-child relationships
+          const prevMsg = messages[i - 1];
+          const isToolResult = msg.content.trim().startsWith('⎿');
+          const prevIsToolResult = prevMsg?.content.trim().startsWith('⎿');
+          
+          // Only add margin when we have a non-tool message following tool results
+          const shouldHaveMargin = !isToolResult && prevIsToolResult;
+          
+          return (
+            <Box key={`msg-${i}`} marginBottom={shouldHaveMargin ? 1 : 0} paddingX={isToolResult ? 1.5 : 1}>
             {msg.type === 'user' && (
               <Text color={Colors.AccentCyan}>{'▶ '}{msg.content}</Text>
             )}
             {msg.type === 'assistant' && (
-              <Text color={Colors.AccentGreen}>{'◀ '}{msg.content}</Text>
+              <Text color={Colors.AccentGreen}>{msg.content.includes('[Request interrupted by user]') ? msg.content : msg.content}</Text>
             )}
             {msg.type === 'system' && (
               <Text color={Colors.AccentYellow}>{'⚠ '}{msg.content}</Text>
@@ -402,8 +411,9 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
                 })}
               </Box>
             )}
-          </Box>
-        ))
+            </Box>
+          );
+        })
       ]}>
         {(item) => item}
       </Static>

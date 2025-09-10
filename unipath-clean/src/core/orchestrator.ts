@@ -295,6 +295,8 @@ export class Orchestrator extends EventEmitter {
       this.conversation.push({ role: 'user', content: prompt });
     }
     
+    // For final response generation, don't pass tools since we already have results
+    // The tool outputs are already in the conversation context
     const response = await this.client.chat(this.conversation, []);
     this.conversation.push({ role: 'assistant', content: response });
     return response;
@@ -317,9 +319,10 @@ export class Orchestrator extends EventEmitter {
 Suggest an alternative approach using available tools.`;
     
     try {
+      const availableTools = globalRegistry.getTools();
       const recovery = await this.client.chat(
         [{ role: 'user', content: recoveryPrompt }],
-        []
+        availableTools
       );
       
       this.sendTrioMessage({

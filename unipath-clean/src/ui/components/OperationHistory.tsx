@@ -75,15 +75,15 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
         const color = getOperationColor(operation.type, operation.status);
         
         return (
-          <Box key={operation.id} flexDirection="column" marginBottom={1}>
+          <Box key={operation.id} flexDirection="column" marginBottom={0}>
             {/* Main operation line without spinner - spinner is now in status footer */}
             <Box flexDirection="row" alignItems="center">
               <Text color={color}>{icon} {operation.title}</Text>
             </Box>
             
-            {/* Details line - properly indented */}
+            {/* Details line - properly indented with reduced margin */}
             {operation.details && operation.status === 'completed' && (
-              <Box marginLeft={2} paddingLeft={1}>
+              <Box marginLeft={1} paddingLeft={0}>
                 <Text color={Colors.AccentGreen}>⎿ {operation.details}</Text>
                 {operation.filePath && (
                   <>
@@ -97,9 +97,9 @@ export const OperationHistory: React.FC<OperationHistoryProps> = ({
               </Box>
             )}
             
-            {/* Error details */}
+            {/* Error details with reduced margin */}
             {operation.details && operation.status === 'failed' && (
-              <Box marginLeft={2} paddingLeft={1}>
+              <Box marginLeft={1} paddingLeft={0}>
                 <Text color={Colors.AccentRed}>⎿ {operation.details}</Text>
               </Box>
             )}
