@@ -1,0 +1,149 @@
+// Prisma schema for FlexiCLI memory management
+// Per-project SQLite database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../.flexicli/flexicli.db"
+}
+
+// Schema version tracking
+model SchemaVersion {
+  id        Int      @id @default(autoincrement())
+  version   Int      @unique
+  appliedAt DateTime @default(now())
+}
+
+// Project metadata
+model Project {
+  id         String   @id @default(uuid())
+  rootPath   String   @unique
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  chunks     Chunk[]
+  commits    GitCommit[]
+  knowledge  Knowledge[]
+  execLogs   ExecutionLog[]
+  sessions   Session[]
+}
+
+// Code/doc chunks with embeddings
+model Chunk {
+  id           String   @id @default(uuid())
+  projectId    String
+  path         String
+  content      String
+  language     String?
+  commitHash   String?
+  lineStart    Int?
+  lineEnd      Int?
+  tokenCount   Int
+  embedding    Bytes    // Float32Array stored as binary
+  chunkType    String   // 'code' | 'doc' | 'diff'
+  metadata     String?  // JSON string for extra data
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  project      Project  @relation(fields: [projectId], references: [id])
+  
+  @@index([projectId, path])
+  @@index([projectId, commitHash])
+}
+
+// Git commit history
+model GitCommit {
+  id           String   @id @default(uuid())
+  projectId    String
+  hash         String
+  author       String
+  date         DateTime
+  message      String
+  filesChanged String   // JSON array of file paths
+  diffChunks   String   // JSON array of diff chunks
+  embedding    Bytes?   // Embedding of commit message
+  createdAt    DateTime @default(now())
+  
+  project      Project  @relation(fields: [projectId], references: [id])
+  
+  @@unique([projectId, hash])
+  @@index([projectId, date])
+}
+
+// Knowledge layer (preferences, architecture notes)
+model Knowledge {
+  id          String   @id @default(uuid())
+  projectId   String
+  key         String
+  value       String
+  category    String   // 'preference' | 'architecture' | 'convention'
+  importance  Int      @default(1) // 1-5 scale
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  project     Project  @relation(fields: [projectId], references: [id])
+  
+  @@unique([projectId, key])
+  @@index([projectId, category])
+}
+
+// Execution feedback (compiler/test/log outputs)
+model ExecutionLog {
+  id          String   @id @default(uuid())
+  projectId   String
+  sessionId   String?
+  type        String   @default("TOOL_EXECUTION")
+  tool        String
+  input       String?
+  output      String
+  success     Boolean
+  duration    Int      @default(0)
+  errorMessage String?
+  createdAt   DateTime @default(now())
+  
+  project     Project  @relation(fields: [projectId], references: [id])
+  
+  @@index([projectId, sessionId])
+  @@index([projectId, createdAt])
+}
+
+// Session management
+model Session {
+  id              String   @id @default(uuid())
+  projectId       String
+  mode            String   // 'direct' | 'concise' | 'deep'
+  startedAt       DateTime @default(now())
+  endedAt         DateTime?
+  lastSnapshot    String?  // JSON snapshot of ephemeral state
+  turnCount       Int      @default(0)
+  tokensUsed      Int      @default(0)
+  status          String   @default("active") // 'active' | 'completed' | 'crashed'
+  
+  project         Project  @relation(fields: [projectId], references: [id])
+  snapshots       SessionSnapshot[]
+  
+  @@index([projectId, startedAt])
+  @@index([status])
+}
+
+// Session snapshots for crash recovery
+model SessionSnapshot {
+  id              String   @id @default(uuid())
+  sessionId       String
+  sequenceNumber  Int
+  ephemeralState  String   // JSON: recent turns, working diff
+  retrievalIds    String   // JSON: array of chunk IDs
+  mode            String
+  tokenBudget     String   // JSON: current token usage
+  lastCommand     String?
+  createdAt       DateTime @default(now())
+  
+  session         Session  @relation(fields: [sessionId], references: [id])
+  
+  @@unique([sessionId, sequenceNumber])
+  @@index([sessionId, createdAt])
+}

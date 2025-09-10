@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNIPATH Pipeline Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://unpkg.com/vis-network@latest/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: #0a1929;
+            color: #90caf9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            margin: 0 0 20px 0;
+            color: #90caf9;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #1e293b;
+            border: 2px solid #90caf9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tab:hover {
+            background: #2e3b4b;
+        }
+        .tab.active {
+            background: #90caf9;
+            color: #0a1929;
+        }
+        .visualization-container {
+            flex: 1;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        #network-viz {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #475569;
+            border-radius: 8px;
+        }
+        #mermaid-viz {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .mermaid {
+            background: transparent !important;
+        }
+        .status-legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .idle { background: #64748b; }
+        .active { background: #3b82f6; }
+        .success { background: #10b981; }
+        .error { background: #ef4444; }
+        .processing { background: #f59e0b; }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f48fb1;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 UNIPATH Pipeline Flow Visualization</h1>
+    
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-value" id="total-nodes">0</div>
+            <div class="stat-label">Total Nodes</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="active-nodes">0</div>
+            <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="completed-tasks">0</div>
+            <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="throughput">0</div>
+            <div class="stat-label">msg/s</div>
+        </div>
+    </div>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('network')">Interactive Network</div>
+        <div class="tab" onclick="switchTab('flow')">Flow Diagram</div>
+        <div class="tab" onclick="switchTab('sequence')">Sequence Diagram</div>
+    </div>
+    
+    <div class="visualization-container">
+        <div id="network-viz" style="display: block;"></div>
+        <div id="mermaid-viz" style="display: none;">
+            <div class="mermaid" id="flow-diagram">
+                graph TB
+                    Start([User Input]) --> Orch{Orchestrator}
+                    Orch --> Plan[Planner]
+                    Orch --> Mem[Memory Manager]
+                    Orch --> Exec[Executor]
+                    
+                    Plan --> LLM[DeepSeek LLM]
+                    Plan --> Task[Task Decomposition]
+                    
+                    Mem --> Eph[Ephemeral Cache]
+                    Mem --> Ret[Retrieval Layer]
+                    Mem --> Know[Knowledge Base]
+                    Mem --> Git[Git Context]
+                    
+                    Exec --> Tools{Tool Registry}
+                    Tools --> Bash[Bash Tool]
+                    Tools --> File[File Tools]
+                    Tools --> Web[Web Tools]
+                    Tools --> Code[Code Analysis]
+                    
+                    LLM --> Response([AI Response])
+                    Tools --> Response
+                    
+                    style Start fill:#10b981
+                    style Orch fill:#3b82f6
+                    style Response fill:#f59e0b
+            </div>
+            <div class="mermaid" id="sequence-diagram" style="display: none;">
+                sequenceDiagram
+                    participant U as User
+                    participant O as Orchestrator
+                    participant P as Planner
+                    participant M as Memory
+                    participant E as Executor
+                    participant T as Tools
+                    participant L as LLM
+                    
+                    U->>O: Query/Command
+                    O->>M: Load Context
+                    M-->>O: Context Data
+                    O->>P: Create Plan
+                    P->>L: Analyze Task
+                    L-->>P: Task Breakdown
+                    P-->>O: Execution Plan
+                    O->>E: Execute Tasks
+                    loop For Each Task
+                        E->>T: Use Tool
+                        T-->>E: Result
+                        E->>M: Store Result
+                    end
+                    E-->>O: Execution Complete
+                    O->>L: Generate Response
+                    L-->>O: Final Response
+                    O-->>U: Result
+            </div>
+        </div>
+        
+        <div class="status-legend">
+            <h4 style="margin-top: 0;">Node Status</h4>
+            <div class="status-item">
+                <div class="status-dot idle"></div>
+                <span>Idle</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot active"></div>
+                <span>Active</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot processing"></div>
+                <span>Processing</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot success"></div>
+                <span>Success</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot error"></div>
+                <span>Error</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let network;
+        let nodes;
+        let edges;
+        const API_BASE = 'http://localhost:4000/api';
+        
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#90caf9',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#f48fb1',
+                secondaryColor: '#1e293b',
+                tertiaryColor: '#0a1929',
+                background: '#0a1929',
+                mainBkg: '#1e293b',
+                secondBkg: '#2e3b4b',
+                tertiaryBkg: '#0a1929'
+            }
+        });
+        
+        function initializeNetwork() {
+            // Create initial nodes
+            nodes = new vis.DataSet([
+                // Input/Output
+                {id: 'input', label: 'User Input', group: 'io', x: -400, y: 0},
+                {id: 'output', label: 'Response', group: 'io', x: 400, y: 0},
+                
+                // Core Components
+                {id: 'orchestrator', label: 'Orchestrator', group: 'core', x: 0, y: 0},
+                {id: 'planner', label: 'Planner', group: 'core', x: -200, y: -150},
+                {id: 'memory', label: 'Memory Manager', group: 'core', x: 0, y: -150},
+                {id: 'executor', label: 'Executor', group: 'core', x: 200, y: -150},
+                
+                // Memory Layers
+                {id: 'ephemeral', label: 'Ephemeral Cache', group: 'memory', x: -100, y: -300},
+                {id: 'retrieval', label: 'Retrieval Layer', group: 'memory', x: 0, y: -300},
+                {id: 'knowledge', label: 'Knowledge Base', group: 'memory', x: 100, y: -300},
+                {id: 'git', label: 'Git Context', group: 'memory', x: 0, y: -400},
+                
+                // Tools
+                {id: 'tools', label: 'Tool Registry', group: 'tools', x: 300, y: 0},
+                {id: 'bash', label: 'Bash', group: 'tool', x: 450, y: -100},
+                {id: 'file', label: 'File Ops', group: 'tool', x: 450, y: -50},
+                {id: 'web', label: 'Web Tools', group: 'tool', x: 450, y: 0},
+                {id: 'code', label: 'Code Analysis', group: 'tool', x: 450, y: 50},
+                
+                // LLM
+                {id: 'llm', label: 'DeepSeek LLM', group: 'llm', x: -200, y: 150},
+                {id: 'embeddings', label: 'Embeddings API', group: 'llm', x: 0, y: 150}
+            ]);
+            
+            // Create edges
+            edges = new vis.DataSet([
+                // Main flow
+                {from: 'input', to: 'orchestrator', arrows: 'to', color: {color: '#3b82f6'}},
+                {from: 'orchestrator', to: 'output', arrows: 'to', color: {color: '#10b981'}},
+                
+                // Orchestrator connections
+                {from: 'orchestrator', to: 'planner', arrows: 'to,from'},
+                {from: 'orchestrator', to: 'memory', arrows: 'to,from'},
+                {from: 'orchestrator', to: 'executor', arrows: 'to,from'},
+                
+                // Planner connections
+                {from: 'planner', to: 'llm', arrows: 'to,from', dashes: true},
+                
+                // Memory connections
+                {from: 'memory', to: 'ephemeral', arrows: 'to,from'},
+                {from: 'memory', to: 'retrieval', arrows: 'to,from'},
+                {from: 'memory', to: 'knowledge', arrows: 'to,from'},
+                {from: 'memory', to: 'git', arrows: 'to,from'},
+                {from: 'memory', to: 'embeddings', arrows: 'to,from', dashes: true},
+                
+                // Executor connections
+                {from: 'executor', to: 'tools', arrows: 'to,from'},
+                
+                // Tools connections
+                {from: 'tools', to: 'bash', arrows: 'to'},
+                {from: 'tools', to: 'file', arrows: 'to'},
+                {from: 'tools', to: 'web', arrows: 'to'},
+                {from: 'tools', to: 'code', arrows: 'to'},
+                
+                // Tool results
+                {from: 'bash', to: 'output', arrows: 'to', dashes: true, color: {color: '#64748b'}},
+                {from: 'file', to: 'output', arrows: 'to', dashes: true, color: {color: '#64748b'}},
+                {from: 'web', to: 'output', arrows: 'to', dashes: true, color: {color: '#64748b'}},
+                {from: 'code', to: 'output', arrows: 'to', dashes: true, color: {color: '#64748b'}},
+                
+                // LLM to output
+                {from: 'llm', to: 'output', arrows: 'to', dashes: true, color: {color: '#f59e0b'}}
+            ]);
+            
+            // Create network
+            const container = document.getElementById('network-viz');
+            const data = { nodes: nodes, edges: edges };
+            const options = {
+                nodes: {
+                    shape: 'box',
+                    font: {
+                        color: '#ffffff',
+                        face: 'JetBrains Mono'
+                    },
+                    borderWidth: 2,
+                    shadow: true
+                },
+                edges: {
+                    width: 2,
+                    smooth: {
+                        type: 'cubicBezier',
+                        forceDirection: 'horizontal',
+                        roundness: 0.4
+                    },
+                    font: {
+                        color: '#64748b',
+                        strokeWidth: 0
+                    }
+                },
+                groups: {
+                    io: {
+                        color: {
+                            background: '#10b981',
+                            border: '#059669'
+                        }
+                    },
+                    core: {
+                        color: {
+                            background: '#3b82f6',
+                            border: '#2563eb'
+                        }
+                    },
+                    memory: {
+                        color: {
+                            background: '#8b5cf6',
+                            border: '#7c3aed'
+                        }
+                    },
+                    tools: {
+                        color: {
+                            background: '#f59e0b',
+                            border: '#d97706'
+                        }
+                    },
+                    tool: {
+                        color: {
+                            background: '#f97316',
+                            border: '#ea580c'
+                        }
+                    },
+                    llm: {
+                        color: {
+                            background: '#ec4899',
+                            border: '#db2777'
+                        }
+                    }
+                },
+                physics: {
+                    enabled: true,
+                    stabilization: {
+                        iterations: 100
+                    },
+                    barnesHut: {
+                        gravitationalConstant: -30000,
+                        springConstant: 0.001,
+                        damping: 0.09
+                    }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200,
+                    dragView: true,
+                    zoomView: true
+                }
+            };
+            
+            network = new vis.Network(container, data, options);
+            
+            // Add click handler
+            network.on("click", function(params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    highlightNode(nodeId);
+                }
+            });
+        }
+        
+        function highlightNode(nodeId) {
+            // Simulate activity
+            nodes.update({
+                id: nodeId,
+                color: {
+                    background: '#f59e0b',
+                    border: '#d97706'
+                }
+            });
+            
+            setTimeout(() => {
+                // Reset color based on group
+                const node = nodes.get(nodeId);
+                const groupColors = {
+                    io: {background: '#10b981', border: '#059669'},
+                    core: {background: '#3b82f6', border: '#2563eb'},
+                    memory: {background: '#8b5cf6', border: '#7c3aed'},
+                    tools: {background: '#f59e0b', border: '#d97706'},
+                    tool: {background: '#f97316', border: '#ea580c'},
+                    llm: {background: '#ec4899', border: '#db2777'}
+                };
+                nodes.update({
+                    id: nodeId,
+                    color: groupColors[node.group] || {background: '#64748b', border: '#475569'}
+                });
+            }, 1000);
+        }
+        
+        function switchTab(tab) {
+            // Update tab styles
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show/hide visualizations
+            document.getElementById('network-viz').style.display = 'none';
+            document.getElementById('mermaid-viz').style.display = 'none';
+            
+            if (tab === 'network') {
+                document.getElementById('network-viz').style.display = 'block';
+            } else {
+                document.getElementById('mermaid-viz').style.display = 'flex';
+                document.getElementById('flow-diagram').style.display = tab === 'flow' ? 'block' : 'none';
+                document.getElementById('sequence-diagram').style.display = tab === 'sequence' ? 'block' : 'none';
+                
+                // Re-render mermaid
+                mermaid.init();
+            }
+        }
+        
+        async function updatePipelineData() {
+            try {
+                const response = await fetch(`${API_BASE}/pipeline`);
+                const data = await response.json();
+                
+                // Update stats
+                document.getElementById('total-nodes').textContent = data.nodes?.length || 0;
+                
+                // Simulate some activity
+                const activeCount = Math.floor(Math.random() * 3);
+                document.getElementById('active-nodes').textContent = activeCount;
+                document.getElementById('completed-tasks').textContent = Math.floor(Math.random() * 100);
+                document.getElementById('throughput').textContent = (Math.random() * 10).toFixed(1);
+                
+                // Update node statuses if we have real data
+                if (data.nodes) {
+                    data.nodes.forEach(node => {
+                        const statusColors = {
+                            idle: {background: '#64748b', border: '#475569'},
+                            active: {background: '#3b82f6', border: '#2563eb'},
+                            processing: {background: '#f59e0b', border: '#d97706'},
+                            success: {background: '#10b981', border: '#059669'},
+                            error: {background: '#ef4444', border: '#dc2626'}
+                        };
+                        
+                        if (nodes.get(node.id)) {
+                            const color = statusColors[node.data?.status] || statusColors.idle;
+                            nodes.update({
+                                id: node.id,
+                                color: color
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch pipeline data:', error);
+            }
+        }
+        
+        // Initialize on load
+        initializeNetwork();
+        
+        // Update pipeline data periodically
+        updatePipelineData();
+        setInterval(updatePipelineData, 3000);
+        
+        // Simulate random activity
+        setInterval(() => {
+            const nodeIds = nodes.getIds();
+            const randomNode = nodeIds[Math.floor(Math.random() * nodeIds.length)];
+            if (Math.random() > 0.7) {
+                highlightNode(randomNode);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

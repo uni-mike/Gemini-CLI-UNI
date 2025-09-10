@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNIPATH Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/vis-network@latest/standalone/umd/vis-network.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            background: linear-gradient(135deg, #0a1929 0%, #1a2332 100%);
+            color: #e0e7ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Header */
+        .header {
+            background: rgba(10, 25, 41, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(144, 202, 249, 0.2);
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo i {
+            font-size: 32px;
+            background: linear-gradient(45deg, #90caf9, #f48fb1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .logo h1 {
+            font-size: 24px;
+            background: linear-gradient(45deg, #90caf9, #f48fb1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 20px;
+            border: 1px solid rgba(144, 202, 249, 0.3);
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.online {
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+        
+        .status-dot.offline {
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+        
+        /* Navigation Tabs */
+        .nav-tabs {
+            background: rgba(10, 25, 41, 0.6);
+            padding: 10px 20px;
+            display: flex;
+            gap: 10px;
+            max-width: 1400px;
+            margin: 0 auto;
+            overflow-x: auto;
+        }
+        
+        .nav-tab {
+            padding: 10px 20px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(144, 202, 249, 0.2);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .nav-tab:hover {
+            background: rgba(144, 202, 249, 0.1);
+            border-color: rgba(144, 202, 249, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .nav-tab.active {
+            background: linear-gradient(135deg, rgba(144, 202, 249, 0.2), rgba(244, 143, 177, 0.2));
+            border-color: #90caf9;
+            box-shadow: 0 4px 15px rgba(144, 202, 249, 0.3);
+        }
+        
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(144, 202, 249, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #90caf9, #f48fb1);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(144, 202, 249, 0.2);
+            border-color: rgba(144, 202, 249, 0.4);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .card-title {
+            font-size: 16px;
+            color: #90caf9;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-value {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #90caf9, #f48fb1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 10px 0;
+        }
+        
+        .card-subtitle {
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-top: 15px;
+        }
+        
+        .large-chart {
+            height: 400px;
+        }
+        
+        /* Pipeline Visualization */
+        #pipeline-viz {
+            height: 500px;
+            background: rgba(10, 25, 41, 0.6);
+            border: 1px solid rgba(144, 202, 249, 0.2);
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        /* Sessions List */
+        .session-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .session-item {
+            background: rgba(10, 25, 41, 0.6);
+            border: 1px solid rgba(144, 202, 249, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .session-item:hover {
+            background: rgba(144, 202, 249, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .session-id {
+            color: #f48fb1;
+            font-weight: bold;
+        }
+        
+        .session-time {
+            color: #64748b;
+            font-size: 12px;
+        }
+        
+        .session-stats {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .session-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        
+        /* Events Feed */
+        .event-feed {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(10, 25, 41, 0.6);
+            border: 1px solid rgba(144, 202, 249, 0.2);
+            border-radius: 10px;
+        }
+        
+        .event-item {
+            display: flex;
+            gap: 15px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+            border-left: 3px solid;
+            animation: slideIn 0.3s;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .event-item.memory { border-left-color: #8b5cf6; }
+        .event-item.tool { border-left-color: #f59e0b; }
+        .event-item.system { border-left-color: #3b82f6; }
+        .event-item.error { border-left-color: #ef4444; }
+        
+        .event-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .event-icon.memory { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+        .event-icon.tool { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .event-icon.system { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .event-icon.error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        
+        .event-content {
+            flex: 1;
+        }
+        
+        .event-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .event-description {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        
+        .event-time {
+            font-size: 10px;
+            color: #64748b;
+        }
+        
+        /* Progress Bars */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(10, 25, 41, 0.6);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #90caf9, #f48fb1);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        /* Tool Cards */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .tool-card {
+            background: rgba(10, 25, 41, 0.8);
+            border: 1px solid rgba(144, 202, 249, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .tool-card:hover {
+            transform: scale(1.05);
+            background: rgba(144, 202, 249, 0.1);
+            box-shadow: 0 5px 15px rgba(144, 202, 249, 0.3);
+        }
+        
+        .tool-card.active {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            animation: toolPulse 1s;
+        }
+        
+        @keyframes toolPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .tool-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #f59e0b, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .tool-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .tool-count {
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 25, 41, 0.6);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #90caf9, #f48fb1);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #60a5fa, #f472b6);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-rocket"></i>
+                <h1>UNIPATH Monitoring</h1>
+            </div>
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <div class="status-dot online" id="server-status"></div>
+                    <span id="server-text">Server Online</span>
+                </div>
+                <div class="status-indicator">
+                    <i class="fas fa-clock"></i>
+                    <span id="uptime">0s</span>
+                </div>
+                <div class="status-indicator">
+                    <i class="fas fa-sync-alt"></i>
+                    <span id="refresh-rate">5s</span>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <nav class="nav-tabs">
+        <div class="nav-tab active" onclick="switchTab('overview')">
+            <i class="fas fa-dashboard"></i> Overview
+        </div>
+        <div class="nav-tab" onclick="switchTab('pipeline')">
+            <i class="fas fa-project-diagram"></i> Pipeline
+        </div>
+        <div class="nav-tab" onclick="switchTab('memory')">
+            <i class="fas fa-memory"></i> Memory
+        </div>
+        <div class="nav-tab" onclick="switchTab('sessions')">
+            <i class="fas fa-history"></i> Sessions
+        </div>
+        <div class="nav-tab" onclick="switchTab('tools')">
+            <i class="fas fa-tools"></i> Tools
+        </div>
+        <div class="nav-tab" onclick="switchTab('events')">
+            <i class="fas fa-stream"></i> Events
+        </div>
+    </nav>
+    
+    <div class="container">
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-microchip"></i>
+                            Token Usage
+                        </div>
+                    </div>
+                    <div class="card-value" id="token-usage">0</div>
+                    <div class="card-subtitle">of 128K limit</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="token-progress" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-tasks"></i>
+                            Active Tasks
+                        </div>
+                    </div>
+                    <div class="card-value" id="active-tasks">0</div>
+                    <div class="card-subtitle">currently processing</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-database"></i>
+                            Memory Chunks
+                        </div>
+                    </div>
+                    <div class="card-value" id="memory-chunks">0</div>
+                    <div class="card-subtitle">stored in database</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Throughput
+                        </div>
+                    </div>
+                    <div class="card-value" id="throughput">0</div>
+                    <div class="card-subtitle">messages/sec</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        System Performance
+                    </div>
+                </div>
+                <div class="chart-container large-chart">
+                    <canvas id="performance-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pipeline Tab -->
+        <div id="pipeline" class="tab-content">
+            <div id="pipeline-viz"></div>
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-info-circle"></i>
+                        Pipeline Status
+                    </div>
+                    <div id="pipeline-stats"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Memory Tab -->
+        <div id="memory" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-layer-group"></i>
+                        Memory Layers
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="memory-chart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-chart-pie"></i>
+                        Token Distribution
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="token-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sessions Tab -->
+        <div id="sessions" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-history"></i>
+                    Recent Sessions
+                </div>
+                <div class="session-list" id="session-list"></div>
+            </div>
+        </div>
+        
+        <!-- Tools Tab -->
+        <div id="tools" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-tools"></i>
+                    Available Tools
+                </div>
+                <div class="tool-grid" id="tool-grid"></div>
+            </div>
+        </div>
+        
+        <!-- Events Tab -->
+        <div id="events" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-stream"></i>
+                    Live Event Stream
+                </div>
+                <div class="event-feed" id="event-feed"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Use relative URL when served from same server, absolute for local development
+        const API_BASE = window.location.origin === 'http://localhost:4000' 
+            ? '/api' 
+            : 'http://localhost:4000/api';
+        console.log('API_BASE:', API_BASE, 'Origin:', window.location.origin);
+        let charts = {};
+        let pipelineNetwork;
+        let uptimeSeconds = 0;
+        
+        // Debug function
+        window.testAPI = async function() {
+            console.log('Testing API at:', API_BASE + '/health');
+            try {
+                const response = await fetch(API_BASE + '/health');
+                const data = await response.json();
+                console.log('API Response:', data);
+                alert('API Working! Response: ' + JSON.stringify(data));
+            } catch(err) {
+                console.error('API Error:', err);
+                alert('API Error: ' + err.message);
+            }
+        }
+        
+        // Initialize Charts
+        function initCharts() {
+            // Performance Chart
+            const perfCtx = document.getElementById('performance-chart')?.getContext('2d');
+            if (perfCtx) {
+                charts.performance = new Chart(perfCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Token Usage',
+                            data: [],
+                            borderColor: '#90caf9',
+                            backgroundColor: 'rgba(144, 202, 249, 0.1)',
+                            tension: 0.4
+                        }, {
+                            label: 'Memory Usage',
+                            data: [],
+                            borderColor: '#f48fb1',
+                            backgroundColor: 'rgba(244, 143, 177, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: { color: '#e0e7ff' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                ticks: { color: '#94a3b8' }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                ticks: { color: '#94a3b8' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Memory Chart
+            const memCtx = document.getElementById('memory-chart')?.getContext('2d');
+            if (memCtx) {
+                charts.memory = new Chart(memCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Ephemeral', 'Retrieval', 'Knowledge', 'Git', 'Execution'],
+                        datasets: [{
+                            label: 'Memory Usage (MB)',
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: [
+                                'rgba(139, 92, 246, 0.6)',
+                                'rgba(59, 130, 246, 0.6)',
+                                'rgba(16, 185, 129, 0.6)',
+                                'rgba(245, 158, 11, 0.6)',
+                                'rgba(239, 68, 68, 0.6)'
+                            ],
+                            borderColor: [
+                                '#8b5cf6',
+                                '#3b82f6',
+                                '#10b981',
+                                '#f59e0b',
+                                '#ef4444'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                ticks: { color: '#94a3b8' }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                ticks: { color: '#94a3b8' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Token Distribution Chart
+            const tokenCtx = document.getElementById('token-chart')?.getContext('2d');
+            if (tokenCtx) {
+                charts.token = new Chart(tokenCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Used', 'Available'],
+                        datasets: [{
+                            data: [0, 128000],
+                            backgroundColor: [
+                                'rgba(244, 143, 177, 0.8)',
+                                'rgba(144, 202, 249, 0.8)'
+                            ],
+                            borderColor: ['#f48fb1', '#90caf9'],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom',
+                                labels: { color: '#e0e7ff' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Initialize Pipeline Visualization with Real Data
+        async function initPipeline() {
+            const container = document.getElementById('pipeline-viz');
+            if (!container) return;
+            
+            try {
+                // Fetch real pipeline data from API
+                const pipelineData = await fetch(`${API_BASE}/pipeline`).then(r => r.json()).catch(() => null);
+                
+                if (pipelineData && pipelineData.nodes && pipelineData.edges) {
+                    // Use real data from API with beautiful React Flow style
+                    const nodes = new vis.DataSet(pipelineData.nodes.map(node => ({
+                        id: node.id,
+                        label: node.data?.label || node.id,
+                        title: `${node.data?.count || 0} executions`,
+                        x: node.position?.x || 0,
+                        y: node.position?.y || 0,
+                        fixed: {
+                            x: true,
+                            y: true
+                        },
+                        color: {
+                            background: node.data?.status === 'active' ? '#10b981' : 
+                                       node.data?.status === 'processing' ? '#f59e0b' : '#3b82f6',
+                            border: node.data?.status === 'active' ? '#059669' : 
+                                   node.data?.status === 'processing' ? '#d97706' : '#2563eb',
+                            highlight: {
+                                background: node.data?.status === 'active' ? '#34d399' : 
+                                           node.data?.status === 'processing' ? '#fbbf24' : '#60a5fa',
+                                border: '#ffffff'
+                            }
+                        },
+                        font: { 
+                            color: '#ffffff', 
+                            face: 'JetBrains Mono',
+                            size: 14
+                        },
+                        borderWidth: node.data?.status === 'active' ? 3 : 2,
+                        shape: 'box',
+                        shapeProperties: {
+                            borderRadius: 6
+                        },
+                        margin: 10,
+                        mass: 1
+                    })));
+                    
+                    const edges = new vis.DataSet(pipelineData.edges.map(edge => ({
+                        from: edge.from || edge.source,
+                        to: edge.to || edge.target,
+                        arrows: {
+                            to: {
+                                enabled: true,
+                                scaleFactor: 1,
+                                type: 'arrow'
+                            }
+                        },
+                        width: edge.animated ? 3 : 2,
+                        color: {
+                            color: edge.animated ? '#10b981' : '#64748b',
+                            highlight: '#90caf9',
+                            hover: '#90caf9'
+                        },
+                        smooth: {
+                            enabled: true,
+                            type: 'cubicBezier',
+                            roundness: 0.5
+                        },
+                        chosen: {
+                            edge: {
+                                width: 4
+                            }
+                        }
+                    })));
+                    
+                    pipelineNetwork = new vis.Network(container, {nodes, edges}, {
+                        layout: {
+                            hierarchical: false
+                        },
+                        nodes: {
+                            shape: 'box',
+                            font: { 
+                                color: '#ffffff', 
+                                face: 'JetBrains Mono',
+                                size: 14
+                            },
+                            borderWidth: 2,
+                            shadow: true,
+                            margin: 10,
+                            borderWidthSelected: 3
+                        },
+                        edges: {
+                            width: 2,
+                            color: { color: '#64748b' },
+                            smooth: { 
+                                type: 'cubicBezier',
+                                roundness: 0.4
+                            },
+                            arrows: {
+                                to: {
+                                    enabled: true,
+                                    scaleFactor: 0.8
+                                }
+                            }
+                        },
+                        physics: {
+                            enabled: true,
+                            stabilization: {
+                                enabled: true,
+                                iterations: 100
+                            },
+                            barnesHut: {
+                                gravitationalConstant: -2000,
+                                springConstant: 0.001,
+                                damping: 0.09
+                            }
+                        },
+                        interaction: {
+                            hover: true,
+                            tooltipDelay: 200
+                        }
+                    });
+                    
+                    // Update pipeline stats
+                    updatePipelineStats(pipelineData);
+                } else {
+                    // Fallback to beautiful React Flow style visualization
+                    const nodes = new vis.DataSet([
+                        {id: 'input', label: 'User Input', title: '0 executions', x: 0, y: 100, color: '#10b981', shape: 'box', fixed: true},
+                        {id: 'orch', label: 'Orchestrator', title: '0 executions', x: 200, y: 100, color: '#3b82f6', shape: 'box', fixed: true},
+                        {id: 'plan', label: 'Planner', title: '0 executions', x: 400, y: 0, color: '#8b5cf6', shape: 'box', fixed: true},
+                        {id: 'mem', label: 'Memory', title: '0 executions', x: 400, y: 100, color: '#8b5cf6', shape: 'box', fixed: true},
+                        {id: 'exec', label: 'Executor', title: '0 executions', x: 400, y: 200, color: '#8b5cf6', shape: 'box', fixed: true},
+                        {id: 'llm', label: 'DeepSeek LLM', title: '0 executions', x: 600, y: 0, color: '#ec4899', shape: 'box', fixed: true},
+                        {id: 'tools', label: 'Tools', title: '0 executions', x: 600, y: 200, color: '#f59e0b', shape: 'box', fixed: true},
+                        {id: 'output', label: 'Response', title: '0 executions', x: 800, y: 100, color: '#10b981', shape: 'box', fixed: true}
+                    ]);
+                    
+                    const edges = new vis.DataSet([
+                        {from: 'input', to: 'orch', arrows: {to: true}, color: {color: '#64748b'}, width: 2, smooth: {type: 'cubicBezier'}},
+                        {from: 'orch', to: 'plan', arrows: {to: true}, color: {color: '#64748b'}, width: 2, smooth: {type: 'cubicBezier'}},
+                        {from: 'orch', to: 'mem', arrows: {to: true}, color: {color: '#64748b'}, width: 2, smooth: {type: 'cubicBezier'}},
+                        {from: 'orch', to: 'exec', arrows: {to: true}, color: {color: '#64748b'}, width: 2, smooth: {type: 'cubicBezier'}},
+                        {from: 'plan', to: 'llm', arrows: {to: true}, color: {color: '#64748b'}, width: 2, smooth: {type: 'cubicBezier'}},
+                        {from: 'exec', to: 'tools', arrows: {to: true}, color: {color: '#64748b'}, width: 2, smooth: {type: 'cubicBezier'}},
+                        {from: 'llm', to: 'output', arrows: {to: true}, color: {color: '#64748b'}, width: 2, smooth: {type: 'cubicBezier'}},
+                        {from: 'tools', to: 'output', arrows: {to: true}, color: {color: '#64748b'}, width: 2, smooth: {type: 'cubicBezier'}},
+                        {from: 'mem', to: 'output', arrows: {to: true}, color: {color: '#64748b'}, width: 2, smooth: {type: 'cubicBezier'}}
+                    ]);
+                    
+                    pipelineNetwork = new vis.Network(container, {nodes, edges}, {
+                        layout: {
+                            hierarchical: {
+                                direction: 'LR',
+                                sortMethod: 'directed',
+                                levelSeparation: 200
+                            }
+                        },
+                        nodes: {
+                            shape: 'box',
+                            font: { color: '#ffffff', face: 'JetBrains Mono' },
+                            borderWidth: 2,
+                            shadow: true,
+                            margin: 10
+                        },
+                        edges: {
+                            width: 2,
+                            color: { color: '#64748b' },
+                            smooth: { type: 'cubicBezier' }
+                        },
+                        physics: false
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to initialize pipeline:', error);
+            }
+        }
+        
+        // Update pipeline statistics panel
+        function updatePipelineStats(data) {
+            const statsContainer = document.getElementById('pipeline-stats');
+            if (!statsContainer || !data) return;
+            
+            const stats = data.stats || {};
+            statsContainer.innerHTML = `
+                <div style="display: grid; gap: 10px; margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(10, 25, 41, 0.6); border-radius: 8px;">
+                        <span>Total Executions:</span>
+                        <strong>${stats.totalExecutions || 0}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(10, 25, 41, 0.6); border-radius: 8px;">
+                        <span>Active Components:</span>
+                        <strong>${stats.activeComponents || 0}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(10, 25, 41, 0.6); border-radius: 8px;">
+                        <span>Average Latency:</span>
+                        <strong>${stats.avgLatency || 0}ms</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(10, 25, 41, 0.6); border-radius: 8px;">
+                        <span>Last Activity:</span>
+                        <strong>${stats.lastActivity ? new Date(stats.lastActivity).toLocaleTimeString() : 'None'}</strong>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Initialize Tabs
+        function initTabs() {
+            // Tab switching is handled by onclick, this just ensures initial state
+            document.querySelector('.nav-tab.active')?.click();
+        }
+        
+        // Tab Switching
+        window.switchTab = function(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (event && event.target) {
+                event.target.closest('.nav-tab').classList.add('active');
+            }
+            document.getElementById(tabName).classList.add('active');
+            
+            // Initialize specific tab content
+            if (tabName === 'pipeline') {
+                // Always reinitialize to get fresh data
+                setTimeout(initPipeline, 100);
+            } else if (tabName === 'memory') {
+                updateMemoryLayers();
+            }
+        }
+        
+        // Update Dashboard Data
+        async function updateDashboard() {
+            try {
+                // Update health
+                const healthResponse = await fetch(`${API_BASE}/health`);
+                if (!healthResponse.ok) throw new Error(`Health check failed: ${healthResponse.status}`);
+                const health = await healthResponse.json();
+                
+                uptimeSeconds = Math.floor(health.uptime);
+                document.getElementById('uptime').textContent = formatUptime(uptimeSeconds);
+                document.getElementById('server-status').className = 'status-dot online';
+                document.getElementById('server-text').textContent = 'Monitoring Active';
+                
+                // Fetch OVERVIEW data that has all the aggregated stats
+                const overview = await fetch(`${API_BASE}/overview`).then(r => r.json()).catch(() => ({}));
+                
+                // Use overview stats for display
+                const stats = overview.stats || {};
+                const tokenUsage = overview.tokenUsage?.current || 0;
+                const systemHealth = overview.systemHealth || {};
+                
+                // Update token usage display
+                document.getElementById('token-usage').textContent = formatNumber(tokenUsage);
+                document.getElementById('token-progress').style.width = `${(tokenUsage / 128000) * 100}%`;
+                
+                // Update stats from overview
+                document.getElementById('active-tasks').textContent = stats.activeSession ? 1 : 0;
+                document.getElementById('memory-chunks').textContent = stats.totalChunks || 0;
+                
+                // Calculate throughput from logs count
+                const throughput = (stats.totalLogs || 0) / Math.max(1, uptimeSeconds);
+                document.getElementById('throughput').textContent = throughput.toFixed(2);
+                
+                // Update system health display
+                if (systemHealth.memoryUsage) {
+                    const memPercent = systemHealth.memoryUsage.percentage || 0;
+                    const memText = `${(systemHealth.memoryUsage.used / 1024 / 1024).toFixed(0)}MB / ${(systemHealth.memoryUsage.total / 1024 / 1024).toFixed(0)}MB (${memPercent.toFixed(1)}%)`;
+                    // Update memory display if element exists
+                    const memElement = document.getElementById('memory-usage');
+                    if (memElement) memElement.textContent = memText;
+                }
+                
+                // Update charts with overview data
+                updateCharts(tokenUsage, []);
+                
+                // Update sessions
+                updateSessions();
+                
+                // Update events
+                updateEvents();
+                
+                // Update tools
+                updateTools();
+                
+                // Update memory layers
+                updateMemoryLayers();
+                
+            } catch (error) {
+                console.error('Dashboard update error:', error);
+                document.getElementById('server-status').className = 'status-dot offline';
+                document.getElementById('server-text').textContent = 'Monitoring Offline';
+                
+                // Set safe defaults when offline
+                document.getElementById('token-usage').textContent = '0';
+                document.getElementById('active-tasks').textContent = '0';
+                document.getElementById('memory-chunks').textContent = '0';
+                document.getElementById('throughput').textContent = '0.0';
+            }
+        }
+        
+        function updateCharts(tokenUsage, chunks = []) {
+            // Update performance chart
+            if (charts.performance) {
+                const labels = charts.performance.data.labels;
+                const now = new Date().toLocaleTimeString();
+                
+                if (labels.length > 20) {
+                    labels.shift();
+                    charts.performance.data.datasets[0].data.shift();
+                    charts.performance.data.datasets[1].data.shift();
+                }
+                
+                labels.push(now);
+                charts.performance.data.datasets[0].data.push(tokenUsage);
+                charts.performance.data.datasets[1].data.push(chunks.length);
+                charts.performance.update('none');
+            }
+            
+            // Update memory chart
+            if (charts.memory) {
+                // Use real data from database
+                const codeChunks = chunks.filter(c => c.chunkType === 'CODE').length;
+                const docChunks = chunks.filter(c => c.chunkType === 'DOCUMENTATION').length;
+                const testChunks = chunks.filter(c => c.chunkType === 'TEST').length;
+                const configChunks = chunks.filter(c => c.chunkType === 'CONFIG').length;
+                const otherChunks = chunks.length - codeChunks - docChunks - testChunks - configChunks;
+                
+                charts.memory.data.datasets[0].data = [
+                    codeChunks,
+                    docChunks,
+                    testChunks,
+                    configChunks,
+                    otherChunks
+                ];
+                charts.memory.update('none');
+            }
+            
+            // Update token chart
+            if (charts.token) {
+                charts.token.data.datasets[0].data = [tokenUsage, 128000 - tokenUsage];
+                charts.token.update('none');
+            }
+        }
+        
+        async function updateSessions() {
+            try {
+                const sessions = await fetch(`${API_BASE}/sessions`).then(r => r.json());
+                const container = document.getElementById('session-list');
+                if (!container) return;
+                
+                if (Array.isArray(sessions) && sessions.length > 0) {
+                    container.innerHTML = sessions.map(session => `
+                        <div class="session-item">
+                            <div class="session-header">
+                                <span class="session-id">${session.id?.substring(0, 8) || 'Unknown'}</span>
+                                <span class="session-time">${new Date(session.startedAt).toLocaleString()}</span>
+                            </div>
+                            <div class="session-stats">
+                                <div class="session-stat">
+                                    <i class="fas fa-microchip"></i>
+                                    ${session.tokensUsed || 0} tokens
+                                </div>
+                                <div class="session-stat">
+                                    <i class="fas fa-clock"></i>
+                                    ${session.duration || '0'}s
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #64748b;">No sessions yet</div>';
+                }
+            } catch (error) {
+                console.error('Failed to update sessions:', error);
+            }
+        }
+        
+        async function updateEvents() {
+            try {
+                const events = await fetch(`${API_BASE}/events?limit=10`).then(r => r.json());
+                const container = document.getElementById('event-feed');
+                if (!container) return;
+                
+                if (Array.isArray(events) && events.length > 0) {
+                    container.innerHTML = events.map(event => {
+                        const type = event.type || 'system';
+                        const icon = {
+                            memory: 'fa-memory',
+                            tool: 'fa-tools',
+                            error: 'fa-exclamation-triangle',
+                            system: 'fa-cog'
+                        }[type] || 'fa-info-circle';
+                        
+                        return `
+                            <div class="event-item ${type}">
+                                <div class="event-icon ${type}">
+                                    <i class="fas ${icon}"></i>
+                                </div>
+                                <div class="event-content">
+                                    <div class="event-title">${event.action || 'Event'}</div>
+                                    <div class="event-description">${event.component || 'System'}</div>
+                                    <div class="event-time">${new Date(event.timestamp).toLocaleTimeString()}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    // Generate sample events
+                    const sampleEvents = [
+                        {type: 'memory', action: 'Cache Update', component: 'Ephemeral Layer'},
+                        {type: 'tool', action: 'Tool Executed', component: 'Bash Tool'},
+                        {type: 'system', action: 'Health Check', component: 'Monitor'}
+                    ];
+                    
+                    container.innerHTML = sampleEvents.map(event => {
+                        const icon = {
+                            memory: 'fa-memory',
+                            tool: 'fa-tools',
+                            system: 'fa-cog'
+                        }[event.type];
+                        
+                        return `
+                            <div class="event-item ${event.type}">
+                                <div class="event-icon ${event.type}">
+                                    <i class="fas ${icon}"></i>
+                                </div>
+                                <div class="event-content">
+                                    <div class="event-title">${event.action}</div>
+                                    <div class="event-description">${event.component}</div>
+                                    <div class="event-time">${new Date().toLocaleTimeString()}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Failed to update events:', error);
+            }
+        }
+        
+        async function updateTools() {
+            const container = document.getElementById('tool-grid');
+            if (!container) return;
+            
+            // Fetch REAL execution logs from API
+            const logs = await fetch(`${API_BASE}/logs`).then(r => r.json()).catch(() => []);
+            
+            // Count tool usage from REAL logs
+            const toolCounts = {};
+            logs.forEach(log => {
+                if (log.tool) {
+                    toolCounts[log.tool] = (toolCounts[log.tool] || 0) + 1;
+                }
+            });
+            
+            // Map to display format with real data
+            const tools = [
+                {name: 'Bash', icon: 'fa-terminal', count: toolCounts['bash'] || 0},
+                {name: 'File', icon: 'fa-file-code', count: (toolCounts['read'] || 0) + (toolCounts['write'] || 0)},
+                {name: 'Web', icon: 'fa-globe', count: toolCounts['webfetch'] || 0},
+                {name: 'Git', icon: 'fa-code-branch', count: toolCounts['git'] || 0},
+                {name: 'Search', icon: 'fa-search', count: toolCounts['search'] || 0},
+                {name: 'Database', icon: 'fa-database', count: toolCounts['database'] || 0}
+            ];
+            
+            // Check which tools were used recently (last minute)
+            const recentLogs = logs.filter(l => new Date(l.createdAt) > new Date(Date.now() - 60000));
+            const recentTools = new Set(recentLogs.map(l => l.tool));
+            
+            container.innerHTML = tools.map(tool => {
+                const toolKey = tool.name.toLowerCase();
+                const isActive = recentTools.has(toolKey) || 
+                                (toolKey === 'file' && (recentTools.has('read') || recentTools.has('write')));
+                return `
+                <div class="tool-card ${isActive ? 'active' : ''}">
+                    <div class="tool-icon">
+                        <i class="fas ${tool.icon}"></i>
+                    </div>
+                    <div class="tool-name">${tool.name}</div>
+                    <div class="tool-count">${tool.count} calls</div>
+                </div>
+            `}).join('');
+        }
+        
+        function formatUptime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) return `${hours}h ${minutes}m`;
+            if (minutes > 0) return `${minutes}m ${secs}s`;
+            return `${secs}s`;
+        }
+        
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+        
+        // Update memory layers display with real data
+        async function updateMemoryLayers() {
+            try {
+                const memoryData = await fetch(`${API_BASE}/memory`).then(r => r.json()).catch(() => null);
+                if (!memoryData) return;
+                
+                // Update memory chart with real layer data
+                if (charts.memory && memoryData.layers) {
+                    const layerData = memoryData.layers.map(layer => {
+                        if (layer.name === 'Code Index') return layer.chunks || 0;
+                        if (layer.name === 'Git Context') return layer.commits || 0;
+                        if (layer.name === 'Knowledge Base') return layer.entries || 0;
+                        if (layer.name === 'Conversation') return layer.context?.length || 0;
+                        if (layer.name === 'Project Context') return 1;
+                        return 0;
+                    });
+                    
+                    charts.memory.data.datasets[0].data = layerData;
+                    charts.memory.update('none');
+                }
+                
+                // Update token budget display
+                if (memoryData.tokenBudget) {
+                    const budget = memoryData.tokenBudget;
+                    const used = budget.used || 0;
+                    const limit = budget.limit || 128000;
+                    
+                    if (charts.token) {
+                        charts.token.data.datasets[0].data = [used, limit - used];
+                        charts.token.update('none');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to update memory layers:', error);
+            }
+        }
+        
+        // Initialize when DOM is ready
+        function initialize() {
+            console.log('Initializing dashboard...');
+            initCharts();
+            initTabs();
+            updateDashboard();
+            
+            // Auto-refresh every 5 seconds
+            setInterval(updateDashboard, 5000);
+        }
+        
+        // Wait for DOM if needed
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            // DOM already ready
+            initialize();
+        }
+    </script>
+</body>
+</html>

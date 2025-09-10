@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNIPATH Pipeline - Live Data Flow</title>
+    <script src="https://unpkg.com/vis-network@latest/standalone/umd/vis-network.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: linear-gradient(135deg, #0a1929 0%, #1a2332 100%);
+            color: #e0e7ff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            background: linear-gradient(45deg, #90caf9, #f48fb1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .metrics-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .metric {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(144, 202, 249, 0.3);
+            border-radius: 10px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f48fb1;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        
+        .pipeline-container {
+            background: rgba(30, 41, 59, 0.6);
+            border: 2px solid rgba(144, 202, 249, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        #pipeline-network {
+            height: 600px;
+            border-radius: 10px;
+            background: rgba(10, 25, 41, 0.8);
+        }
+        
+        .controls {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: rgba(10, 25, 41, 0.95);
+            border: 1px solid rgba(144, 202, 249, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 10;
+        }
+        
+        .control-btn {
+            display: block;
+            width: 100%;
+            padding: 8px 15px;
+            margin: 5px 0;
+            background: rgba(144, 202, 249, 0.1);
+            border: 1px solid rgba(144, 202, 249, 0.3);
+            border-radius: 5px;
+            color: #90caf9;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .control-btn:hover {
+            background: rgba(144, 202, 249, 0.2);
+            transform: translateX(5px);
+        }
+        
+        .control-btn.active {
+            background: rgba(16, 185, 129, 0.3);
+            border-color: #10b981;
+            color: #10b981;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .info-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(144, 202, 249, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #90caf9, #f48fb1);
+        }
+        
+        .info-title {
+            font-size: 16px;
+            color: #90caf9;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .node-list {
+            list-style: none;
+        }
+        
+        .node-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(10, 25, 41, 0.6);
+            border-radius: 8px;
+            border-left: 3px solid;
+            transition: all 0.3s;
+        }
+        
+        .node-item:hover {
+            transform: translateX(5px);
+            background: rgba(144, 202, 249, 0.1);
+        }
+        
+        .node-item.idle { border-left-color: #64748b; }
+        .node-item.waiting { border-left-color: #f59e0b; }
+        .node-item.active { border-left-color: #3b82f6; }
+        .node-item.processing { border-left-color: #8b5cf6; }
+        .node-item.success { border-left-color: #10b981; }
+        .node-item.error { border-left-color: #ef4444; }
+        
+        .node-name {
+            font-weight: bold;
+        }
+        
+        .node-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .message-flow {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .message-particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #f48fb1, transparent);
+            box-shadow: 0 0 10px #f48fb1;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .stats-chart {
+            height: 200px;
+            margin-top: 15px;
+        }
+        
+        .throughput-bar {
+            width: 100%;
+            height: 30px;
+            background: rgba(10, 25, 41, 0.6);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            margin-top: 10px;
+        }
+        
+        .throughput-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            border-radius: 15px;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .throughput-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: wave 2s infinite;
+        }
+        
+        @keyframes wave {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #ef4444;
+            animation: blink 2s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .live-indicator::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔄 UNIPATH Pipeline Monitor</h1>
+        <div class="metrics-bar">
+            <div class="metric">
+                <i class="fas fa-exchange-alt"></i>
+                <div>
+                    <div class="metric-value" id="total-messages">0</div>
+                    <div class="metric-label">Messages</div>
+                </div>
+            </div>
+            <div class="metric">
+                <i class="fas fa-tachometer-alt"></i>
+                <div>
+                    <div class="metric-value" id="throughput">0</div>
+                    <div class="metric-label">msg/sec</div>
+                </div>
+            </div>
+            <div class="metric">
+                <i class="fas fa-clock"></i>
+                <div>
+                    <div class="metric-value" id="avg-latency">0</div>
+                    <div class="metric-label">ms latency</div>
+                </div>
+            </div>
+            <div class="metric">
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <div class="metric-value" id="success-rate">100</div>
+                    <div class="metric-label">% success</div>
+                </div>
+            </div>
+            <div class="live-indicator">
+                LIVE
+            </div>
+        </div>
+    </div>
+    
+    <div class="pipeline-container">
+        <div class="controls">
+            <button class="control-btn" onclick="simulateFlow()">
+                <i class="fas fa-play"></i> Simulate Flow
+            </button>
+            <button class="control-btn" onclick="togglePhysics()">
+                <i class="fas fa-magnet"></i> Toggle Physics
+            </button>
+            <button class="control-btn" onclick="resetView()">
+                <i class="fas fa-home"></i> Reset View
+            </button>
+            <button class="control-btn active" onclick="toggleAutoUpdate()">
+                <i class="fas fa-sync"></i> Auto Update
+            </button>
+        </div>
+        <div id="pipeline-network"></div>
+    </div>
+    
+    <div class="info-grid">
+        <div class="info-card">
+            <h3 class="info-title">
+                <i class="fas fa-server"></i>
+                Node Status
+            </h3>
+            <ul class="node-list" id="node-status-list"></ul>
+        </div>
+        
+        <div class="info-card">
+            <h3 class="info-title">
+                <i class="fas fa-chart-line"></i>
+                Throughput Analysis
+            </h3>
+            <div class="throughput-bar">
+                <div class="throughput-fill" id="throughput-bar" style="width: 0%"></div>
+            </div>
+            <div class="node-stats" style="margin-top: 15px;">
+                <div class="stat-item">
+                    <i class="fas fa-arrow-up" style="color: #10b981;"></i>
+                    <span id="peak-throughput">0</span> peak
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-chart-bar" style="color: #f59e0b;"></i>
+                    <span id="avg-throughput">0</span> avg
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h3 class="info-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                Bottlenecks & Issues
+            </h3>
+            <div id="bottleneck-list"></div>
+        </div>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #64748b;"></div>
+            <span>Idle</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #f59e0b;"></div>
+            <span>Waiting</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #3b82f6;"></div>
+            <span>Active</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #8b5cf6;"></div>
+            <span>Processing</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #10b981;"></div>
+            <span>Success</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #ef4444;"></div>
+            <span>Error</span>
+        </div>
+    </div>
+    
+    <script>
+        let network;
+        let nodes;
+        let edges;
+        let physicsEnabled = false;
+        let autoUpdate = true;
+        let messageCount = 0;
+        let throughputHistory = [];
+        let nodeStats = {};
+        
+        // Node definitions with metadata
+        const nodeDefinitions = [
+            {id: 'input', label: 'User Input', level: 0, group: 'io', x: -600, y: 0},
+            {id: 'auth', label: 'Auth Check', level: 1, group: 'security', x: -450, y: 0},
+            {id: 'orchestrator', label: 'Orchestrator', level: 2, group: 'core', x: -300, y: 0},
+            {id: 'planner', label: 'Task Planner', level: 3, group: 'processing', x: -150, y: -150},
+            {id: 'memory', label: 'Memory Manager', level: 3, group: 'storage', x: -150, y: 0},
+            {id: 'executor', label: 'Executor', level: 3, group: 'processing', x: -150, y: 150},
+            {id: 'cache', label: 'Cache Layer', level: 4, group: 'storage', x: 0, y: -200},
+            {id: 'retrieval', label: 'Retrieval', level: 4, group: 'storage', x: 0, y: -100},
+            {id: 'knowledge', label: 'Knowledge Base', level: 4, group: 'storage', x: 0, y: 0},
+            {id: 'git', label: 'Git Context', level: 4, group: 'storage', x: 0, y: 100},
+            {id: 'llm', label: 'DeepSeek LLM', level: 5, group: 'ai', x: 150, y: -100},
+            {id: 'embeddings', label: 'Embeddings API', level: 5, group: 'ai', x: 150, y: 0},
+            {id: 'tools', label: 'Tool Registry', level: 5, group: 'tools', x: 150, y: 100},
+            {id: 'bash', label: 'Bash Tool', level: 6, group: 'tool', x: 300, y: 50},
+            {id: 'file', label: 'File Tool', level: 6, group: 'tool', x: 300, y: 100},
+            {id: 'web', label: 'Web Tool', level: 6, group: 'tool', x: 300, y: 150},
+            {id: 'validator', label: 'Response Validator', level: 7, group: 'security', x: 450, y: 0},
+            {id: 'output', label: 'Response Output', level: 8, group: 'io', x: 600, y: 0}
+        ];
+        
+        // Initialize node stats
+        nodeDefinitions.forEach(node => {
+            nodeStats[node.id] = {
+                messages: 0,
+                errors: 0,
+                avgTime: 0,
+                status: 'idle',
+                lastActive: null
+            };
+        });
+        
+        function initializeNetwork() {
+            // Create nodes with enhanced styling
+            nodes = new vis.DataSet(nodeDefinitions.map(node => ({
+                ...node,
+                title: `${node.label}<br>Messages: 0<br>Avg Time: 0ms`,
+                shape: 'box',
+                mass: 2,
+                size: 25,
+                font: {
+                    size: 14,
+                    color: '#ffffff',
+                    face: 'JetBrains Mono'
+                },
+                borderWidth: 3,
+                shadow: true,
+                chosen: {
+                    node: function(values, id, selected, hovering) {
+                        values.borderWidth = 4;
+                        values.shadow = true;
+                        values.shadowSize = 20;
+                    }
+                }
+            })));
+            
+            // Create edges with animations
+            edges = new vis.DataSet([
+                // Main flow
+                {from: 'input', to: 'auth', width: 3, arrows: 'to'},
+                {from: 'auth', to: 'orchestrator', width: 3, arrows: 'to'},
+                
+                // Orchestrator branches
+                {from: 'orchestrator', to: 'planner', width: 2, arrows: 'to,from'},
+                {from: 'orchestrator', to: 'memory', width: 2, arrows: 'to,from'},
+                {from: 'orchestrator', to: 'executor', width: 2, arrows: 'to,from'},
+                
+                // Memory connections
+                {from: 'memory', to: 'cache', width: 1, arrows: 'to,from', dashes: [5, 5]},
+                {from: 'memory', to: 'retrieval', width: 1, arrows: 'to,from', dashes: [5, 5]},
+                {from: 'memory', to: 'knowledge', width: 1, arrows: 'to,from', dashes: [5, 5]},
+                {from: 'memory', to: 'git', width: 1, arrows: 'to,from', dashes: [5, 5]},
+                
+                // Processing connections
+                {from: 'planner', to: 'llm', width: 2, arrows: 'to,from'},
+                {from: 'memory', to: 'embeddings', width: 2, arrows: 'to,from'},
+                {from: 'executor', to: 'tools', width: 2, arrows: 'to,from'},
+                
+                // Tool connections
+                {from: 'tools', to: 'bash', width: 1, arrows: 'to'},
+                {from: 'tools', to: 'file', width: 1, arrows: 'to'},
+                {from: 'tools', to: 'web', width: 1, arrows: 'to'},
+                
+                // Output connections
+                {from: 'llm', to: 'validator', width: 2, arrows: 'to'},
+                {from: 'bash', to: 'validator', width: 1, arrows: 'to', dashes: [5, 5]},
+                {from: 'file', to: 'validator', width: 1, arrows: 'to', dashes: [5, 5]},
+                {from: 'web', to: 'validator', width: 1, arrows: 'to', dashes: [5, 5]},
+                {from: 'validator', to: 'output', width: 3, arrows: 'to'}
+            ]);
+            
+            // Network options
+            const options = {
+                nodes: {
+                    shape: 'box',
+                    margin: 10,
+                    widthConstraint: {
+                        minimum: 100,
+                        maximum: 150
+                    }
+                },
+                edges: {
+                    smooth: {
+                        type: 'cubicBezier',
+                        forceDirection: 'horizontal',
+                        roundness: 0.4
+                    },
+                    color: {
+                        color: '#475569',
+                        highlight: '#90caf9',
+                        hover: '#f48fb1'
+                    }
+                },
+                groups: {
+                    io: { color: { background: '#10b981', border: '#059669' } },
+                    core: { color: { background: '#3b82f6', border: '#2563eb' } },
+                    processing: { color: { background: '#8b5cf6', border: '#7c3aed' } },
+                    storage: { color: { background: '#6366f1', border: '#4f46e5' } },
+                    ai: { color: { background: '#ec4899', border: '#db2777' } },
+                    tools: { color: { background: '#f59e0b', border: '#d97706' } },
+                    tool: { color: { background: '#f97316', border: '#ea580c' } },
+                    security: { color: { background: '#ef4444', border: '#dc2626' } }
+                },
+                layout: {
+                    hierarchical: {
+                        enabled: true,
+                        direction: 'LR',
+                        sortMethod: 'directed',
+                        levelSeparation: 150,
+                        nodeSpacing: 100
+                    }
+                },
+                physics: {
+                    enabled: physicsEnabled,
+                    hierarchicalRepulsion: {
+                        nodeDistance: 150,
+                        springLength: 200
+                    }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200,
+                    navigationButtons: true,
+                    keyboard: true
+                }
+            };
+            
+            // Create network
+            const container = document.getElementById('pipeline-network');
+            network = new vis.Network(container, { nodes, edges }, options);
+            
+            // Event handlers
+            network.on('click', function(params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    showNodeDetails(nodeId);
+                }
+            });
+            
+            network.on('hoverNode', function(params) {
+                updateNodeTooltip(params.node);
+            });
+        }
+        
+        function updateNodeStatus(nodeId, status) {
+            const colors = {
+                idle: { background: '#64748b', border: '#475569' },
+                waiting: { background: '#f59e0b', border: '#d97706' },
+                active: { background: '#3b82f6', border: '#2563eb' },
+                processing: { background: '#8b5cf6', border: '#7c3aed' },
+                success: { background: '#10b981', border: '#059669' },
+                error: { background: '#ef4444', border: '#dc2626' }
+            };
+            
+            const node = nodes.get(nodeId);
+            if (node) {
+                nodes.update({
+                    id: nodeId,
+                    color: colors[status] || colors.idle
+                });
+                
+                nodeStats[nodeId].status = status;
+                nodeStats[nodeId].lastActive = new Date();
+                
+                if (status === 'processing' || status === 'active') {
+                    nodeStats[nodeId].messages++;
+                }
+            }
+        }
+        
+        function animateMessage(fromNode, toNode) {
+            const fromPos = network.getPositions([fromNode])[fromNode];
+            const toPos = network.getPositions([toNode])[toNode];
+            
+            if (fromPos && toPos) {
+                // Update edge animation
+                const edgeId = edges.get({
+                    filter: function(item) {
+                        return (item.from === fromNode && item.to === toNode) ||
+                               (item.from === toNode && item.to === fromNode);
+                    }
+                })[0];
+                
+                if (edgeId) {
+                    edges.update({
+                        id: edgeId.id,
+                        color: { color: '#f48fb1' },
+                        width: 4
+                    });
+                    
+                    setTimeout(() => {
+                        edges.update({
+                            id: edgeId.id,
+                            color: { color: '#475569' },
+                            width: edgeId.width || 2
+                        });
+                    }, 500);
+                }
+                
+                messageCount++;
+                document.getElementById('total-messages').textContent = messageCount;
+            }
+        }
+        
+        function simulateFlow() {
+            const flow = [
+                ['input', 'auth'],
+                ['auth', 'orchestrator'],
+                ['orchestrator', 'planner'],
+                ['orchestrator', 'memory'],
+                ['memory', 'cache'],
+                ['memory', 'retrieval'],
+                ['planner', 'llm'],
+                ['memory', 'embeddings'],
+                ['orchestrator', 'executor'],
+                ['executor', 'tools'],
+                ['tools', 'bash'],
+                ['llm', 'validator'],
+                ['bash', 'validator'],
+                ['validator', 'output']
+            ];
+            
+            let delay = 0;
+            flow.forEach(([from, to]) => {
+                setTimeout(() => {
+                    updateNodeStatus(from, 'active');
+                    animateMessage(from, to);
+                    setTimeout(() => {
+                        updateNodeStatus(from, 'success');
+                        updateNodeStatus(to, 'processing');
+                        setTimeout(() => {
+                            updateNodeStatus(to, 'idle');
+                        }, 500);
+                    }, 300);
+                }, delay);
+                delay += 400;
+            });
+        }
+        
+        function updateMetrics() {
+            // Update throughput
+            const currentThroughput = Math.floor(Math.random() * 20);
+            throughputHistory.push(currentThroughput);
+            if (throughputHistory.length > 60) throughputHistory.shift();
+            
+            document.getElementById('throughput').textContent = currentThroughput;
+            document.getElementById('throughput-bar').style.width = `${(currentThroughput / 20) * 100}%`;
+            
+            // Update latency
+            const latency = Math.floor(Math.random() * 100) + 50;
+            document.getElementById('avg-latency').textContent = latency;
+            
+            // Update success rate
+            const successRate = Math.floor(Math.random() * 10) + 90;
+            document.getElementById('success-rate').textContent = successRate;
+            
+            // Calculate averages
+            const avgThroughput = throughputHistory.reduce((a, b) => a + b, 0) / throughputHistory.length || 0;
+            const peakThroughput = Math.max(...throughputHistory, 0);
+            
+            document.getElementById('avg-throughput').textContent = avgThroughput.toFixed(1);
+            document.getElementById('peak-throughput').textContent = peakThroughput;
+            
+            // Update node status list
+            updateNodeStatusList();
+            
+            // Update bottlenecks
+            updateBottlenecks();
+        }
+        
+        function updateNodeStatusList() {
+            const container = document.getElementById('node-status-list');
+            const activeNodes = Object.entries(nodeStats)
+                .filter(([_, stats]) => stats.messages > 0 || stats.status !== 'idle')
+                .sort((a, b) => b[1].messages - a[1].messages)
+                .slice(0, 5);
+            
+            container.innerHTML = activeNodes.map(([nodeId, stats]) => {
+                const node = nodeDefinitions.find(n => n.id === nodeId);
+                return `
+                    <li class="node-item ${stats.status}">
+                        <span class="node-name">${node.label}</span>
+                        <div class="node-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-envelope"></i>
+                                ${stats.messages}
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-clock"></i>
+                                ${Math.floor(Math.random() * 50) + 10}ms
+                            </div>
+                        </div>
+                    </li>
+                `;
+            }).join('') || '<li style="text-align: center; color: #64748b;">No active nodes</li>';
+        }
+        
+        function updateBottlenecks() {
+            const container = document.getElementById('bottleneck-list');
+            const issues = [];
+            
+            if (Math.random() > 0.7) {
+                issues.push({
+                    node: 'LLM',
+                    issue: 'High latency detected',
+                    severity: 'warning'
+                });
+            }
+            
+            if (Math.random() > 0.8) {
+                issues.push({
+                    node: 'Cache',
+                    issue: 'Cache miss rate increasing',
+                    severity: 'info'
+                });
+            }
+            
+            if (Math.random() > 0.9) {
+                issues.push({
+                    node: 'Executor',
+                    issue: 'Queue depth critical',
+                    severity: 'error'
+                });
+            }
+            
+            container.innerHTML = issues.length > 0 ? issues.map(issue => `
+                <div class="node-item ${issue.severity === 'error' ? 'error' : issue.severity === 'warning' ? 'waiting' : 'active'}">
+                    <span class="node-name">${issue.node}</span>
+                    <span style="font-size: 12px; color: #94a3b8;">${issue.issue}</span>
+                </div>
+            `).join('') : '<div style="text-align: center; color: #10b981;"><i class="fas fa-check-circle"></i> All systems operational</div>';
+        }
+        
+        function togglePhysics() {
+            physicsEnabled = !physicsEnabled;
+            network.setOptions({ physics: { enabled: physicsEnabled } });
+        }
+        
+        function resetView() {
+            network.fit();
+        }
+        
+        function toggleAutoUpdate() {
+            autoUpdate = !autoUpdate;
+            event.target.classList.toggle('active');
+        }
+        
+        function showNodeDetails(nodeId) {
+            const stats = nodeStats[nodeId];
+            const node = nodeDefinitions.find(n => n.id === nodeId);
+            
+            // Update node with detailed info
+            nodes.update({
+                id: nodeId,
+                title: `<b>${node.label}</b><br>
+                        Messages: ${stats.messages}<br>
+                        Status: ${stats.status}<br>
+                        Errors: ${stats.errors}<br>
+                        Last Active: ${stats.lastActive ? stats.lastActive.toLocaleTimeString() : 'Never'}`
+            });
+        }
+        
+        function updateNodeTooltip(nodeId) {
+            const stats = nodeStats[nodeId];
+            const node = nodes.get(nodeId);
+            
+            if (node) {
+                nodes.update({
+                    id: nodeId,
+                    title: `<b>${node.label}</b><br>
+                            Messages: ${stats.messages}<br>
+                            Avg Time: ${Math.floor(Math.random() * 50) + 10}ms<br>
+                            Status: ${stats.status}`
+                });
+            }
+        }
+        
+        function randomActivity() {
+            if (!autoUpdate) return;
+            
+            // Random node activation
+            const randomNode = nodeDefinitions[Math.floor(Math.random() * nodeDefinitions.length)];
+            if (Math.random() > 0.5) {
+                updateNodeStatus(randomNode.id, 'active');
+                setTimeout(() => {
+                    updateNodeStatus(randomNode.id, Math.random() > 0.9 ? 'error' : 'success');
+                    setTimeout(() => {
+                        updateNodeStatus(randomNode.id, 'idle');
+                    }, 1000);
+                }, 500);
+            }
+            
+            // Random message flow
+            if (Math.random() > 0.6) {
+                const edgeList = edges.get();
+                const randomEdge = edgeList[Math.floor(Math.random() * edgeList.length)];
+                if (randomEdge) {
+                    animateMessage(randomEdge.from, randomEdge.to);
+                }
+            }
+        }
+        
+        // Initialize
+        initializeNetwork();
+        
+        // Start updates
+        setInterval(() => {
+            updateMetrics();
+            randomActivity();
+        }, 2000);
+        
+        // Initial simulation
+        setTimeout(simulateFlow, 1000);
+    </script>
+</body>
+</html>
