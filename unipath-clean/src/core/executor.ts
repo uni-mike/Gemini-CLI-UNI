@@ -474,9 +474,12 @@ export class Executor extends EventEmitter {
 
 Return only the file content, no explanations or markdown blocks. Make it complete and functional.`;
 
+      // Get all available tools from registry
+      const availableTools = globalRegistry.getTools();
+      
       const content = await this.client.chat([
         { role: 'user', content: contentPrompt }
-      ], [], false); // Use temperature 0 for consistency
+      ], availableTools, false); // Use temperature 0 for consistency
       
       return content.trim();
     } catch (error) {

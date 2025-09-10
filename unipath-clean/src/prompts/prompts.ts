@@ -22,6 +22,13 @@ If this is a development/coding task, break it into multiple specific tasks:
   "type": "tasks",
   "tasks": [
     {
+      "description": "Search for current information",
+      "type": "web",
+      "tools": ["web"],
+      "action": "search",
+      "query": "relevant search terms"
+    },
+    {
       "description": "Create package.json with dependencies",
       "type": "file",
       "tools": ["file"],
@@ -38,7 +45,8 @@ If this is a development/coding task, break it into multiple specific tasks:
 }
 
 IMPORTANT: For file tasks, include the complete file content. For command tasks, include the exact command.
-Each task should be atomic - create ONE file OR run ONE command. Break development requests into 5-10 tasks.`;
+Each task should be atomic - create ONE file OR run ONE command. Break development requests into 5-10 tasks.
+Always use web search if current information is needed (prices, latest docs, best practices).`;
   }
 
   /**

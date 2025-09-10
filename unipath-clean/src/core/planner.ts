@@ -42,10 +42,13 @@ export class Planner extends EventEmitter {
     this.emit('status', '🤔 Analyzing request...');
     
     try {
+      // Get all available tools from registry
+      const availableTools = globalRegistry.getTools();
+      
       // Use enhanced JSON approach with forced JSON output
       const taskPlanResponse = await this.client.chat(
         [{ role: 'user', content: PromptTemplates.taskDecomposition(prompt) }],
-        [],
+        availableTools,
         true // forceJson = true
       );
       

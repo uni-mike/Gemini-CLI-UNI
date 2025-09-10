@@ -129,8 +129,8 @@ export class DeepSeekClient extends EventEmitter {
         console.log('🔍 After think cleanup length:', content.length);
       }
       
-      // SEXY parsing: Aggressive cleanup for DeepSeek R1 reasoning
-      if (content.length > 200) {
+      // SEXY parsing: Aggressive cleanup for DeepSeek R1 reasoning (but NOT for JSON)
+      if (!forceJson && content.length > 200) {
         // Remove internal API response explanations
         content = content.replace(/We have successfully.*?API\./gi, '').trim();
         content = content.replace(/The response is:.*?}/gi, '').trim();
