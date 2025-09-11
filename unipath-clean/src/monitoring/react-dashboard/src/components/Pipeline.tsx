@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -11,6 +11,7 @@ import ReactFlow, {
   Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { createPortal } from 'react-dom';
 import { Badge } from './ui/badge';
 // Professional React Icons
 import { 
@@ -32,8 +33,82 @@ interface PipelineProps {
   steps: PipelineStep[];
 }
 
+// Global tooltip state for escaping container boundaries
+const tooltipState = {
+  show: false,
+  data: null as any,
+  position: { x: 0, y: 0 }
+};
+
+// Tooltip Portal Component - Renders at document body level
+const TooltipPortal = () => {
+  const [tooltip, setTooltip] = useState(tooltipState);
+
+  useEffect(() => {
+    const updateTooltip = () => setTooltip({...tooltipState});
+    
+    // Custom event listeners for tooltip updates
+    document.addEventListener('tooltip-show', updateTooltip);
+    document.addEventListener('tooltip-hide', updateTooltip);
+    document.addEventListener('tooltip-move', updateTooltip);
+    
+    return () => {
+      document.removeEventListener('tooltip-show', updateTooltip);
+      document.removeEventListener('tooltip-hide', updateTooltip);
+      document.removeEventListener('tooltip-move', updateTooltip);
+    };
+  }, []);
+
+  if (!tooltip.show || !tooltip.data) return null;
+
+  return createPortal(
+    <div 
+      className="fixed bg-gray-900 text-white text-sm rounded-lg px-3 py-2 min-w-max shadow-xl border border-gray-700 pointer-events-none transition-opacity duration-200 z-[9999]"
+      style={{ 
+        left: tooltip.position.x,
+        top: tooltip.position.y,
+        transform: 'translate(-50%, -105%)',
+      }}
+    >
+      <div className="font-bold text-purple-300 mb-1">{tooltip.data.title}</div>
+      <div className="opacity-90 mb-2">{tooltip.data.description}</div>
+      <div className="space-y-1 text-xs">
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-400">Metric:</span>
+          <span className="text-green-400 font-mono">{tooltip.data.metric}</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-400">Status:</span>
+          <span className="text-blue-400">{tooltip.data.status}</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-400">Layer:</span>
+          <span className="text-purple-400">{tooltip.data.layer}</span>
+        </div>
+        {tooltip.data.role && (
+          <div className="flex justify-between gap-4">
+            <span className="text-gray-400">Role:</span>
+            <span className="text-cyan-400">{tooltip.data.role}</span>
+          </div>
+        )}
+        {tooltip.data.throughput && (
+          <div className="flex justify-between gap-4">
+            <span className="text-gray-400">Throughput:</span>
+            <span className="text-yellow-400">{tooltip.data.throughput}</span>
+          </div>
+        )}
+      </div>
+      {/* Tooltip arrow */}
+      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+    </div>,
+    document.body
+  );
+};
+
 // Compact UNIPATH Node Component with Unicode Icons
 const UnipathNode = ({ data, selected }: any) => {
+  const nodeRef = useRef<HTMLDivElement>(null);
+
   // Professional React Icon mapping
   const getIconComponent = () => {
     const iconMap = {
@@ -66,41 +141,45 @@ const UnipathNode = ({ data, selected }: any) => {
     }
   };
 
-  return (
-    <div className="group relative">
-      {/* Comprehensive Tooltip */}
-      <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-sm rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-50 min-w-max shadow-xl border border-gray-700 pointer-events-none">
-        <div className="font-bold text-purple-300 mb-1">{data.title}</div>
-        <div className="opacity-90 mb-2">{data.description}</div>
-        <div className="space-y-1 text-xs">
-          <div className="flex justify-between gap-4">
-            <span className="text-gray-400">Metric:</span>
-            <span className="text-green-400 font-mono">{data.metric}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-gray-400">Status:</span>
-            <span className="text-blue-400">{data.status}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-gray-400">Layer:</span>
-            <span className="text-purple-400">{data.layer}</span>
-          </div>
-          {data.role && (
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-400">Role:</span>
-              <span className="text-cyan-400">{data.role}</span>
-            </div>
-          )}
-          {data.throughput && (
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-400">Throughput:</span>
-              <span className="text-yellow-400">{data.throughput}</span>
-            </div>
-          )}
-        </div>
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-      </div>
+  const handleMouseEnter = () => {
+    if (nodeRef.current) {
+      const rect = nodeRef.current.getBoundingClientRect();
+      const tooltipX = rect.left + rect.width / 2;
+      const tooltipY = rect.top - 5;
+      
+      tooltipState.show = true;
+      tooltipState.data = data;
+      tooltipState.position = { x: tooltipX, y: tooltipY };
+      
+      document.dispatchEvent(new CustomEvent('tooltip-show'));
+    }
+  };
 
+  const handleMouseLeave = () => {
+    tooltipState.show = false;
+    tooltipState.data = null;
+    document.dispatchEvent(new CustomEvent('tooltip-hide'));
+  };
+
+  const handleMouseMove = () => {
+    if (nodeRef.current && tooltipState.show) {
+      const rect = nodeRef.current.getBoundingClientRect();
+      const tooltipX = rect.left + rect.width / 2;
+      const tooltipY = rect.top - 5;
+      
+      tooltipState.position = { x: tooltipX, y: tooltipY };
+      document.dispatchEvent(new CustomEvent('tooltip-move'));
+    }
+  };
+
+  return (
+    <div 
+      ref={nodeRef}
+      className="group relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
+    >
       {/* Better Node Layout */}
       <div 
         className={`
@@ -144,7 +223,6 @@ const UnipathNode = ({ data, selected }: any) => {
           {/* Status Indicator */}
           <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor()}`}></div>
         </div>
-        
       </div>
     </div>
   );
@@ -534,37 +612,42 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
   );
 
   return (
-    <div className="h-[700px] bg-slate-950 rounded-lg border border-slate-800">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        connectionMode={ConnectionMode.Loose}
-        fitView
-        fitViewOptions={{ padding: 0.05, includeHiddenNodes: false }}
-        proOptions={{ hideAttribution: true }}
-        className="bg-slate-950"
-        nodesDraggable={true}
-        nodesConnectable={false}
-        elementsSelectable={true}
-        zoomOnDoubleClick={false}
-        panOnDrag={true}
-        selectNodesOnDrag={false}
-        defaultViewport={{ x: 20, y: 20, zoom: 1.0 }}
-        minZoom={0.5}
-        maxZoom={2.0}
-      >
-        <Background 
-          variant="dots" 
-          gap={20} 
-          size={1} 
-          color="#475569" 
-          className="opacity-30"
-        />
-      </ReactFlow>
-    </div>
+    <>
+      {/* Global Tooltip Portal - Escapes all container boundaries */}
+      <TooltipPortal />
+      
+      <div className="h-[700px] bg-slate-950 rounded-lg border border-slate-800">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          connectionMode={ConnectionMode.Loose}
+          fitView
+          fitViewOptions={{ padding: 0.05, includeHiddenNodes: false }}
+          proOptions={{ hideAttribution: true }}
+          className="bg-slate-950"
+          nodesDraggable={true}
+          nodesConnectable={false}
+          elementsSelectable={true}
+          zoomOnDoubleClick={false}
+          panOnDrag={true}
+          selectNodesOnDrag={false}
+          defaultViewport={{ x: 20, y: 20, zoom: 1.0 }}
+          minZoom={0.5}
+          maxZoom={2.0}
+        >
+          <Background 
+            variant="dots" 
+            gap={20} 
+            size={1} 
+            color="#475569" 
+            className="opacity-30"
+          />
+        </ReactFlow>
+      </div>
+    </>
   );
 };
