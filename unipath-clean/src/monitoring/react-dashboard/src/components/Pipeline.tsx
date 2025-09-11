@@ -158,11 +158,11 @@ const nodeTypes = {
 export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
   // EXACT PIXEL-PERFECT MATCH TO YOUR REFERENCE SCREENSHOT
   const unipathNodes: Node[] = [
-    // TOP CENTER - DeepSeek LLM (exactly as shown)
+    // TOP CENTER - DeepSeek LLM (perfectly centered)
     {
       id: 'deepseek',
       type: 'unipath',
-      position: { x: 504, y: 85 },
+      position: { x: 510, y: 80 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -176,11 +176,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       },
     },
 
-    // MAIN HORIZONTAL ROW - perfectly aligned
+    // MAIN HORIZONTAL ROW - perfect spacing and alignment
     {
       id: 'orchestrator',
       type: 'unipath',
-      position: { x: 78, y: 175 },
+      position: { x: 75, y: 155 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -196,7 +196,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
     {
       id: 'planner',
       type: 'unipath',
-      position: { x: 306, y: 175 },
+      position: { x: 305, y: 155 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -212,7 +212,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
     {
       id: 'executor',
       type: 'unipath',
-      position: { x: 928, y: 175 },
+      position: { x: 935, y: 155 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -228,7 +228,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
     {
       id: 'monitoring',
       type: 'unipath',
-      position: { x: 1164, y: 175 },
+      position: { x: 1165, y: 155 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -242,11 +242,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       },
     },
 
-    // TOOLS REGISTRY - top right
+    // TOOLS REGISTRY - exactly aligned with monitoring
     {
       id: 'tools-registry',
       type: 'unipath',
-      position: { x: 1186, y: 315 },
+      position: { x: 1165, y: 315 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -260,11 +260,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       },
     },
 
-    // EPHEMERAL - positioned exactly as in reference
+    // EPHEMERAL - evenly spaced column
     {
       id: 'ephemeral',
       type: 'unipath',
-      position: { x: 728, y: 275 },
+      position: { x: 740, y: 275 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -278,11 +278,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       },
     },
 
-    // MEMORY MANAGER - center position
+    // MEMORY MANAGER - center position 
     {
       id: 'memory-manager',
       type: 'unipath',
-      position: { x: 534, y: 375 },
+      position: { x: 540, y: 375 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -296,11 +296,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       },
     },
     
-    // RETRIEVAL - positioned as in reference
+    // RETRIEVAL - evenly spaced column (100px gap from ephemeral)
     {
       id: 'retrieval',
       type: 'unipath',
-      position: { x: 734, y: 375 },
+      position: { x: 740, y: 375 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -314,11 +314,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       },
     },
 
-    // GIT CONTEXT - positioned as in reference
+    // GIT CONTEXT - evenly spaced column (100px gap from retrieval)
     {
       id: 'git-context',
       type: 'unipath',
-      position: { x: 734, y: 485 },
+      position: { x: 740, y: 475 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -332,11 +332,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       },
     },
 
-    // EMBEDDINGS - below Git Context as requested
+    // EMBEDDINGS - evenly spaced column (100px gap from git context)
     {
       id: 'embeddings',
       type: 'unipath',
-      position: { x: 734, y: 585 },
+      position: { x: 740, y: 575 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
