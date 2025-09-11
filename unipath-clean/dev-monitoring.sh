@@ -106,11 +106,12 @@ check_backend() {
 
 # Function to start backend
 start_backend() {
-    print_status "Starting backend on port 4000..."
+    print_status "Starting backend in dev mode with tsx on port 4000..."
     cd "$BACKEND_DIR"
     
-    # Start backend in background and save PID using tsx for TypeScript
-    nohup npx tsx server-simplified.ts > monitoring-backend.log 2>&1 &
+    # Start backend in background and save PID using tsx for TypeScript with proper error logging
+    print_status "Running: npx tsx server-simplified.ts"
+    nohup npx tsx --watch server-simplified.ts > monitoring-backend.log 2>&1 &
     BACKEND_PID=$!
     echo "$BACKEND_PID" > "$BACKEND_PID_FILE"
     
@@ -118,13 +119,14 @@ start_backend() {
     print_status "Waiting for backend to start..."
     for i in {1..30}; do
         if curl -s http://localhost:4000/api/overview >/dev/null 2>&1; then
-            print_success "Backend started successfully (PID: $BACKEND_PID)"
+            print_success "Backend started successfully in dev mode (PID: $BACKEND_PID)"
             return 0
         fi
         sleep 1
     done
     
     print_error "Backend failed to start within 30 seconds"
+    print_status "Check backend logs: ./dev-monitoring.sh logs backend"
     cleanup
     exit 1
 }

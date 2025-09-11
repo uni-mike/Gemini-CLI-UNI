@@ -1,3 +1,0 @@
-# Documentation
-
-Content goes here.

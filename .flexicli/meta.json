@@ -1,9 +1,9 @@
 {
-  "projectId": "749537ea41accc1f",
-  "rootPath": "/Users/mike.admon/UNIPATH_PROJECT/gemini-cli",
-  "name": "gemini-cli",
+  "projectId": "d2cc509397f29cb9",
+  "rootPath": "/Users/mike.admon/UNIPATH_PROJECT/gemini-cli/unipath-clean",
+  "name": "unipath-clean",
   "schemaVersion": 1,
   "embeddingsModel": "text-embedding-3-large",
-  "createdAt": "2025-09-10T09:38:37.392Z",
-  "updatedAt": "2025-09-10T09:38:37.393Z"
+  "createdAt": "2025-09-10T09:43:07.827Z",
+  "updatedAt": "2025-09-10T09:43:07.828Z"
 }

@@ -7,12 +7,18 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
+import { exec, execSync } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
+import { MetricsCollector } from './MetricsCollector';
 
 export class MonitoringServer {
   private app: express.Application;
   private server: any;
   private io: SocketServer;
   private port: number;
+  private metricsCollector: MetricsCollector;
   
   // Getter for port
   getPort(): number {
@@ -29,6 +35,9 @@ export class MonitoringServer {
         methods: ['GET', 'POST']
       }
     });
+    
+    // Initialize metrics collector
+    this.metricsCollector = MetricsCollector.getInstance();
     
     this.setupMiddleware();
     this.setupRoutes();
@@ -56,78 +65,31 @@ export class MonitoringServer {
       });
     });
     
-    // Overview endpoint - mock data for development
+    // Overview endpoint - real metrics
     this.app.get('/api/overview', async (req, res) => {
       try {
-        const mockStats = {
-          totalSessions: 5,
-          totalChunks: 150,
-          totalCommits: 12,
-          totalLogs: 45,
-          activeSession: 'session-123'
-        };
-        
-        const mockSystemHealth = {
-          status: 'healthy',
-          memoryUsage: { percentage: 75 },
-          diskUsage: { dbSize: 2048000 }
-        };
-        
-        res.json({
-          stats: mockStats,
-          systemHealth: mockSystemHealth,
-          tokenUsage: { total: 12500, used: 8300, remaining: 4200 },
-          toolStats: [],
-          retrievalStats: { hits: 45, misses: 3 },
-          uptime: process.uptime() * 1000
-        });
+        const overviewData = this.metricsCollector.getOverviewStats();
+        res.json(overviewData);
       } catch (error: any) {
         res.status(500).json({ error: error.message });
       }
     });
     
-    // Memory layers endpoint
+    // Memory layers endpoint - real metrics
     this.app.get('/api/memory', async (req, res) => {
       try {
-        res.json({
-          layers: [
-            { name: 'Code Index', status: 'active', chunks: 85 },
-            { name: 'Git Context', status: 'active', commits: 12 },
-            { name: 'Knowledge Base', status: 'active', entries: 34 },
-            { name: 'Conversation', status: 'active', context: [] },
-            { name: 'Project Context', status: 'active', metadata: {} }
-          ],
-          tokenBudget: { total: 12500, used: 8300, remaining: 4200 },
-          retrievalStats: { hits: 45, misses: 3 }
-        });
+        const memoryData = this.metricsCollector.getMemoryLayers();
+        res.json(memoryData);
       } catch (error: any) {
         res.status(500).json({ error: error.message });
       }
     });
     
-    // Tools endpoint
+    // Tools endpoint - real metrics
     this.app.get('/api/tools', async (req, res) => {
       try {
-        res.json({
-          stats: [],
-          recentExecutions: [
-            {
-              id: 'exec-1',
-              tool: 'Bash',
-              success: true,
-              duration: 250,
-              timestamp: new Date()
-            },
-            {
-              id: 'exec-2', 
-              tool: 'Read',
-              success: true,
-              duration: 120,
-              timestamp: new Date()
-            }
-          ],
-          activeTools: ['Bash', 'Read', 'Write', 'Edit', 'Glob']
-        });
+        const toolsData = this.metricsCollector.getToolStats();
+        res.json(toolsData);
       } catch (error: any) {
         res.status(500).json({ error: error.message });
       }
@@ -135,12 +97,20 @@ export class MonitoringServer {
     
     // Get all metrics
     this.app.get('/api/metrics', (req, res) => {
-      res.json({
-        tokenUsage: { total: 12500, used: 8300, remaining: 4200 },
-        systemHealth: { status: 'healthy', memoryUsage: { percentage: 75 } },
-        toolStats: [],
-        memoryLayers: []
-      });
+      try {
+        const overview = this.metricsCollector.getOverviewStats();
+        const memory = this.metricsCollector.getMemoryLayers();
+        const tools = this.metricsCollector.getToolStats();
+        
+        res.json({
+          tokenUsage: overview.tokenUsage,
+          systemHealth: overview.systemHealth,
+          toolStats: tools.tools,
+          memoryLayers: memory.layers
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     });
     
     // Get recent events
@@ -155,33 +125,136 @@ export class MonitoringServer {
     // Get available agent processes
     this.app.get('/api/agents', async (req, res) => {
       try {
-        // Multiple agents for dropdown testing
-        const agents = [
-          {
-            pid: process.pid,
-            projectName: 'UNIPATH FlexiCLI',
-            memory: { rss: 50 * 1024 * 1024, vsz: 100 * 1024 * 1024 },
-            isPrimary: true
-          },
-          {
-            pid: process.pid + 1,
-            projectName: 'Test Project Alpha',
-            memory: { rss: 32 * 1024 * 1024, vsz: 80 * 1024 * 1024 },
-            isPrimary: false
-          },
-          {
-            pid: process.pid + 2,
-            projectName: 'Demo Project Beta',
-            memory: { rss: 45 * 1024 * 1024, vsz: 90 * 1024 * 1024 },
-            isPrimary: false
+        // Detect running Node.js processes that might be UNIPATH agents
+        const agents = [];
+        
+        try {
+          // Look specifically for UNIPATH CLI agents only
+          const processes = execSync('ps aux | grep -E "(start-clean|unipath.*cli)" | grep -v grep', { encoding: 'utf8' });
+          const lines = processes.trim().split('\n');
+          
+          for (const line of lines) {
+            const parts = line.split(/\s+/);
+            if (parts.length >= 11) {
+              const pid = parseInt(parts[1]);
+              const memoryKB = parseInt(parts[5]);
+              const command = parts.slice(10).join(' ');
+              
+              // Only include actual UNIPATH agents
+              if (command.includes('start-clean') || command.includes('unipath') || command.includes('cli.tsx')) {
+                agents.push({
+                  pid,
+                  projectName: 'UNIPATH Agent',
+                  memory: { 
+                    rss: memoryKB * 1024, 
+                    vsz: memoryKB * 1024 * 2 
+                  },
+                  isPrimary: agents.length === 0, // First one is primary
+                  command: command.substring(0, 50) + '...',
+                  status: 'active'
+                });
+              }
+            }
           }
-        ];
+        } catch (processError) {
+          console.warn('Could not detect UNIPATH agents:', processError);
+        }
+        
+        // Always include current monitoring process
+        if (agents.length === 0 || !agents.find(a => a.pid === process.pid)) {
+          agents.unshift({
+            pid: process.pid,
+            projectName: 'Monitoring Server',
+            memory: { 
+              rss: process.memoryUsage().rss, 
+              vsz: process.memoryUsage().heapTotal 
+            },
+            isPrimary: true,
+            command: 'monitoring-server'
+          });
+        }
+        
         res.json(agents);
       } catch (error: any) {
         res.status(500).json({ error: error.message });
       }
     });
     
+    // Get projects (from .flexicli directory)
+    this.app.get('/api/projects', async (req, res) => {
+      try {
+        const projects = [];
+        const currentDir = process.cwd();
+        
+        // Check for .flexicli directory - always use root location like .claude  
+        const flexicliPath = '/Users/mike.admon/UNIPATH_PROJECT/gemini-cli/.flexicli';
+        
+        if (fs.existsSync(flexicliPath)) {
+          try {
+            // Read meta.json to get project information
+            const metaPath = path.join(flexicliPath, 'meta.json');
+            if (fs.existsSync(metaPath)) {
+              const metaContent = fs.readFileSync(metaPath, 'utf8');
+              const meta = JSON.parse(metaContent);
+              
+              // Get database size for metrics
+              const dbPath = path.join(flexicliPath, 'flexicli.db');
+              let dbSize = 0;
+              if (fs.existsSync(dbPath)) {
+                dbSize = fs.statSync(dbPath).size;
+              }
+              
+              // Check if there are any session files
+              const sessionsPath = path.join(flexicliPath, 'sessions');
+              let sessionCount = 0;
+              if (fs.existsSync(sessionsPath)) {
+                sessionCount = fs.readdirSync(sessionsPath).length;
+              }
+              
+              projects.push({
+                id: meta.projectId || 'current-project',
+                name: meta.name || 'FlexiCLI Project',
+                description: `FlexiCLI project: ${meta.name || 'Current project'}`,
+                status: 'active',
+                type: 'flexicli',
+                rootPath: meta.rootPath,
+                createdAt: meta.createdAt,
+                updatedAt: meta.updatedAt,
+                embeddingsModel: meta.embeddingsModel,
+                metrics: {
+                  dbSize: Math.round(dbSize / 1024), // Size in KB
+                  sessionCount,
+                  schemaVersion: meta.schemaVersion
+                }
+              });
+            }
+          } catch (parseError) {
+            console.warn('Error reading .flexicli metadata:', parseError);
+          }
+        }
+        
+        // If no FlexiCLI project found, add a placeholder
+        if (projects.length === 0) {
+          projects.push({
+            id: 'no-project',
+            name: 'No FlexiCLI Project',
+            description: 'No .flexicli directory found in current working directory',
+            status: 'inactive',
+            type: 'none',
+            metrics: {
+              dbSize: 0,
+              sessionCount: 0,
+              schemaVersion: 0
+            }
+          });
+        }
+        
+        res.json(projects);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // Get sessions
     this.app.get('/api/sessions', async (req, res) => {
       try {
@@ -207,29 +280,25 @@ export class MonitoringServer {
       }
     });
     
-    // Get pipeline flow data with mock metrics
+    // Get pipeline flow data with real metrics
     this.app.get('/api/pipeline', async (req, res) => {
       try {
-        const componentCounts = {
-          input: 5,
-          orchestrator: 5,
-          planner: 4,
-          memory: 15,
-          executor: 35,
-          llm: 8,
-          embeddings: 12,
-          tools: 35,
-          output: 5
-        };
+        const componentCounts = this.metricsCollector.getPipelineMetrics();
+        const toolStats = this.metricsCollector.getToolStats();
+        
+        // Count active components based on actual metrics
+        const activeComponents = Object.entries(componentCounts)
+          .filter(([_, count]) => count > 0)
+          .length;
         
         res.json({
           nodes: this.buildPipelineNodes(componentCounts),
           edges: this.buildPipelineEdges(),
           stats: {
-            totalExecutions: 45,
-            activeComponents: 9,
-            avgLatency: 275,
-            lastActivity: new Date()
+            totalExecutions: toolStats.tools.reduce((sum, t) => sum + t.executions, 0),
+            activeComponents,
+            avgLatency: toolStats.tools.reduce((sum, t) => sum + t.avgDuration, 0) / Math.max(1, toolStats.tools.length),
+            lastActivity: toolStats.recentExecutions[0]?.timestamp || new Date()
           }
         });
       } catch (error: any) {

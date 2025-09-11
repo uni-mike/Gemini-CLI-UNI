@@ -1,3 +1,0 @@
-Please test the replace tool by replacing text in the README.md file.
-
-Replace "2024" with "2025" in the README file.

@@ -221,7 +221,8 @@
       "WebFetch(domain:reactflow.dev)",
       "Bash(DEBUG=true timeout 30 ./start-clean.sh --prompt \"create test-monitoring-validation.txt with content ''FlexiCLI monitoring integration test successful!''\" --non-interactive)",
       "Bash(DEBUG=true gtimeout 30 ./start-clean.sh --prompt \"create test-monitoring-validation.txt with content ''FlexiCLI monitoring integration test successful!''\" --non-interactive)",
-      "Bash(./dev-monitoring.sh:*)"
+      "Bash(./dev-monitoring.sh:*)",
+      "Bash(for endpoint in health overview memory tools metrics events agents projects sessions pipeline)"
     ],
     "deny": [],
     "ask": []

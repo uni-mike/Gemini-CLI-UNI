@@ -14,6 +14,9 @@ function App() {
   const [availableAgents, setAvailableAgents] = useState<any[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<any>(null);
   const [showAgentDropdown, setShowAgentDropdown] = useState(false);
+  const [availableProjects, setAvailableProjects] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [data, setData] = useState<MonitoringData>({
     overview: {
       tokenUsage: 0,
@@ -39,12 +42,13 @@ function App() {
   const fetchData = async () => {
     try {
       // Fetch all data from different endpoints
-      const [overviewRes, memoryRes, sessionsRes, pipelineRes, agentsRes] = await Promise.all([
+      const [overviewRes, memoryRes, sessionsRes, pipelineRes, agentsRes, projectsRes] = await Promise.all([
         fetch('/api/overview'),
         fetch('/api/memory').catch(() => ({ ok: false })),
         fetch('/api/sessions').catch(() => ({ ok: false })),
         fetch('/api/pipeline').catch(() => ({ ok: false })),
-        fetch('/api/agents').catch(() => ({ ok: false }))
+        fetch('/api/agents').catch(() => ({ ok: false })),
+        fetch('/api/projects').catch(() => ({ ok: false }))
       ]);
 
       const overview = await overviewRes.json();
@@ -52,12 +56,20 @@ function App() {
       const sessionsData = sessionsRes.ok ? await sessionsRes.json() : [];
       const pipelineData = pipelineRes.ok ? await pipelineRes.json() : { steps: [] };
       const agentsData = agentsRes.ok ? await agentsRes.json() : [];
+      const projectsData = projectsRes.ok ? await projectsRes.json() : [];
 
       // Update available agents and set primary as selected if none selected
       setAvailableAgents(agentsData);
       if (!selectedAgent && agentsData.length > 0) {
         const primary = agentsData.find(agent => agent.isPrimary) || agentsData[0];
         setSelectedAgent(primary);
+      }
+
+      // Update available projects and set active as selected if none selected
+      setAvailableProjects(projectsData);
+      if (!selectedProject && projectsData.length > 0) {
+        const active = projectsData.find(project => project.status === 'active') || projectsData[0];
+        setSelectedProject(active);
       }
 
       const tokenUsageValue = typeof overview.tokenUsage === 'object' 
@@ -132,6 +144,46 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Project Selector */}
+              {availableProjects.length > 0 && (
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                    className="flex items-center space-x-2 bg-slate-800 rounded-lg px-3 py-2 border border-slate-700 hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    <span className="text-sm font-medium">
+                      {selectedProject ? `${selectedProject.name} (${selectedProject.type})` : 'No Project'}
+                      {selectedProject?.status === 'active' && <span className="ml-1 text-green-400">●</span>}
+                    </span>
+                    {availableProjects.length > 1 && (
+                      <ChevronDown className="h-4 w-4 text-slate-400" />
+                    )}
+                  </button>
+                  {availableProjects.length > 1 && showProjectDropdown && (
+                    <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50">
+                      {availableProjects.map(project => (
+                        <button
+                          key={project.id}
+                          onClick={() => {
+                            setSelectedProject(project);
+                            setShowProjectDropdown(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-700 first:rounded-t-lg last:rounded-b-lg flex items-center justify-between ${
+                            selectedProject?.id === project.id ? 'bg-slate-700' : ''
+                          }`}
+                        >
+                          <div>
+                            <div className="font-medium">{project.name}</div>
+                            <div className="text-slate-400">{project.type} • {project.status}</div>
+                          </div>
+                          {project.status === 'active' && <span className="text-green-400">● Active</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Agent Switcher */}
               {availableAgents.length > 0 && (
                 <div className="relative">

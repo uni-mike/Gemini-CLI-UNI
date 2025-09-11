@@ -46,6 +46,11 @@ export const Tools: React.FC = () => {
   }, []);
   
   const totalToolCalls = toolsData.reduce((sum, tool) => sum + (tool.executions || 0), 0);
+  const totalSuccesses = toolsData.reduce((sum, tool) => sum + (tool.successes || 0), 0);
+  const totalFailures = toolsData.reduce((sum, tool) => sum + (tool.failures || 0), 0);
+  const avgSuccessRate = totalToolCalls > 0 ? (totalSuccesses / totalToolCalls * 100).toFixed(1) : '0';
+  const avgErrorRate = totalToolCalls > 0 ? (totalFailures / totalToolCalls * 100).toFixed(1) : '0';
+  const avgResponseTime = toolsData.length > 0 ? (toolsData.reduce((sum, tool) => sum + (tool.avgDuration || 0), 0) / toolsData.length / 1000).toFixed(1) : '0';
 
   const handleToolClick = (tool: Tool) => {
     setSelectedTool(tool);
@@ -169,15 +174,15 @@ export const Tools: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span>Success Rate</span>
-                <span className="font-mono text-green-500">{toolsData.length > 0 ? '98.7%' : '0%'}</span>
+                <span className="font-mono text-green-500">{toolsData.length > 0 ? `${avgSuccessRate}%` : '0%'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Avg Response Time</span>
-                <span className="font-mono text-blue-400">{toolsData.length > 0 ? '1.2s' : '0s'}</span>
+                <span className="font-mono text-blue-400">{toolsData.length > 0 ? `${avgResponseTime}s` : '0s'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Error Rate</span>
-                <span className="font-mono text-red-400">{toolsData.length > 0 ? '1.3%' : '0%'}</span>
+                <span className="font-mono text-red-400">{toolsData.length > 0 ? `${avgErrorRate}%` : '0%'}</span>
               </div>
             </div>
             
@@ -281,11 +286,11 @@ export const Tools: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-sm text-slate-400">Success Rate</div>
-                  <div className="text-xl font-bold text-green-500">94.2%</div>
+                  <div className="text-xl font-bold text-green-500">{selectedTool.successes && selectedTool.executions ? ((selectedTool.successes / selectedTool.executions) * 100).toFixed(1) + '%' : '0%'}</div>
                 </div>
                 <div>
                   <div className="text-sm text-slate-400">Avg Duration</div>
-                  <div className="text-xl font-bold text-blue-400">1.8s</div>
+                  <div className="text-xl font-bold text-blue-400">{selectedTool.avgDuration ? (selectedTool.avgDuration / 1000).toFixed(1) + 's' : '0s'}</div>
                 </div>
                 <div>
                   <div className="text-sm text-slate-400">Status</div>
