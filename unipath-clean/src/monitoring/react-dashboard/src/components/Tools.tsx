@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -7,38 +7,45 @@ import { Tooltip } from './ui/tooltip';
 import { Grid, List, Search } from 'lucide-react';
 import { Tool, ToolCategory } from '../types/monitoring';
 
-const TOOLS_DATA: Tool[] = [
-  { name: 'Bash', status: 'active', executions: 89, description: 'Shell command execution' },
-  { name: 'Read', status: 'active', executions: 156, description: 'File system read operations' },
-  { name: 'Write', status: 'active', executions: 67, description: 'File system write operations' },
-  { name: 'Edit', status: 'active', executions: 43, description: 'File content modification' },
-  { name: 'WebSearch', status: 'active', executions: 23, description: 'Web search capabilities' },
-  { name: 'WebFetch', status: 'active', executions: 18, description: 'HTTP content retrieval' },
-  { name: 'Grep', status: 'active', executions: 34, description: 'Pattern matching search' },
-  { name: 'Glob', status: 'active', executions: 29, description: 'File pattern matching' }
-];
-
-const TOOL_CATEGORIES: ToolCategory[] = [
-  { category: 'File Operations', tools: 4, healthy: 4, issues: 0 },
-  { category: 'Web Operations', tools: 2, healthy: 2, issues: 0 },
-  { category: 'Search Tools', tools: 2, healthy: 2, issues: 0 },
-  { category: 'System Tools', tools: 1, healthy: 1, issues: 0 }
-];
-
-const USAGE_STATS = [
-  { name: 'Read', usage: 34 },
-  { name: 'Bash', usage: 19 },
-  { name: 'Write', usage: 15 },
-  { name: 'Grep', usage: 8 }
-];
-
 export const Tools: React.FC = () => {
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'error'>('all');
-  const totalToolCalls = TOOLS_DATA.reduce((sum, tool) => sum + tool.executions, 0);
+  const [toolsData, setToolsData] = useState<Tool[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch tools data from API
+  useEffect(() => {
+    const fetchToolsData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/tools');
+        const data = await response.json();
+        
+        if (data.error) {
+          // API returned an error (expected when no data exists)
+          setToolsData([]);
+          setError(null); // Don't show error for empty database
+        } else {
+          setToolsData(data.tools || []);
+          setError(null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch tools data:', err);
+        setToolsData([]);
+        setError('Failed to load tools data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchToolsData();
+  }, []);
+  
+  const totalToolCalls = toolsData.reduce((sum, tool) => sum + (tool.executions || 0), 0);
 
   const handleToolClick = (tool: Tool) => {
     setSelectedTool(tool);
@@ -50,36 +57,51 @@ export const Tools: React.FC = () => {
     setSelectedTool(null);
   };
 
-  // Generate mock execution data for the selected tool
-  const generateExecutionData = (tool: Tool) => {
-    const allExecutions = Array.from({ length: 50 }, (_, i) => ({
-      id: `exec-${i + 1}`,
-      timestamp: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString(),
-      status: Math.random() > 0.1 ? 'success' : 'error',
-      duration: Math.random() * 5000 + 100,
-      parameters: tool.name === 'Bash' ? `command: ls -la /path/to/directory/with/long/path/structure/dir${i}` :
-                   tool.name === 'Read' ? `file: /very/long/path/to/some/deeply/nested/file${i}.txt` :
-                   tool.name === 'WebSearch' ? `query: TypeScript best practices and advanced patterns for modern development ${i}` :
-                   `input: sample_data_with_longer_content_${i}`,
-      output: tool.name === 'Bash' ? `drwxr-xr-x 5 user staff 160 Dec 10 14:30 .\ndrwxr-xr-x 12 user staff 384 Dec 9 16:45 ..\n-rw-r--r-- 1 user staff 1024 Dec 10 14:30 file${i}.txt` :
-              tool.name === 'Read' ? `File content successfully read (${Math.floor(Math.random() * 10000)} bytes). Content includes multiple lines of text with various data structures and configurations.` :
-              `Operation completed successfully with detailed output information and status ${i}`
-    }));
+  // Fetch execution data for the selected tool
+  const [executionData, setExecutionData] = useState<any[]>([]);
+  const [executionLoading, setExecutionLoading] = useState(false);
 
-    // Filter by status
-    const filteredByStatus = statusFilter === 'all' ? allExecutions : 
-      allExecutions.filter(exec => exec.status === statusFilter);
-
-    // Filter by search query
-    const filteredBySearch = searchQuery ? 
-      filteredByStatus.filter(exec => 
-        exec.parameters.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        exec.output.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        exec.id.toLowerCase().includes(searchQuery.toLowerCase())
-      ) : filteredByStatus;
-
-    return filteredBySearch;
+  const fetchExecutionData = async (tool: Tool) => {
+    try {
+      setExecutionLoading(true);
+      const response = await fetch(`/api/tools/${tool.name}/executions`);
+      const data = await response.json();
+      
+      if (data.error) {
+        setExecutionData([]);
+      } else {
+        let executions = data.executions || [];
+        
+        // Filter by status
+        if (statusFilter !== 'all') {
+          executions = executions.filter((exec: any) => exec.status === statusFilter);
+        }
+        
+        // Filter by search query
+        if (searchQuery) {
+          executions = executions.filter((exec: any) => 
+            (exec.parameters || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (exec.output || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (exec.id || '').toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        }
+        
+        setExecutionData(executions);
+      }
+    } catch (err) {
+      console.error('Failed to fetch execution data:', err);
+      setExecutionData([]);
+    } finally {
+      setExecutionLoading(false);
+    }
   };
+
+  // Fetch execution data when modal opens or filters change
+  React.useEffect(() => {
+    if (selectedTool && isModalOpen) {
+      fetchExecutionData(selectedTool);
+    }
+  }, [selectedTool, isModalOpen, statusFilter, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -94,27 +116,41 @@ export const Tools: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {TOOLS_DATA.map((tool) => (
-                <div 
-                  key={tool.name} 
-                  className="flex items-center justify-between p-3 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors"
-                  onClick={() => handleToolClick(tool)}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      tool.status === 'active' ? 'bg-green-500' : 'bg-slate-500'
-                    }`} />
-                    <div>
-                      <div className="font-medium">{tool.name}</div>
-                      <div className="text-sm text-slate-400">{tool.description}</div>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-slate-400">Loading tools data...</div>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-red-400">{error}</div>
+                </div>
+              ) : toolsData.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-slate-400">No tools data available</div>
+                </div>
+              ) : (
+                toolsData.map((tool) => (
+                  <div 
+                    key={tool.name} 
+                    className="flex items-center justify-between p-3 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors"
+                    onClick={() => handleToolClick(tool)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        tool.status === 'active' ? 'bg-green-500' : 'bg-slate-500'
+                      }`} />
+                      <div>
+                        <div className="font-medium">{tool.name}</div>
+                        <div className="text-sm text-slate-400">{tool.description || 'No description available'}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-mono text-green-400">{tool.executions || 0}</div>
+                      <div className="text-xs text-slate-500">executions</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-mono text-green-400">{tool.executions}</div>
-                    <div className="text-xs text-slate-500">executions</div>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -133,35 +169,46 @@ export const Tools: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span>Success Rate</span>
-                <span className="font-mono text-green-500">98.7%</span>
+                <span className="font-mono text-green-500">{toolsData.length > 0 ? '98.7%' : '0%'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Avg Response Time</span>
-                <span className="font-mono text-blue-400">1.2s</span>
+                <span className="font-mono text-blue-400">{toolsData.length > 0 ? '1.2s' : '0s'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Error Rate</span>
-                <span className="font-mono text-red-400">1.3%</span>
+                <span className="font-mono text-red-400">{toolsData.length > 0 ? '1.3%' : '0%'}</span>
               </div>
             </div>
             
             <div className="pt-4 border-t border-slate-700">
               <h4 className="font-medium mb-3">Most Used Tools</h4>
               <div className="space-y-2">
-                {USAGE_STATS.map((tool) => (
-                  <div key={tool.name} className="flex items-center justify-between">
-                    <span className="text-sm">{tool.name}</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-16 bg-slate-700 rounded-full h-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full"
-                          style={{ width: `${tool.usage}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-slate-400 w-8">{tool.usage}%</span>
-                    </div>
-                  </div>
-                ))}
+                {toolsData.length > 0 ? (
+                  toolsData
+                    .sort((a, b) => (b.executions || 0) - (a.executions || 0))
+                    .slice(0, 5)
+                    .map((tool) => {
+                      const maxExecutions = Math.max(...toolsData.map(t => t.executions || 0));
+                      const usage = maxExecutions > 0 ? Math.round(((tool.executions || 0) / maxExecutions) * 100) : 0;
+                      return (
+                        <div key={tool.name} className="flex items-center justify-between">
+                          <span className="text-sm">{tool.name}</span>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-16 bg-slate-700 rounded-full h-2">
+                              <div 
+                                className="bg-green-500 h-2 rounded-full"
+                                style={{ width: `${usage}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-slate-400 w-8">{usage}%</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                ) : (
+                  <div className="text-sm text-slate-400 py-2">No usage data available</div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -178,25 +225,40 @@ export const Tools: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {TOOL_CATEGORIES.map((category) => (
-              <div key={category.category} className="bg-slate-800 rounded-lg p-4">
-                <h4 className="font-medium mb-2">{category.category}</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Total:</span>
-                    <span className="font-mono">{category.tools}</span>
+            {toolsData.length > 0 ? (
+              (() => {
+                const categories = {
+                  'File System': toolsData.filter(t => ['Read', 'Write', 'Edit', 'MultiEdit', 'Glob'].includes(t.name)),
+                  'Execution': toolsData.filter(t => ['Bash', 'Task', 'BashOutput'].includes(t.name)),
+                  'Search': toolsData.filter(t => ['Grep', 'WebSearch', 'WebFetch'].includes(t.name)),
+                  'Development': toolsData.filter(t => ['TodoWrite', 'NotebookEdit', 'ExitPlanMode'].includes(t.name))
+                };
+                
+                return Object.entries(categories).map(([category, tools]) => (
+                  <div key={category} className="bg-slate-800 rounded-lg p-4">
+                    <h4 className="font-medium mb-2">{category}</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Total:</span>
+                        <span className="font-mono">{tools.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Healthy:</span>
+                        <span className="font-mono text-green-400">{tools.filter(t => t.status === 'active').length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Issues:</span>
+                        <span className="font-mono text-red-400">{tools.filter(t => t.status !== 'active').length}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Healthy:</span>
-                    <span className="font-mono text-green-400">{category.healthy}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Issues:</span>
-                    <span className="font-mono text-red-400">{category.issues}</span>
-                  </div>
-                </div>
+                ));
+              })()
+            ) : (
+              <div className="col-span-4 text-center text-slate-400 py-8">
+                No tool categories available
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -286,20 +348,26 @@ export const Tools: React.FC = () => {
 
               {viewMode === 'table' ? (
                 <div className="max-h-96 overflow-y-auto overflow-x-hidden w-full">
-                  {/* Header */}
-                  <div className="sticky top-0 bg-slate-900 border-b border-slate-700 grid grid-cols-6 gap-3 p-3 font-medium text-slate-400 text-sm min-w-0"
-                       style={{gridTemplateColumns: '12% 10% 16% 10% 26% 26%'}}>
-                    <div className="truncate">ID</div>
-                    <div className="truncate">Status</div>
-                    <div className="truncate">Timestamp</div>
-                    <div className="truncate">Duration</div>
-                    <div className="truncate">Input</div>
-                    <div className="truncate">Output</div>
-                  </div>
-                  
-                  {/* Data Rows */}
-                  <div className="space-y-0 w-full min-w-0">
-                    {generateExecutionData(selectedTool).map((execution) => (
+                  {executionLoading ? (
+                    <div className="text-center py-8 text-slate-400">Loading execution data...</div>
+                  ) : executionData.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400">No execution data available</div>
+                  ) : (
+                    <>
+                      {/* Header */}
+                      <div className="sticky top-0 bg-slate-900 border-b border-slate-700 grid grid-cols-6 gap-3 p-3 font-medium text-slate-400 text-sm min-w-0"
+                           style={{gridTemplateColumns: '12% 10% 16% 10% 26% 26%'}}>
+                        <div className="truncate">ID</div>
+                        <div className="truncate">Status</div>
+                        <div className="truncate">Timestamp</div>
+                        <div className="truncate">Duration</div>
+                        <div className="truncate">Input</div>
+                        <div className="truncate">Output</div>
+                      </div>
+                      
+                      {/* Data Rows */}
+                      <div className="space-y-0 w-full min-w-0">
+                        {executionData.map((execution) => (
                       <div key={execution.id} 
                            className="grid grid-cols-6 gap-3 p-3 border-b border-slate-800 hover:bg-slate-800/30 text-sm items-center min-w-0 w-full"
                            style={{gridTemplateColumns: '12% 10% 16% 10% 26% 26%'}}>
@@ -310,12 +378,12 @@ export const Tools: React.FC = () => {
                           </Badge>
                         </div>
                         <div className="text-xs text-slate-400 truncate min-w-0">
-                          {new Date(execution.timestamp).toLocaleString()}
+                          {new Date(execution.timestamp || '').toLocaleString()}
                         </div>
                         <div className="text-blue-400 font-mono text-xs truncate min-w-0">
-                          {execution.duration.toFixed(0)}ms
+                          {execution.duration ? `${execution.duration.toFixed(0)}ms` : 'N/A'}
                         </div>
-                        <Tooltip content={execution.parameters} className="text-green-400 font-mono text-xs block">
+                        <Tooltip content={execution.parameters || ''} className="text-green-400 font-mono text-xs block">
                           <div 
                             className="cursor-help" 
                             style={{
@@ -327,10 +395,10 @@ export const Tools: React.FC = () => {
                               display: 'block'
                             }}
                           >
-                            {execution.parameters}
+                            {execution.parameters || 'N/A'}
                           </div>
                         </Tooltip>
-                        <Tooltip content={execution.output} className="text-slate-300 font-mono text-xs block">
+                        <Tooltip content={execution.output || ''} className="text-slate-300 font-mono text-xs block">
                           <div 
                             className="cursor-help" 
                             style={{
@@ -342,48 +410,56 @@ export const Tools: React.FC = () => {
                               display: 'block'
                             }}
                           >
-                            {execution.output}
+                            {execution.output || 'N/A'}
                           </div>
                         </Tooltip>
                       </div>
                     ))}
                   </div>
+                </>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                  {generateExecutionData(selectedTool).map((execution) => (
-                    <div key={execution.id} className="bg-slate-800 rounded-lg p-4 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-mono text-sm">{execution.id}</span>
-                        <Badge className={execution.status === 'success' ? 'bg-green-600' : 'bg-red-600'}>
-                          {execution.status}
-                        </Badge>
+                  {executionLoading ? (
+                    <div className="col-span-2 text-center py-8 text-slate-400">Loading execution data...</div>
+                  ) : executionData.length === 0 ? (
+                    <div className="col-span-2 text-center py-8 text-slate-400">No execution data available</div>
+                  ) : (
+                    executionData.map((execution) => (
+                      <div key={execution.id} className="bg-slate-800 rounded-lg p-4 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="font-mono text-sm">{execution.id}</span>
+                          <Badge className={execution.status === 'success' ? 'bg-green-600' : 'bg-red-600'}>
+                            {execution.status}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {new Date(execution.timestamp || '').toLocaleString()}
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-slate-400">Duration: </span>
+                          <span className="text-blue-400 font-mono">{execution.duration ? `${execution.duration.toFixed(0)}ms` : 'N/A'}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-slate-400">Input: </span>
+                          <Tooltip content={execution.parameters || ''}>
+                            <span className="text-green-400 font-mono text-xs cursor-help">
+                              {execution.parameters && execution.parameters.length > 80 ? `${execution.parameters.substring(0, 80)}...` : (execution.parameters || 'N/A')}
+                            </span>
+                          </Tooltip>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-slate-400">Output: </span>
+                          <Tooltip content={execution.output || ''}>
+                            <span className="text-slate-300 font-mono text-xs cursor-help block">
+                              {execution.output && execution.output.length > 80 ? `${execution.output.substring(0, 80)}...` : (execution.output || 'N/A')}
+                            </span>
+                          </Tooltip>
+                        </div>
                       </div>
-                      <div className="text-xs text-slate-400">
-                        {new Date(execution.timestamp).toLocaleString()}
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-slate-400">Duration: </span>
-                        <span className="text-blue-400 font-mono">{execution.duration.toFixed(0)}ms</span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-slate-400">Input: </span>
-                        <Tooltip content={execution.parameters}>
-                          <span className="text-green-400 font-mono text-xs cursor-help">
-                            {execution.parameters && execution.parameters.length > 80 ? `${execution.parameters.substring(0, 80)}...` : execution.parameters}
-                          </span>
-                        </Tooltip>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-slate-400">Output: </span>
-                        <Tooltip content={execution.output}>
-                          <span className="text-slate-300 font-mono text-xs cursor-help block">
-                            {execution.output && execution.output.length > 80 ? `${execution.output.substring(0, 80)}...` : execution.output}
-                          </span>
-                        </Tooltip>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
             </div>

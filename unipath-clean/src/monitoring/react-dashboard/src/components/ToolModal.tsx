@@ -14,14 +14,36 @@ interface ToolModalProps {
 }
 
 const ToolModal: React.FC<ToolModalProps> = ({ tool, onClose }) => {
-  // Mock execution data - in real app this would come from API
-  const executions = [
-    { id: 1, timestamp: '2025-01-10 14:30:15', command: `${tool.name} execution`, status: 'success' },
-    { id: 2, timestamp: '2025-01-10 14:25:32', command: `${tool.name} operation`, status: 'success' },
-    { id: 3, timestamp: '2025-01-10 14:20:48', command: `${tool.name} task`, status: 'warning' },
-    { id: 4, timestamp: '2025-01-10 14:15:21', command: `${tool.name} process`, status: 'success' },
-    { id: 5, timestamp: '2025-01-10 14:10:07', command: `${tool.name} action`, status: 'success' },
-  ];
+  const [executions, setExecutions] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fetchExecutions = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/tools/${tool.name}/executions`);
+        const data = await response.json();
+        
+        if (data.error) {
+          // API returned an error (expected when no data exists)
+          setExecutions([]);
+          setError(null);
+        } else {
+          setExecutions(data.executions || []);
+          setError(null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch tool executions:', err);
+        setExecutions([]);
+        setError('Failed to load execution data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchExecutions();
+  }, [tool.name]);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -43,11 +65,11 @@ const ToolModal: React.FC<ToolModalProps> = ({ tool, onClose }) => {
               <div className="stat-label">Total Executions</div>
             </div>
             <div className="stat-item">
-              <div className="stat-value">{executions.length}</div>
+              <div className="stat-value">{loading ? '...' : executions.length}</div>
               <div className="stat-label">Recent Logs</div>
             </div>
             <div className="stat-item">
-              <div className="stat-value">{executions.filter(e => e.status === 'success').length}</div>
+              <div className="stat-value">{loading ? '...' : executions.filter(e => e.status === 'success').length}</div>
               <div className="stat-label">Successful</div>
             </div>
           </div>
@@ -55,15 +77,23 @@ const ToolModal: React.FC<ToolModalProps> = ({ tool, onClose }) => {
           <div className="execution-history">
             <h4>Recent Executions</h4>
             <div className="execution-list">
-              {executions.map(execution => (
-                <div key={execution.id} className={`execution-item ${execution.status}`}>
-                  <div className="execution-command">{execution.command}</div>
-                  <div className="execution-timestamp">{execution.timestamp}</div>
-                  <div className={`execution-status ${execution.status}`}>
-                    {execution.status.toUpperCase()}
+              {loading ? (
+                <div className="text-center py-4 text-slate-400">Loading executions...</div>
+              ) : error ? (
+                <div className="text-center py-4 text-red-400">{error}</div>
+              ) : executions.length === 0 ? (
+                <div className="text-center py-4 text-slate-400">No executions available</div>
+              ) : (
+                executions.map(execution => (
+                  <div key={execution.id} className={`execution-item ${execution.status}`}>
+                    <div className="execution-command">{execution.command || `${tool.name} execution`}</div>
+                    <div className="execution-timestamp">{execution.timestamp}</div>
+                    <div className={`execution-status ${execution.status}`}>
+                      {execution.status.toUpperCase()}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
