@@ -158,11 +158,11 @@ const nodeTypes = {
 export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
   // EXACT PIXEL-PERFECT MATCH TO YOUR REFERENCE SCREENSHOT
   const unipathNodes: Node[] = [
-    // TOP CENTER - DeepSeek LLM (perfectly centered)
+    // TOP CENTER - DeepSeek LLM (aligned with memory manager)
     {
       id: 'deepseek',
       type: 'unipath',
-      position: { x: 510, y: 80 },
+      position: { x: 540, y: 80 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: { 
@@ -544,7 +544,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
         nodeTypes={nodeTypes}
         connectionMode={ConnectionMode.Loose}
         fitView
-        fitViewOptions={{ padding: 0.2, includeHiddenNodes: false }}
+        fitViewOptions={{ padding: 0.05, includeHiddenNodes: false }}
         proOptions={{ hideAttribution: true }}
         className="bg-slate-950"
         nodesDraggable={true}
@@ -553,9 +553,9 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
         zoomOnDoubleClick={false}
         panOnDrag={true}
         selectNodesOnDrag={false}
-        defaultViewport={{ x: 50, y: 50, zoom: 0.75 }}
-        minZoom={0.4}
-        maxZoom={1.5}
+        defaultViewport={{ x: 20, y: 20, zoom: 1.0 }}
+        minZoom={0.5}
+        maxZoom={2.0}
       >
         <Background 
           variant="dots" 
