@@ -202,6 +202,17 @@ export class Executor extends EventEmitter {
       if (!args) {
         args = await this.parseToolArguments(toolName, task.description, context);
       } else {
+        // Fix field names for write_file tool - AI provides filename/content but tool expects file_path/content
+        if (toolName === 'write_file') {
+          if (args.filename && !args.file_path) {
+            args.file_path = args.filename;
+            delete args.filename;
+          }
+          // Ensure content is properly set from task, not from previous results
+          if (!args.content || args.content === null || args.content === '') {
+            args.content = await this.generateFileContent(task.description);
+          }
+        }
         // Check if file content needs generation 
         if (toolName === 'file' && (!args.content || args.content === null || args.content === '')) {
           args.content = await this.generateFileContent(task.description);
@@ -409,16 +420,14 @@ export class Executor extends EventEmitter {
   }
 
   private extractFilePath(description: string): string {
-    // Extract file path from description
+    // Extract file path from description with better regex patterns
     const match = description.match(/['"`]([^'"`]+\.[a-z]+)['"`]/i) ||
                   description.match(/(?:file|called?)\s+(\S+\.[a-z]+)/i) ||
-                  description.match(/(\S+\.txt)/i) ||
-                  description.match(/(\S+\.js|\.ts|\.json|\.md)/i);
+                  description.match(/(?:create|write|make)\s+(\S+\.[a-z0-9]+)/i) ||
+                  description.match(/(\S+\.html|\.css|\.js|\.ts|\.json|\.md|\.txt)/i);
     
-    // Special case for "it" referring to previously created file
-    if (!match && description.toLowerCase().includes('it')) {
-      // Look for file reference in context
-      return 'test.txt'; // Default to common test file name
+    if (process.env.DEBUG === 'true') {
+      console.log(`🔍 extractFilePath: "${description}" -> ${match ? match[1] : 'file.txt'}`);
     }
     
     return match ? match[1] : 'file.txt';
@@ -460,9 +469,8 @@ export class Executor extends EventEmitter {
     const match = description.match(/(?:with|content|containing)\s+['"`]([^'"`]+)['"`]/i);
     if (match) return match[1];
     
-    if (context.previousResults && context.previousResults.length > 0) {
-      return context.previousResults[context.previousResults.length - 1];
-    }
+    // Don't use previous results as content - this causes files to have wrong content
+    // Instead, generate proper content for the file
     
     // Generate content using DeepSeek for file creation
     return await this.generateFileContent(description);

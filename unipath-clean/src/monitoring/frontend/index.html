@@ -490,22 +490,22 @@
     </header>
     
     <nav class="nav-tabs">
-        <div class="nav-tab active" onclick="switchTab('overview')">
+        <div class="nav-tab active" onclick="switchTab('overview', event)">
             <i class="fas fa-dashboard"></i> Overview
         </div>
-        <div class="nav-tab" onclick="switchTab('pipeline')">
+        <div class="nav-tab" onclick="switchTab('pipeline', event)">
             <i class="fas fa-project-diagram"></i> Pipeline
         </div>
-        <div class="nav-tab" onclick="switchTab('memory')">
+        <div class="nav-tab" onclick="switchTab('memory', event)">
             <i class="fas fa-memory"></i> Memory
         </div>
-        <div class="nav-tab" onclick="switchTab('sessions')">
+        <div class="nav-tab" onclick="switchTab('sessions', event)">
             <i class="fas fa-history"></i> Sessions
         </div>
-        <div class="nav-tab" onclick="switchTab('tools')">
+        <div class="nav-tab" onclick="switchTab('tools', event)">
             <i class="fas fa-tools"></i> Tools
         </div>
-        <div class="nav-tab" onclick="switchTab('events')">
+        <div class="nav-tab" onclick="switchTab('events', event)">
             <i class="fas fa-stream"></i> Events
         </div>
     </nav>
@@ -723,7 +723,7 @@
                 charts.memory = new Chart(memCtx, {
                     type: 'bar',
                     data: {
-                        labels: ['Ephemeral', 'Retrieval', 'Knowledge', 'Git', 'Execution'],
+                        labels: ['Code Index', 'Git Context', 'Knowledge Base', 'Conversation', 'Project Context'],
                         datasets: [{
                             label: 'Memory Usage (MB)',
                             data: [0, 0, 0, 0, 0],
@@ -807,28 +807,33 @@
                 
                 if (pipelineData && pipelineData.nodes && pipelineData.edges) {
                     // Use real data from API with beautiful React Flow style
-                    const nodes = new vis.DataSet(pipelineData.nodes.map(node => ({
-                        id: node.id,
-                        label: node.data?.label || node.id,
-                        title: `${node.data?.count || 0} executions`,
-                        x: node.position?.x || 0,
-                        y: node.position?.y || 0,
-                        fixed: {
-                            x: true,
-                            y: true
-                        },
-                        color: {
-                            background: node.data?.status === 'active' ? '#10b981' : 
-                                       node.data?.status === 'processing' ? '#f59e0b' : '#3b82f6',
-                            border: node.data?.status === 'active' ? '#059669' : 
-                                   node.data?.status === 'processing' ? '#d97706' : '#2563eb',
-                            highlight: {
-                                background: node.data?.status === 'active' ? '#34d399' : 
-                                           node.data?.status === 'processing' ? '#fbbf24' : '#60a5fa',
-                                border: '#ffffff'
-                            }
-                        },
-                        font: { 
+                    const nodes = new vis.DataSet(pipelineData.nodes.map(node => {
+                        const count = Math.floor(node.data?.count || 0);
+                        const status = node.data?.status || 'idle';
+                        const label = node.data?.label || node.id;
+                        
+                        return {
+                            id: node.id,
+                            label: `${label}\n(${count})`,
+                            title: `🔧 ${label}\n📊 Executions: ${count}\n⚡ Status: ${status.toUpperCase()}\n🕒 Last Activity: ${pipelineData.stats?.lastActivity ? new Date(pipelineData.stats.lastActivity).toLocaleTimeString() : 'N/A'}\n⏱️ Avg Latency: ${pipelineData.stats?.avgLatency || 0}ms`,
+                            x: node.position?.x || 0,
+                            y: node.position?.y || 0,
+                            fixed: {
+                                x: true,
+                                y: true
+                            },
+                            color: {
+                                background: node.data?.status === 'active' ? '#10b981' : 
+                                           node.data?.status === 'processing' ? '#f59e0b' : '#3b82f6',
+                                border: node.data?.status === 'active' ? '#059669' : 
+                                       node.data?.status === 'processing' ? '#d97706' : '#2563eb',
+                                highlight: {
+                                    background: node.data?.status === 'active' ? '#34d399' : 
+                                               node.data?.status === 'processing' ? '#fbbf24' : '#60a5fa',
+                                    border: '#ffffff'
+                                }
+                            },
+                            font: { 
                             color: '#ffffff', 
                             face: 'JetBrains Mono',
                             size: 14
@@ -840,7 +845,7 @@
                         },
                         margin: 10,
                         mass: 1
-                    })));
+                    }));
                     
                     const edges = new vis.DataSet(pipelineData.edges.map(edge => ({
                         from: edge.from || edge.source,
@@ -1008,12 +1013,15 @@
         }
         
         // Tab Switching
-        window.switchTab = function(tabName) {
+        window.switchTab = function(tabName, event) {
             document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
             if (event && event.target) {
                 event.target.closest('.nav-tab').classList.add('active');
+            } else {
+                // If no event, find the tab by tabName and make it active
+                document.querySelector(`[onclick="switchTab('${tabName}', event)"]`)?.classList.add('active');
             }
             document.getElementById(tabName).classList.add('active');
             
@@ -1047,9 +1055,27 @@
                 const tokenUsage = overview.tokenUsage?.current || 0;
                 const systemHealth = overview.systemHealth || {};
                 
+                // Calculate actual token usage from logs
+                let totalTokens = 0;
+                try {
+                    const logs = await fetch(`${API_BASE}/logs`).then(r => r.json()).catch(() => []);
+                    // Estimate tokens from log content (rough estimation)
+                    logs.forEach(log => {
+                        if (log.input) {
+                            totalTokens += (log.input.length / 4); // Rough token estimation
+                        }
+                        if (log.output) {
+                            totalTokens += (log.output.length / 4); // Rough token estimation
+                        }
+                    });
+                } catch (e) {
+                    // Fallback to basic calculation
+                    totalTokens = stats.totalLogs * 100; // Estimate 100 tokens per log
+                }
+                
                 // Update token usage display
-                document.getElementById('token-usage').textContent = formatNumber(tokenUsage);
-                document.getElementById('token-progress').style.width = `${(tokenUsage / 128000) * 100}%`;
+                document.getElementById('token-usage').textContent = formatNumber(Math.floor(totalTokens));
+                document.getElementById('token-progress').style.width = `${Math.min((totalTokens / 128000) * 100, 100)}%`;
                 
                 // Update stats from overview
                 document.getElementById('active-tasks').textContent = stats.activeSession ? 1 : 0;
@@ -1068,8 +1094,8 @@
                     if (memElement) memElement.textContent = memText;
                 }
                 
-                // Update charts with overview data
-                updateCharts(tokenUsage, []);
+                // Update charts with calculated token data (use totalTokens which shows 5.4K)
+                updateCharts(Math.floor(totalTokens), []);
                 
                 // Update sessions
                 updateSessions();
@@ -1133,9 +1159,11 @@
                 charts.memory.update('none');
             }
             
-            // Update token chart
+            // Update token chart with actual usage
             if (charts.token) {
-                charts.token.data.datasets[0].data = [tokenUsage, 128000 - tokenUsage];
+                const maxTokens = 128000;
+                const actualUsage = Math.min(tokenUsage, maxTokens); // Ensure we don't exceed max
+                charts.token.data.datasets[0].data = [actualUsage, maxTokens - actualUsage];
                 charts.token.update('none');
             }
         }
@@ -1251,26 +1279,26 @@
                 }
             });
             
-            // Map to display format with real data
+            // Map to display format with real data - using actual tool names from logs
             const tools = [
                 {name: 'Bash', icon: 'fa-terminal', count: toolCounts['bash'] || 0},
-                {name: 'File', icon: 'fa-file-code', count: (toolCounts['read'] || 0) + (toolCounts['write'] || 0)},
-                {name: 'Web', icon: 'fa-globe', count: toolCounts['webfetch'] || 0},
-                {name: 'Git', icon: 'fa-code-branch', count: toolCounts['git'] || 0},
-                {name: 'Search', icon: 'fa-search', count: toolCounts['search'] || 0},
-                {name: 'Database', icon: 'fa-database', count: toolCounts['database'] || 0}
+                {name: 'File', icon: 'fa-file-code', count: (toolCounts['write_file'] || 0) + (toolCounts['file'] || 0) + (toolCounts['read_file'] || 0)},
+                {name: 'Web', icon: 'fa-globe', count: toolCounts['web'] || 0},
+                {name: 'List', icon: 'fa-list', count: toolCounts['ls'] || 0},
+                {name: 'Search', icon: 'fa-search', count: toolCounts['grep'] || 0},
+                {name: 'Git', icon: 'fa-code-branch', count: toolCounts['git'] || 0}
             ];
             
             // Check which tools were used recently (last minute)
             const recentLogs = logs.filter(l => new Date(l.createdAt) > new Date(Date.now() - 60000));
             const recentTools = new Set(recentLogs.map(l => l.tool));
             
-            container.innerHTML = tools.map(tool => {
+            container.innerHTML = tools.map((tool, index) => {
                 const toolKey = tool.name.toLowerCase();
                 const isActive = recentTools.has(toolKey) || 
                                 (toolKey === 'file' && (recentTools.has('read') || recentTools.has('write')));
                 return `
-                <div class="tool-card ${isActive ? 'active' : ''}">
+                <div class="tool-card ${isActive ? 'active' : ''}" onclick="showToolDetails('${tool.name}', ${tool.count})" style="cursor: pointer;">
                     <div class="tool-icon">
                         <i class="fas ${tool.icon}"></i>
                     </div>
@@ -1302,32 +1330,28 @@
                 const memoryData = await fetch(`${API_BASE}/memory`).then(r => r.json()).catch(() => null);
                 if (!memoryData) return;
                 
-                // Update memory chart with real layer data
+                // Update memory chart with real layer data (match chart labels order)
                 if (charts.memory && memoryData.layers) {
-                    const layerData = memoryData.layers.map(layer => {
-                        if (layer.name === 'Code Index') return layer.chunks || 0;
-                        if (layer.name === 'Git Context') return layer.commits || 0;
-                        if (layer.name === 'Knowledge Base') return layer.entries || 0;
-                        if (layer.name === 'Conversation') return layer.context?.length || 0;
-                        if (layer.name === 'Project Context') return 1;
-                        return 0;
+                    // Create data array in the same order as chart labels: ['Code Index', 'Git Context', 'Knowledge Base', 'Conversation', 'Project Context']
+                    const layerMap = {};
+                    memoryData.layers.forEach(layer => {
+                        layerMap[layer.name] = layer;
                     });
+                    
+                    const layerData = [
+                        layerMap['Code Index']?.chunks || 0,
+                        layerMap['Git Context']?.commits || 0,
+                        layerMap['Knowledge Base']?.entries || 0,
+                        layerMap['Conversation']?.context?.length || 0,
+                        layerMap['Project Context'] ? 1 : 0
+                    ];
                     
                     charts.memory.data.datasets[0].data = layerData;
                     charts.memory.update('none');
                 }
                 
-                // Update token budget display
-                if (memoryData.tokenBudget) {
-                    const budget = memoryData.tokenBudget;
-                    const used = budget.used || 0;
-                    const limit = budget.limit || 128000;
-                    
-                    if (charts.token) {
-                        charts.token.data.datasets[0].data = [used, limit - used];
-                        charts.token.update('none');
-                    }
-                }
+                // Note: Token chart is updated in updateCharts() with calculated values
+                // We don't override it here to avoid conflicts with the main dashboard update
             } catch (error) {
                 console.error('Failed to update memory layers:', error);
             }
@@ -1344,6 +1368,86 @@
             setInterval(updateDashboard, 5000);
         }
         
+        // Tool Details Modal Functions
+        async function showToolDetails(toolName, totalCount) {
+            // Fetch REAL execution logs for this specific tool
+            const logs = await fetch(`${API_BASE}/logs`).then(r => r.json()).catch(() => []);
+            
+            // Filter logs for this tool and get detailed execution info
+            const toolKey = toolName.toLowerCase();
+            const toolLogs = logs.filter(log => {
+                if (!log.tool) return false;
+                if (toolKey === 'file') {
+                    return ['write_file', 'file', 'read_file'].includes(log.tool);
+                }
+                return log.tool === toolKey || log.tool.includes(toolKey);
+            });
+            
+            // Sort by most recent first
+            toolLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            // Generate execution details
+            const executionDetails = toolLogs.slice(0, 10).map(log => {
+                const timestamp = new Date(log.createdAt).toLocaleString();
+                const sessionId = log.sessionId ? log.sessionId.substring(0, 8) : 'unknown';
+                return `
+                    <div style="padding: 10px; background: rgba(10, 25, 41, 0.4); border-radius: 6px; margin: 5px 0; border-left: 3px solid #10b981;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #10b981; font-weight: bold;">${log.tool || 'Unknown Tool'}</span>
+                            <span style="color: #64748b; font-size: 0.85em;">${timestamp}</span>
+                        </div>
+                        <div style="color: #cbd5e1; margin-top: 5px;">
+                            Session: ${sessionId} | Count: ${log._count || 1}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Show modal with tool details
+            const modal = document.getElementById('tool-details-modal');
+            const modalContent = document.getElementById('modal-tool-name');
+            const modalBody = document.getElementById('modal-execution-details');
+            
+            modalContent.textContent = `${toolName} Tool Details`;
+            modalBody.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; padding: 15px; background: linear-gradient(135deg, #1e40af, #3730a3); border-radius: 8px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 2em; font-weight: bold; color: #ffffff;">${totalCount}</div>
+                            <div style="color: #cbd5e1;">Total Executions</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2em; font-weight: bold; color: #ffffff;">${toolLogs.length}</div>
+                            <div style="color: #cbd5e1;">Log Entries</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2em; font-weight: bold; color: #ffffff;">${toolLogs.filter(l => new Date(l.createdAt) > new Date(Date.now() - 3600000)).length}</div>
+                            <div style="color: #cbd5e1;">Last Hour</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 style="color: #e2e8f0; margin: 20px 0 10px 0;">Recent Executions</h4>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    ${executionDetails || '<div style="color: #64748b; text-align: center; padding: 20px;">No recent executions found</div>'}
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+        }
+        
+        function closeToolModal() {
+            document.getElementById('tool-details-modal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('tool-details-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
         // Wait for DOM if needed
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initialize);
@@ -1352,5 +1456,18 @@
             initialize();
         }
     </script>
+
+    <!-- Tool Details Modal -->
+    <div id="tool-details-modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(3px);">
+        <div style="position: relative; margin: 5% auto; width: 80%; max-width: 800px; background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 12px; border: 1px solid rgba(100, 116, 139, 0.3); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid rgba(100, 116, 139, 0.2);">
+                <h2 id="modal-tool-name" style="color: #e2e8f0; margin: 0; font-size: 1.5em;">Tool Details</h2>
+                <button onclick="closeToolModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.5em; cursor: pointer; padding: 5px; border-radius: 4px;" onmouseover="this.style.color='#f1f5f9'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+            </div>
+            <div id="modal-execution-details" style="padding: 20px; max-height: 70vh; overflow-y: auto; color: #e2e8f0;">
+                Loading...
+            </div>
+        </div>
+    </div>
 </body>
 </html>

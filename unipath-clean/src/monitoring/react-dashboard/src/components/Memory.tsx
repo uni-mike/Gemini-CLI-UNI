@@ -52,19 +52,19 @@ export const Memory: React.FC<MemoryProps> = ({ data }) => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>Total Chunks</span>
+                <span>Stored Items</span>
                 <span className="font-mono">{formatNumber(data.totalChunks)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Active Chunks</span>
+                <span>Active Memory Layers</span>
                 <span className="font-mono">{formatNumber(data.activeChunks)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Memory Usage</span>
+                <span>Agent Memory Usage</span>
                 <span className="font-mono">{data.memoryUsage}%</span>
               </div>
               <div className="flex justify-between">
-                <span>Storage Size</span>
+                <span>Database Size</span>
                 <span className="font-mono">{data.storageSize} MB</span>
               </div>
             </div>

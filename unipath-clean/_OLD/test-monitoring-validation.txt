@@ -1,0 +1,2 @@
+This is a test file for monitoring validation.
+It is used to verify that the monitoring system is able to read files.

@@ -10,6 +10,7 @@ import { Message } from '../llm/provider.js';
 import { Planner } from './planner.js';
 import { Executor, ExecutionContext } from './executor.js';
 import { globalRegistry } from '../tools/registry.js'; // Only for slash commands
+import { MonitoringSystem } from '../monitoring/backend/index.js';
 
 export interface ExecutionResult {
   success: boolean;
@@ -36,6 +37,9 @@ export class Orchestrator extends EventEmitter {
   private executor: Executor;
   private executionContext: ExecutionContext;
   private trioMessages: TrioMessage[] = [];
+  private monitoring: MonitoringSystem | null = null;
+  private monitoringEnabled: boolean = true;
+  private memoryManager: any = null;
   
   constructor(config: Config) {
     super();
@@ -68,6 +72,61 @@ export class Orchestrator extends EventEmitter {
     this.client.on('start', (data: any) => this.emit('llm-start', data));
     this.client.on('complete', (data: any) => this.emit('llm-complete', data));
     this.client.on('error', (error: any) => this.emit('llm-error', error));
+    
+    // Forward token usage events from DeepSeek client to monitoring
+    this.client.on('token-usage', (usage: any) => {
+      console.log('📊 [ORCHESTRATOR] Token usage from DeepSeek:', usage);
+      this.emit('token-usage', usage);
+    });
+    
+    // Initialize monitoring by default (unless disabled)
+    if (process.env.DISABLE_MONITORING !== 'true') {
+      this.initializeMonitoring();
+    }
+  }
+  
+  private async initializeMonitoring() {
+    try {
+      const port = parseInt(process.env.MONITORING_PORT || '4000');
+      
+      // Check if monitoring is already running
+      const isRunning = await this.checkMonitoringRunning(port);
+      
+      if (isRunning) {
+        // Monitoring already running, just attach to it
+        console.log('✅ Monitoring already running, attaching to it...');
+        this.monitoring = new MonitoringSystem({ port, enableRealtime: true });
+        
+        // Don't start, just attach for real-time events
+        this.monitoring.attachToAgent(this, this.memoryManager);
+        console.log('🔗 Attached to existing monitoring at http://localhost:' + port);
+      } else {
+        // Start new monitoring instance
+        this.monitoring = new MonitoringSystem({ port, enableRealtime: true });
+        
+        // Start monitoring in background
+        this.monitoring.start().then(() => {
+          // Attach to this orchestrator for real-time data
+          this.monitoring?.attachToAgent(this, this.memoryManager);
+          console.log('📊 Monitoring dashboard: http://localhost:' + port);
+        }).catch(err => {
+          console.warn('⚠️ Monitoring failed to start:', err.message);
+          this.monitoring = null;
+        });
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not initialize monitoring:', error);
+      this.monitoring = null;
+    }
+  }
+  
+  private async checkMonitoringRunning(port: number): Promise<boolean> {
+    try {
+      const response = await fetch(`http://localhost:${port}/api/health`);
+      return response.ok;
+    } catch {
+      return false;
+    }
   }
   
   private setupTrioEvents() {
@@ -361,6 +420,8 @@ Available Commands:
   /clear              - Clear the screen and history
   /status             - Show system status
   /tools              - List available tools
+  /monitor on|off     - Enable/disable monitoring dashboard
+  /monitor status     - Show monitoring status
 
 Available Tools:
 ${toolObjects.map(tool => `  ${tool.name} - ${tool.description}`).join('\n')}
@@ -420,6 +481,71 @@ ${toolObjects.map(tool => {
       
       return { success: true, response: clearText };
       
+    } else if (command.startsWith('/monitor')) {
+      const parts = command.split(' ');
+      const subCommand = parts[1];
+      
+      if (subCommand === 'off') {
+        this.monitoringEnabled = false;
+        if (this.monitoring) {
+          this.monitoring.detachFromAgent();
+          const text = '📊 Monitoring detached (still running at http://localhost:4000)';
+          setTimeout(() => {
+            this.emit('orchestration-complete', { response: text });
+          }, 100);
+          return { success: true, response: text };
+        } else {
+          const text = '📊 Monitoring is not running';
+          setTimeout(() => {
+            this.emit('orchestration-complete', { response: text });
+          }, 100);
+          return { success: true, response: text };
+        }
+        
+      } else if (subCommand === 'on') {
+        this.monitoringEnabled = true;
+        if (!this.monitoring) {
+          this.initializeMonitoring();
+          const text = '📊 Starting monitoring at http://localhost:4000...';
+          setTimeout(() => {
+            this.emit('orchestration-complete', { response: text });
+          }, 100);
+          return { success: true, response: text };
+        } else {
+          this.monitoring.attachToAgent(this, undefined);
+          const text = '📊 Monitoring re-attached (dashboard at http://localhost:4000)';
+          setTimeout(() => {
+            this.emit('orchestration-complete', { response: text });
+          }, 100);
+          return { success: true, response: text };
+        }
+        
+      } else if (subCommand === 'status' || !subCommand) {
+        const status = this.monitoring?.getStatus();
+        const text = `📊 Monitoring Status:
+  Enabled: ${this.monitoringEnabled}
+  Running: ${this.monitoring !== null}
+  Dashboard: ${this.monitoring ? 'http://localhost:4000' : 'Not running'}
+  Mode: ${status?.health.realtimeAttached ? 'Real-time' : 'Autonomous'}
+  Data Sources: ${status?.health.dataAvailable ? 
+    Object.entries(status.health.dataAvailable)
+      .filter(([_, v]) => v)
+      .map(([k]) => k)
+      .join(', ') : 'None'}`;
+        
+        setTimeout(() => {
+          this.emit('orchestration-complete', { response: text });
+        }, 100);
+        return { success: true, response: text };
+        
+      } else {
+        const text = 'Usage: /monitor [on|off|status]';
+        setTimeout(() => {
+          this.emit('orchestration-complete', { response: text });
+        }, 100);
+        return { success: false, response: text };
+      }
+      
     } else {
       const errorText = `Unknown command: ${command}. Type /help for available commands.`;
       
@@ -438,6 +564,21 @@ ${toolObjects.map(tool => {
   clearConversation(): void {
     this.conversation = [];
     this.toolsUsed = [];
+  }
+  
+  /**
+   * Set memory manager for monitoring integration
+   */
+  setMemoryManager(memoryManager: any) {
+    this.memoryManager = memoryManager;
+  }
+
+  async cleanup(): Promise<void> {
+    // Stop monitoring if running
+    if (this.monitoring) {
+      await this.monitoring.stop();
+      this.monitoring = null;
+    }
   }
 
 }

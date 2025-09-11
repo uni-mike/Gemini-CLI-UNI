@@ -8,6 +8,10 @@ import { PrismaClient } from '@prisma/client';
 import { watch, FSWatcher } from 'chokidar';
 import { readFileSync, existsSync, statSync } from 'fs';
 import { join } from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 import * as readline from 'readline';
 import { createReadStream } from 'fs';
 
@@ -342,27 +346,136 @@ export class AutonomousCollector extends EventEmitter {
   }
   
   /**
+   * Find all agent processes
+   */
+  private async findAgentProcesses(): Promise<Array<{pid: number, memory: any}>> {
+    try {
+      const { stdout } = await execAsync('ps aux | grep "node dist/cli.js" | grep -v grep');
+      const lines = stdout.trim().split('\n').filter(line => line.length > 0);
+      
+      const processes = [];
+      for (const line of lines) {
+        const fields = line.trim().split(/\s+/);
+        const pid = parseInt(fields[1]);
+        if (pid) {
+          const memory = await this.getProcessMemory(pid);
+          if (memory) {
+            processes.push({ pid, memory });
+          }
+        }
+      }
+      return processes;
+    } catch (error) {
+      // No agent processes found
+    }
+    return [];
+  }
+
+  /**
+   * Find the primary agent process (most recent or highest memory)
+   */
+  private async findPrimaryAgentProcess(): Promise<number | null> {
+    const processes = await this.findAgentProcesses();
+    if (processes.length === 0) return null;
+    
+    // Return the one with highest memory usage as primary
+    const primary = processes.reduce((max, current) => 
+      current.memory.rss > max.memory.rss ? current : max
+    );
+    
+    return primary.pid;
+  }
+
+  /**
+   * Get available agent processes for UI selection
+   */
+  public async getAvailableAgents(): Promise<Array<{pid: number, projectName: string, memory: any, isPrimary: boolean}>> {
+    const processes = await this.findAgentProcesses();
+    const primaryPid = await this.findPrimaryAgentProcess();
+    
+    // Try to extract project name from process args or working directory
+    return processes.map(proc => ({
+      pid: proc.pid,
+      projectName: 'unipath-clean', // TODO: Extract actual project name from process
+      memory: proc.memory,
+      isPrimary: proc.pid === primaryPid
+    }));
+  }
+
+  /**
+   * Get memory usage for specific PID
+   */
+  private async getProcessMemory(pid: number): Promise<any> {
+    try {
+      const { stdout } = await execAsync(`ps -o pid,rss,vsz -p ${pid}`);
+      const lines = stdout.trim().split('\n');
+      if (lines.length > 1) {
+        const fields = lines[1].trim().split(/\s+/);
+        return {
+          rss: parseInt(fields[1]) * 1024, // Convert KB to bytes
+          vsz: parseInt(fields[2]) * 1024  // Convert KB to bytes
+        };
+      }
+    } catch (error) {
+      // Process not found
+    }
+    return null;
+  }
+
+  /**
    * Monitor process metrics
    */
   private monitorProcessMetrics() {
-    const interval = setInterval(() => {
-      const usage = process.memoryUsage();
-      const cpuUsage = process.cpuUsage();
+    const interval = setInterval(async () => {
+      // Try to monitor primary agent process first
+      const agentPid = await this.findPrimaryAgentProcess();
+      const allProcesses = await this.findAgentProcesses();
       
-      const metrics = {
-        memory: {
-          rss: usage.rss,
-          heapTotal: usage.heapTotal,
-          heapUsed: usage.heapUsed,
-          external: usage.external
-        },
-        cpu: {
-          user: cpuUsage.user,
-          system: cpuUsage.system
-        },
-        uptime: process.uptime(),
-        timestamp: new Date()
-      };
+      let metrics;
+      if (agentPid) {
+        const agentMemory = await this.getProcessMemory(agentPid);
+        if (agentMemory) {
+          metrics = {
+            memory: {
+              rss: agentMemory.rss,
+              heapTotal: agentMemory.vsz, // Virtual size as approximate heap total
+              heapUsed: agentMemory.rss,  // RSS as approximate heap used
+              external: 0
+            },
+            cpu: { user: 0, system: 0 }, // TODO: Add CPU monitoring for external process
+            uptime: 0, // TODO: Add uptime calculation for agent
+            timestamp: new Date(),
+            processType: 'agent',
+            pid: agentPid,
+            totalAgentProcesses: allProcesses.length,
+            allAgentPids: allProcesses.map(p => p.pid)
+          };
+        }
+      }
+      
+      // Fallback to monitoring server metrics if agent not found
+      if (!metrics) {
+        const usage = process.memoryUsage();
+        const cpuUsage = process.cpuUsage();
+        
+        metrics = {
+          memory: {
+            rss: usage.rss,
+            heapTotal: usage.heapTotal,
+            heapUsed: usage.heapUsed,
+            external: usage.external
+          },
+          cpu: {
+            user: cpuUsage.user,
+            system: cpuUsage.system
+          },
+          uptime: process.uptime(),
+          timestamp: new Date(),
+          processType: 'monitoring-server',
+          totalAgentProcesses: 0,
+          allAgentPids: []
+        };
+      }
       
       this.metrics.set('process', metrics);
       this.emit('processMetrics', metrics);

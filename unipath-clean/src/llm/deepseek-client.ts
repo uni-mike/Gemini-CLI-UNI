@@ -59,7 +59,7 @@ export class DeepSeekClient extends EventEmitter {
     
     try {
       // Azure endpoint already includes the model in the URL
-      const url = `${this.baseUrl}/chat/completions?api-version=${this.apiVersion}`;
+      const url = `${this.baseUrl}/models/chat/completions?api-version=${this.apiVersion}`;
       
       if (process.env.DEBUG === 'true') {
         console.log('DeepSeek API Request:', {
@@ -91,6 +91,15 @@ export class DeepSeekClient extends EventEmitter {
       
       const data: any = await response.json();
       const choice = data.choices[0];
+      
+      // Emit token usage if available
+      if (data.usage) {
+        this.emit('token-usage', {
+          prompt_tokens: data.usage.prompt_tokens || 0,
+          completion_tokens: data.usage.completion_tokens || 0,
+          total_tokens: data.usage.total_tokens || 0
+        });
+      }
       
       // Check for tool calls
       if (choice.message.tool_calls) {

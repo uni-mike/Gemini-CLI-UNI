@@ -74,7 +74,14 @@ APPROVAL_MODE=yolo ./start-clean.sh
 - Maintains conversation context
 - Returns consolidated results
 
-### 7. **Configuration System**
+### 7. **Monitoring Dashboard**
+- React-based dashboard with real-time metrics
+- Agent status and project tracking
+- System health visualization
+- Pipeline flow monitoring
+- Easy development with `./dev-monitoring.sh`
+
+### 8. **Configuration System**
 - Environment variable support (.env file)
 - Approval modes (default, autoEdit, yolo)
 - Debug mode for troubleshooting
@@ -103,10 +110,17 @@ unipath-clean/
 │   │   ├── edit.ts          # File editing
 │   │   ├── grep.ts          # Pattern search
 │   │   └── web.ts           # Web operations
-│   └── ui/
-│       ├── App.tsx             # Main UI component
-│       ├── OrchestrationUI.tsx # Orchestration display
-│       └── DeepSeekUI.tsx      # DeepSeek UI
+│   ├── ui/
+│   │   ├── App.tsx             # Main UI component
+│   │   ├── OrchestrationUI.tsx # Orchestration display
+│   │   └── DeepSeekUI.tsx      # DeepSeek UI
+│   └── monitoring/
+│       ├── backend/            # Express API server
+│       │   └── server-simplified.ts
+│       └── react-dashboard/    # React monitoring UI
+│           └── src/
+│               ├── App.tsx     # Dashboard main component
+│               └── components/ # Dashboard components
 ```
 
 ## ✅ Working Examples
@@ -133,6 +147,23 @@ unipath-clean/
 ```bash
 ./start-clean.sh --prompt "Create file1.txt, then read it, then create summary.md" --non-interactive
 # Executes all steps in sequence
+```
+
+### Monitoring Dashboard
+```bash
+# Start monitoring dashboard for development
+./dev-monitoring.sh start
+
+# Access dashboard at:
+# Frontend: http://localhost:3000
+# Backend:  http://localhost:4000
+
+# View logs
+./dev-monitoring.sh logs frontend
+./dev-monitoring.sh logs backend
+
+# Stop services
+./dev-monitoring.sh stop
 ```
 
 ## 🔧 Configuration
@@ -172,9 +203,10 @@ DEBUG=false
 
 ## 🎉 Success Metrics
 
-- **85%** feature complete
+- **90%** feature complete
 - **100%** foundation ready
 - **90%** tools implemented
-- **75%** UI features done
+- **85%** UI features done
+- **100%** monitoring dashboard functional
 
-Last Updated: 2025-09-09 19:21
+Last Updated: 2025-09-11 12:15

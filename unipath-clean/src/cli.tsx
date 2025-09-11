@@ -6,6 +6,7 @@ import { App } from './ui/App.js';
 import { Config } from './config/Config.js';
 import { toolDiscovery } from './tools/auto-discovery.js';
 import { Orchestrator } from './core/orchestrator.js';
+import { MemoryManager } from './memory/memory-manager.js';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
@@ -29,11 +30,18 @@ async function main() {
   const config = new Config();
   await config.initialize();
   
+  // Initialize memory manager
+  const memoryManager = new MemoryManager('concise');
+  await memoryManager.initialize();
+  
   // Auto-discover and load all tools once at startup
   await toolDiscovery.discoverAndLoadTools();
   
   // Create orchestrator
   const orchestrator = new Orchestrator(config);
+  
+  // Connect memory manager to orchestrator for monitoring
+  orchestrator.setMemoryManager(memoryManager);
   
   // Check if we have a prompt for non-interactive mode
   if (argv.prompt && argv['non-interactive']) {
@@ -68,6 +76,9 @@ async function main() {
     } else {
       console.error(`\n❌ Error: ${result.error}\n`);
     }
+    
+    // End session before exiting
+    await memoryManager.cleanup();
     
     process.exit(result.success ? 0 : 1);
   }

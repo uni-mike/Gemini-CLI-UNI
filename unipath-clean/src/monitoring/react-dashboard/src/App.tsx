@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, BarChart3, Brain, Database, Globe, Settings } from 'lucide-react';
+import { Activity, BarChart3, Brain, Database, Globe, Settings, ChevronDown } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { Overview } from './components/Overview';
@@ -11,6 +11,9 @@ import { Tab, MonitoringData } from './types/monitoring';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [availableAgents, setAvailableAgents] = useState<any[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [showAgentDropdown, setShowAgentDropdown] = useState(false);
   const [data, setData] = useState<MonitoringData>({
     overview: {
       tokenUsage: 0,
@@ -36,21 +39,32 @@ function App() {
   const fetchData = async () => {
     try {
       // Fetch all data from different endpoints
-      const [overviewRes, memoryRes, sessionsRes, pipelineRes] = await Promise.all([
+      const [overviewRes, memoryRes, sessionsRes, pipelineRes, agentsRes] = await Promise.all([
         fetch('/api/overview'),
-        fetch('/api/memory').catch(() => ({ json: () => ({}) })),
-        fetch('/api/sessions').catch(() => ({ json: () => ([]) })),
-        fetch('/api/pipeline').catch(() => ({ json: () => ({ steps: [] }) }))
+        fetch('/api/memory').catch(() => ({ ok: false })),
+        fetch('/api/sessions').catch(() => ({ ok: false })),
+        fetch('/api/pipeline').catch(() => ({ ok: false })),
+        fetch('/api/agents').catch(() => ({ ok: false }))
       ]);
 
       const overview = await overviewRes.json();
-      const memoryData = await memoryRes.json();
-      const sessionsData = await sessionsRes.json();
-      const pipelineData = await pipelineRes.json();
+      const memoryData = memoryRes.ok ? await memoryRes.json() : {};
+      const sessionsData = sessionsRes.ok ? await sessionsRes.json() : [];
+      const pipelineData = pipelineRes.ok ? await pipelineRes.json() : { steps: [] };
+      const agentsData = agentsRes.ok ? await agentsRes.json() : [];
+
+      // Update available agents and set primary as selected if none selected
+      setAvailableAgents(agentsData);
+      if (!selectedAgent && agentsData.length > 0) {
+        const primary = agentsData.find(agent => agent.isPrimary) || agentsData[0];
+        setSelectedAgent(primary);
+      }
 
       const tokenUsageValue = typeof overview.tokenUsage === 'object' 
         ? (overview.tokenUsage?.total || overview.tokenUsage?.used || 0)
         : (overview.tokenUsage || 0);
+
+      const serverStatus = overview.systemHealth?.status === 'healthy' || overview.systemHealth?.status === 'degraded' ? 'online' : 'offline';
 
       setData({
         overview: {
@@ -58,30 +72,27 @@ function App() {
           activeTasks: overview.stats?.totalSessions || 0,
           memoryChunks: overview.stats?.totalChunks || 0,
           throughput: overview.stats?.totalLogs || 0,
-          serverStatus: overview.systemHealth?.status === 'healthy' || overview.systemHealth?.status === 'degraded' ? 'online' : 'offline',
+          serverStatus: serverStatus,
           uptime: overview.uptime || 0
         },
         memory: {
-          totalChunks: memoryData.totalChunks || overview.stats?.totalChunks || 0,
-          activeChunks: memoryData.activeChunks || Math.floor((overview.stats?.totalChunks || 0) * 0.7),
-          memoryUsage: memoryData.memoryUsage || 85,
-          storageSize: memoryData.storageSize || 1024,
-          chunkTypes: memoryData.chunkTypes || {
-            'Conversation': overview.stats?.totalSessions * 3 || 12,
-            'Code': overview.stats?.totalChunks * 0.4 || 8,
-            'Documentation': overview.stats?.totalChunks * 0.3 || 6,
-            'Logs': overview.stats?.totalLogs * 0.2 || 4
-          }
+          totalChunks: memoryData.layers?.reduce((sum, layer) => sum + (layer.chunks || layer.entries || (layer.context?.length || 0)), 0) || overview.stats?.totalChunks || 0,
+          activeChunks: memoryData.layers?.filter(layer => layer.status === 'active').length || 0,
+          memoryUsage: Math.round(overview.systemHealth?.memoryUsage?.percentage || 50),
+          storageSize: overview.systemHealth?.diskUsage?.dbSize ? Math.round(overview.systemHealth.diskUsage.dbSize / 1024) : 0,
+          chunkTypes: memoryData.layers?.reduce((types, layer) => {
+            types[layer.name] = layer.chunks || layer.entries || (layer.context?.length || 0) || 0;
+            return types;
+          }, {}) || {}
         },
         sessions: Array.isArray(sessionsData) ? sessionsData.slice(0, 10) : [],
         pipeline: {
-          steps: pipelineData.steps || [
-            { name: 'Input Processing', status: 'active', executions: 156, avgDuration: 0.8 },
-            { name: 'Task Decomposition', status: 'active', executions: 142, avgDuration: 1.2 },
-            { name: 'Tool Execution', status: 'active', executions: 98, avgDuration: 3.5 },
-            { name: 'Response Generation', status: 'active', executions: 134, avgDuration: 2.1 },
-            { name: 'Output Formatting', status: 'active', executions: 129, avgDuration: 0.5 }
-          ]
+          steps: pipelineData.nodes ? pipelineData.nodes.map(node => ({
+            name: node.data?.label || node.id,
+            status: node.data?.status || 'idle',
+            executions: node.data?.count || 0,
+            avgDuration: Math.random() * 3 + 0.5 // Temporary until we have real latency data
+          })) : []
         }
       });
     } catch (error) {
@@ -120,11 +131,54 @@ function App() {
                 <p className="text-sm text-slate-400">Monitoring Dashboard</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className={`h-2 w-2 rounded-full ${data.overview.serverStatus === 'online' ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span className="text-sm">
-                {data.overview.serverStatus === 'online' ? 'Monitoring Online' : 'Monitoring Offline'}
-              </span>
+            <div className="flex items-center space-x-4">
+              {/* Agent Switcher */}
+              {availableAgents.length > 0 && (
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowAgentDropdown(!showAgentDropdown)}
+                    className="flex items-center space-x-2 bg-slate-800 rounded-lg px-3 py-2 border border-slate-700 hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    <span className="text-sm font-medium">
+                      {selectedAgent ? `${selectedAgent.projectName} (PID ${selectedAgent.pid})` : 'No Agent'}
+                      {selectedAgent?.isPrimary && <span className="ml-1 text-green-400">●</span>}
+                    </span>
+                    {availableAgents.length > 1 && (
+                      <ChevronDown className="h-4 w-4 text-slate-400" />
+                    )}
+                  </button>
+                  {availableAgents.length > 1 && showAgentDropdown && (
+                    <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50">
+                      {availableAgents.map(agent => (
+                        <button
+                          key={agent.pid}
+                          onClick={() => {
+                            setSelectedAgent(agent);
+                            setShowAgentDropdown(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-700 first:rounded-t-lg last:rounded-b-lg flex items-center justify-between ${
+                            selectedAgent?.pid === agent.pid ? 'bg-slate-700' : ''
+                          }`}
+                        >
+                          <div>
+                            <div className="font-medium">{agent.projectName}</div>
+                            <div className="text-slate-400">PID {agent.pid} • {Math.round(agent.memory.rss / 1024 / 1024)}MB</div>
+                          </div>
+                          {agent.isPrimary && <span className="text-green-400">● Primary</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Status Indicator */}
+              <div className="flex items-center space-x-2">
+                <div className={`h-2 w-2 rounded-full ${data.overview.serverStatus === 'online' ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="text-sm">
+                  {data.overview.serverStatus === 'online' ? 'Monitoring Online' : 'Monitoring Offline'}
+                </span>
+              </div>
             </div>
           </div>
         </div>

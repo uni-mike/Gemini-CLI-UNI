@@ -24,6 +24,7 @@
   "exclude": [
     "node_modules",
     "dist",
-    "src/monitoring/frontend/**/*"
+    "src/monitoring/frontend/**/*",
+    "src/monitoring/react-dashboard/**/*"
   ]
 }
