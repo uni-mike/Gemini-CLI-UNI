@@ -222,7 +222,18 @@
       "Bash(DEBUG=true timeout 30 ./start-clean.sh --prompt \"create test-monitoring-validation.txt with content ''FlexiCLI monitoring integration test successful!''\" --non-interactive)",
       "Bash(DEBUG=true gtimeout 30 ./start-clean.sh --prompt \"create test-monitoring-validation.txt with content ''FlexiCLI monitoring integration test successful!''\" --non-interactive)",
       "Bash(./dev-monitoring.sh:*)",
-      "Bash(for endpoint in health overview memory tools metrics events agents projects sessions pipeline)"
+      "Bash(for endpoint in health overview memory tools metrics events agents projects sessions pipeline)",
+      "Bash(mv:*)",
+      "Bash(APPROVAL_MODE=yolo ./start-clean.sh --prompt \"Create a simple hello.txt file with content ''Hello from FlexiCLI''\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo timeout 30 ./start-clean.sh --prompt \"Create a simple hello.txt file with content ''Hello from FlexiCLI''\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo ./start-clean.sh --prompt \"Create a simple test.txt file with content ''Testing FlexiCLI monitoring''\" --non-interactive)",
+      "Bash(xargs rm:*)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 2+2?\" --non-interactive)",
+      "Bash(./start-monitoring.sh:*)",
+      "Bash(./start-agent.sh:*)",
+      "Bash(open http://localhost:3000)",
+      "Bash(xargs:*)",
+      "Bash(APPROVAL_MODE=yolo ./start-clean.sh --prompt \"List the files in the current directory\" --non-interactive)"
     ],
     "deny": [],
     "ask": []
