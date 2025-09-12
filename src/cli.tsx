@@ -70,6 +70,13 @@ async function main() {
           monitoringBridge.attachToMemoryManager(memoryManager);
         }
         
+        // Notify the monitoring server that an agent has connected
+        await axios.post('http://localhost:4000/api/attach-agent', {
+          agentId: process.pid,
+          projectId: 'flexicli-default',
+          timestamp: new Date().toISOString()
+        });
+        
         console.log('✅ Monitoring bridge attached successfully');
       }
     } catch (error) {
