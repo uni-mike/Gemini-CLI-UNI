@@ -122,18 +122,14 @@ Optimized for DeepSeek R1 0528:
 
 - [🏗️ Architecture](docs/ARCHITECTURE.md) - System design and component overview
 - [💰 Token Economics](docs/TOKEN_ECONOMICS.md) - Token management and optimization
-- [🧠 Memory Pipeline](MEMORY_PIPELINE_COMPLETE.md) - Complete memory system documentation
+- [🧠 Memory Pipeline](docs/MEMORY_PIPELINE.md) - Complete memory system documentation
+- [📋 Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md) - Project completion report
 
-### API & Development
+### Development
 
-- [🔌 API Documentation](_OLD/API_DOCUMENTATION.md) - REST and WebSocket APIs
-- [🚀 Development Guide](docs/development/README.md) - Setup and contribution guide
-- [🧪 Testing Guide](docs/guides/TESTING.md) - Test suites and validation
-
-### Monitoring
-
-- [📊 Monitoring Guide](docs/monitoring/README.md) - Dashboard features and usage
-- [📈 Metrics Documentation](docs/monitoring/METRICS.md) - Available metrics and interpretation
+- [🔧 Mock Fix Documentation](docs/development/MOCK_FIX.md) - How mock data was removed
+- [🚀 Agent Pipeline](docs/architecture/AGENT_PIPELINE.md) - Agent architecture details
+- [📝 TODO List](docs/TODO.md) - Future enhancements and tasks
 
 ## Scripts
 
@@ -237,7 +233,7 @@ tail -f /tmp/flexicli-*.log
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! Please follow these guidelines:
 
 1. Fork the repository
 2. Create a feature branch
