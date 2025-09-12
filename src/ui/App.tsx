@@ -275,10 +275,14 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
   
   const handleExit = () => {
     setShowExitSummary(true);
-    // Show summary for 3 seconds then exit
+    // Show summary for 2 seconds then force exit
     setTimeout(() => {
       exit();
-    }, 3000);
+      // Force exit if ink's exit doesn't work
+      setTimeout(() => {
+        process.exit(0);
+      }, 100);
+    }, 2000);
   };
   
   const handleSubmit = async () => {
