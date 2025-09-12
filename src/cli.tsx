@@ -140,18 +140,30 @@ async function main() {
     
     // Prevent the process from exiting in interactive mode
     await new Promise<void>((resolve) => {
-      process.on('SIGINT', () => {
+      process.on('SIGINT', async () => {
         instance.unmount();
+        await memoryManager.cleanup();
+        if (monitoringBridge) {
+          monitoringBridge.detach();
+        }
         resolve();
       });
       
-      process.on('SIGTERM', () => {
+      process.on('SIGTERM', async () => {
         instance.unmount();
+        await memoryManager.cleanup();
+        if (monitoringBridge) {
+          monitoringBridge.detach();
+        }
         resolve();
       });
       
-      process.on('exit', () => {
+      process.on('exit', async () => {
         instance.unmount();
+        await memoryManager.cleanup();
+        if (monitoringBridge) {
+          monitoringBridge.detach();
+        }
       });
     });
   } else {

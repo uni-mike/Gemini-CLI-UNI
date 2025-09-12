@@ -195,9 +195,23 @@ export class MemoryManager extends EventEmitter {
     const ephemeralContext = this.ephemeral.getFormattedContext();
     this.tokenBudget.addToInput('ephemeral', ephemeralContext);
     
+    // Emit memory layer update for ephemeral
+    this.emit('memory-layer-update', {
+      layer: 'ephemeral',
+      tokens: this.tokenBudget.getUsage('ephemeral'),
+      size: ephemeralContext.length
+    });
+    
     // Get knowledge summary
     const knowledge = await this.getKnowledgeSummary();
     this.tokenBudget.addToInput('knowledge', knowledge);
+    
+    // Emit memory layer update for knowledge
+    this.emit('memory-layer-update', {
+      layer: 'knowledge',
+      tokens: this.tokenBudget.getUsage('knowledge'),
+      size: knowledge.length
+    });
     
     // Calculate remaining budget for retrieval
     const retrievalBudget = this.tokenBudget.getRemainingBudget('retrieved');
@@ -217,9 +231,27 @@ export class MemoryManager extends EventEmitter {
     const retrieved = this.formatRetrieved(chunks);
     this.tokenBudget.addToInput('retrieved', retrieved);
     
+    // Emit memory layer update for retrieval
+    this.emit('memory-layer-update', {
+      layer: 'retrieval',
+      tokens: this.tokenBudget.getUsage('retrieved'),
+      size: retrieved.length,
+      chunks: chunks.length
+    });
+    
     // Update session state
     this.sessionManager.updateState({
       retrievalIds: chunks.map(c => c.id)
+    });
+    
+    // Emit overall memory update
+    this.emit('memory-update', {
+      totalTokens: this.tokenBudget.getTotalUsage(),
+      layers: {
+        ephemeral: this.tokenBudget.getUsage('ephemeral'),
+        knowledge: this.tokenBudget.getUsage('knowledge'),
+        retrieval: this.tokenBudget.getUsage('retrieved')
+      }
     });
     
     return {

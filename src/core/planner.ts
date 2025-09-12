@@ -35,6 +35,12 @@ export class Planner extends EventEmitter {
   constructor() {
     super();
     this.client = new DeepSeekClient();
+    
+    // Forward token usage events from DeepSeek client
+    this.client.on('token-usage', (usage: any) => {
+      console.log('📊 [PLANNER] Token usage from DeepSeek:', usage);
+      this.emit('token-usage', usage);
+    });
   }
 
   async createPlan(prompt: string): Promise<TaskPlan> {

@@ -48,6 +48,12 @@ export class Executor extends EventEmitter {
     super();
     this.activeExecutions = new Map();
     this.client = new DeepSeekClient();
+    
+    // Forward token usage events from DeepSeek client
+    this.client.on('token-usage', (usage: any) => {
+      console.log('📊 [EXECUTOR] Token usage from DeepSeek:', usage);
+      this.emit('token-usage', usage);
+    });
   }
 
   async executeTask(task: Task, context: ExecutionContext): Promise<ExecutionResult> {

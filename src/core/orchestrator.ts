@@ -215,6 +215,17 @@ export class Orchestrator extends EventEmitter {
     this.planner.on('status', (message) => {
       this.emit('status', message);
     });
+    
+    // Forward token-usage events from Planner and Executor
+    this.planner.on('token-usage', (usage) => {
+      console.log('📊 [ORCHESTRATOR] Forwarding token usage from Planner');
+      this.emit('token-usage', usage);
+    });
+    
+    this.executor.on('token-usage', (usage) => {
+      console.log('📊 [ORCHESTRATOR] Forwarding token usage from Executor');
+      this.emit('token-usage', usage);
+    });
   }
   
   async execute(prompt: string): Promise<ExecutionResult> {
