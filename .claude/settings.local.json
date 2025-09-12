@@ -235,7 +235,10 @@
       "Bash(xargs:*)",
       "Bash(APPROVAL_MODE=yolo ./start-clean.sh --prompt \"List the files in the current directory\" --non-interactive)",
       "Bash(./monitoring.sh:*)",
-      "Bash(APPROVAL_MODE=yolo ./agent.sh --prompt \"Create a function that calculates fibonacci numbers\" --non-interactive)"
+      "Bash(APPROVAL_MODE=yolo ./agent.sh --prompt \"Create a function that calculates fibonacci numbers\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo ./agent.sh --prompt \"List all available tools and their categories\" --non-interactive)",
+      "Bash(awk:*)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo ./agent.sh --prompt \"Calculate 5 + 5\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

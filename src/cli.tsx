@@ -7,8 +7,11 @@ import { Config } from './config/Config.js';
 import { toolDiscovery } from './tools/auto-discovery.js';
 import { Orchestrator } from './core/orchestrator.js';
 import { MemoryManager } from './memory/memory-manager.js';
+import { MonitoringBridge } from './monitoring/backend/monitoring-bridge.js';
+import { PrismaClient } from '@prisma/client';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import axios from 'axios';
 
 async function main() {
   // Parse command line arguments
@@ -42,6 +45,37 @@ async function main() {
   
   // Connect memory manager to orchestrator for monitoring
   orchestrator.setMemoryManager(memoryManager);
+  
+  // Check if monitoring is available and attach
+  const monitoringEnabled = process.env.ENABLE_MONITORING === 'true';
+  let monitoringBridge: MonitoringBridge | null = null;
+  
+  if (monitoringEnabled) {
+    try {
+      // Check if monitoring server is running
+      const response = await axios.get('http://localhost:4000/api/health', { timeout: 1000 });
+      if (response.data.status === 'healthy') {
+        console.log('📊 Monitoring server detected, attaching bridge...');
+        
+        // Create monitoring bridge
+        const prisma = new PrismaClient();
+        monitoringBridge = new MonitoringBridge(prisma, process.cwd());
+        await monitoringBridge.start();
+        
+        // Attach to orchestrator for real-time events
+        monitoringBridge.attachToOrchestrator(orchestrator);
+        
+        // Also attach to memory manager if it has events
+        if (memoryManager && typeof memoryManager.on === 'function') {
+          monitoringBridge.attachToMemoryManager(memoryManager);
+        }
+        
+        console.log('✅ Monitoring bridge attached successfully');
+      }
+    } catch (error) {
+      console.log('📊 Monitoring server not available, running without monitoring');
+    }
+  }
   
   // Check if we have a prompt for non-interactive mode
   if (argv.prompt && argv['non-interactive']) {
@@ -77,8 +111,13 @@ async function main() {
       console.error(`\n❌ Error: ${result.error}\n`);
     }
     
-    // End session before exiting
+    // Cleanup before exiting
     await memoryManager.cleanup();
+    
+    // Detach monitoring if it was attached
+    if (monitoringBridge) {
+      monitoringBridge.detach();
+    }
     
     process.exit(result.success ? 0 : 1);
   }
