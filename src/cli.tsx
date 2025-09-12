@@ -70,14 +70,18 @@ async function main() {
           monitoringBridge.attachToMemoryManager(memoryManager);
         }
         
-        // Notify the monitoring server that an agent has connected
-        await axios.post('http://localhost:4000/api/attach-agent', {
-          agentId: process.pid,
-          projectId: 'flexicli-default',
-          timestamp: new Date().toISOString()
-        });
-        
-        console.log('✅ Monitoring bridge attached successfully');
+        // Try to notify the monitoring server that an agent has connected
+        // Don't fail if monitoring is unavailable - agent should work independently
+        try {
+          await axios.post('http://localhost:4000/api/attach-agent', {
+            agentId: process.pid,
+            projectId: 'flexicli-default',
+            timestamp: new Date().toISOString()
+          }, { timeout: 1000 });
+          console.log('✅ Monitoring bridge attached and registered successfully');
+        } catch (attachError) {
+          console.log('⚠️ Could not register with monitoring server, continuing without registration');
+        }
       }
     } catch (error) {
       console.log('📊 Monitoring server not available, running without monitoring');
