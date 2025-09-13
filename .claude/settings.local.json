@@ -250,7 +250,8 @@
       "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 2 + 2?\" --non-interactive)",
       "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a file called monitoring-test.txt with the content ''Monitoring data flow test successful!''\" --non-interactive)",
       "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Calculate 10 + 20 and tell me the result\" --non-interactive)",
-      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Search for monitoring-related files in the codebase and create a summary file called monitoring-summary.txt\" --non-interactive)"
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Search for monitoring-related files in the codebase and create a summary file called monitoring-summary.txt\" --non-interactive)",
+      "Bash(./test-monitoring-comprehensive.sh:*)"
     ],
     "deny": [],
     "ask": []

@@ -116,16 +116,18 @@ async function testEmbeddingsAndRetrieval() {
     const memoryManager = new MemoryManager('concise');
     await memoryManager.initialize();
     
-    // Add context and test retrieval
-    await memoryManager.addContext('monitoring', {
-      content: 'The monitoring system integrates with the agent through MonitoringBridge',
-      path: 'monitoring/bridge.ts'
-    });
+    // Store knowledge to test memory system
+    await memoryManager.storeKnowledge(
+      'monitoring-integration',
+      'The monitoring system integrates with the agent through MonitoringBridge',
+      'system'
+    );
     
-    await memoryManager.addContext('tools', {
-      content: 'Tool registry manages all available tools with categories and descriptions',
-      path: 'tools/registry.ts'
-    });
+    await memoryManager.storeKnowledge(
+      'tool-registry',
+      'Tool registry manages all available tools with categories and descriptions',
+      'system'
+    );
     
     // Build prompt with semantic retrieval
     const promptComponents = await memoryManager.buildPrompt(

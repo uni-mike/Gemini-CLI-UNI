@@ -5,11 +5,13 @@
 
 import { OpenAI } from 'openai';
 import * as crypto from 'crypto';
+import { FilePersistenceManager } from '../persistence/FilePersistenceManager.js';
 
 export class EmbeddingsManager {
   private client: OpenAI;
   private deployment: string;
   private cache = new Map<string, Float32Array>();
+  private filePersistence: FilePersistenceManager;
   
   constructor() {
     // Initialize Azure OpenAI client
@@ -31,16 +33,28 @@ export class EmbeddingsManager {
     });
     
     this.deployment = deployment;
+    
+    // Initialize file persistence for caching
+    this.filePersistence = FilePersistenceManager.getInstance();
+    this.loadCacheFromDisk();
   }
   
   /**
    * Generate embedding for text
    */
   async embed(text: string): Promise<Float32Array> {
-    // Check cache
+    // Check in-memory cache
     const cacheKey = this.hashText(text);
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey)!;
+    }
+    
+    // Check file cache
+    const cachedEmbedding = await this.filePersistence.cacheGet(`embedding:${cacheKey}`);
+    if (cachedEmbedding) {
+      const embedding = new Float32Array(cachedEmbedding);
+      this.cache.set(cacheKey, embedding);
+      return embedding;
     }
     
     try {
@@ -54,8 +68,13 @@ export class EmbeddingsManager {
       // Normalize the embedding
       const normalized = this.normalize(embedding);
       
-      // Cache it
+      // Cache it in memory and on disk
       this.cache.set(cacheKey, normalized);
+      await this.filePersistence.cacheSet(
+        `embedding:${cacheKey}`,
+        Array.from(normalized),
+        7 * 24 * 60 * 60 * 1000 // 7 days TTL
+      );
       
       return normalized;
     } catch (error) {
@@ -236,5 +255,36 @@ export class EmbeddingsManager {
   
   bufferToEmbedding(buffer: Buffer): Float32Array {
     return new Float32Array(buffer.buffer, buffer.byteOffset, buffer.byteLength / 4);
+  }
+  
+  /**
+   * Load cached embeddings from disk on startup
+   */
+  private async loadCacheFromDisk(): Promise<void> {
+    try {
+      await this.filePersistence.initialize();
+      // Cache will be loaded on-demand when embeddings are requested
+      console.log('📂 Embeddings file cache initialized');
+    } catch (error) {
+      console.warn('Failed to initialize embeddings file cache:', error);
+    }
+  }
+  
+  /**
+   * Save current cache state to disk
+   */
+  async persistCache(): Promise<void> {
+    try {
+      for (const [key, embedding] of this.cache.entries()) {
+        await this.filePersistence.cacheSet(
+          `embedding:${key}`,
+          Array.from(embedding),
+          7 * 24 * 60 * 60 * 1000 // 7 days TTL
+        );
+      }
+      console.log(`💾 Persisted ${this.cache.size} embeddings to disk cache`);
+    } catch (error) {
+      console.warn('Failed to persist embeddings cache:', error);
+    }
   }
 }

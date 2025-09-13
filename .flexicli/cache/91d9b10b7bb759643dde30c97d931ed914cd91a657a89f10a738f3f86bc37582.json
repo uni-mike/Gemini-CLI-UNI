@@ -1,0 +1,10 @@
+{
+  "key": "embedding:test",
+  "value": [
+    1,
+    2,
+    3
+  ],
+  "timestamp": 1757757622255,
+  "ttl": 604800000
+}

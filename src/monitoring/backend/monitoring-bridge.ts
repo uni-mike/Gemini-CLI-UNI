@@ -9,6 +9,7 @@ import { Orchestrator } from '../../core/orchestrator.js';
 import { MemoryManager } from '../../memory/memory-manager.js';
 import { HybridCollector } from './hybrid-collector.js';
 import { AutonomousCollector } from './autonomous-collector.js';
+import { FilePersistenceManager, SessionState, Checkpoint } from '../../persistence/FilePersistenceManager.js';
 import { PrismaClient } from '@prisma/client';
 
 export class MonitoringBridge {
@@ -16,6 +17,8 @@ export class MonitoringBridge {
   private autonomousCollector: AutonomousCollector;
   private attachedModules: Map<string, EventEmitter> = new Map();
   private listeners: Map<string, Function[]> = new Map();
+  private filePersistence: FilePersistenceManager;
+  private currentSessionId: string | null = null;
   
   constructor(prisma: PrismaClient, projectRoot: string) {
     // Use HybridCollector which has all the required methods
@@ -26,15 +29,24 @@ export class MonitoringBridge {
       projectRoot,
       pollInterval: 2000
     });
+    
+    // Initialize file persistence manager
+    this.filePersistence = FilePersistenceManager.getInstance();
   }
   
   /**
    * Start monitoring (works with or without agent)
    */
   async start() {
+    // Initialize file persistence
+    await this.filePersistence.initialize();
+    
     // Always start autonomous monitoring (reads DB, logs, files)
     await this.autonomousCollector.start();
     console.log('📊 Autonomous monitoring started (will survive agent crashes)');
+    
+    // Log monitoring start
+    await this.filePersistence.logInfo('MonitoringBridge', 'Monitoring system started');
   }
   
   /**
@@ -49,13 +61,28 @@ export class MonitoringBridge {
     const listeners: Function[] = [];
     
     // Subscribe to existing orchestrator events
-    const onPlanningStart = (data: any) => {
+    const onPlanningStart = async (data: any) => {
+      const stageId = `plan-${Date.now()}`;
       this.collector.startPipelineStage({
-        id: `plan-${Date.now()}`,
+        id: stageId,
         name: 'Planning',
         type: 'planner',
         input: data
       });
+      
+      // Save checkpoint for planning start
+      if (this.currentSessionId) {
+        await this.filePersistence.saveCheckpoint({
+          id: `checkpoint-${stageId}`,
+          sessionId: this.currentSessionId,
+          timestamp: new Date().toISOString(),
+          stage: 'planning-start',
+          state: { input: data }
+        });
+      }
+      
+      // Log to file
+      await this.filePersistence.logInfo('Pipeline', 'Planning stage started', { stageId, input: data });
     };
     orchestrator.on('planning-start', onPlanningStart);
     listeners.push(() => orchestrator.off('planning-start', onPlanningStart));
@@ -69,7 +96,7 @@ export class MonitoringBridge {
     // Track tool executions with proper IDs
     const toolExecutions = new Map<string, any>();
     
-    const onToolExecute = (data: any) => {
+    const onToolExecute = async (data: any) => {
       console.log('🔧 [MONITORING] Tool execute event received:', data.name || 'unknown');
       const toolId = `tool-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const execution = {
@@ -81,6 +108,12 @@ export class MonitoringBridge {
       };
       toolExecutions.set(data.name || toolId, execution);
       this.collector.startToolExecution(execution);
+      
+      // Log tool execution to file
+      await this.filePersistence.logInfo('ToolExecution', `Starting tool: ${execution.toolName}`, {
+        toolId: execution.id,
+        input: execution.input
+      });
     };
     orchestrator.on('tool-execute', onToolExecute);
     listeners.push(() => orchestrator.off('tool-execute', onToolExecute));
@@ -104,8 +137,17 @@ export class MonitoringBridge {
       try {
         await this.collector.writeExecutionLogToDB(execution);
         console.log('💾 [MONITORING] Execution log written to DB for:', execution.toolName);
+        
+        // Also log to file
+        await this.filePersistence.logInfo('ToolExecution', `Completed tool: ${execution.toolName}`, {
+          toolId: execution.id,
+          success: execution.success,
+          duration: execution.duration,
+          error: execution.error
+        });
       } catch (error) {
         console.error('❌ [MONITORING] Failed to write execution log:', error);
+        await this.filePersistence.logError('ToolExecution', 'Failed to persist tool execution', error);
       }
       
       toolExecutions.delete(result.name);
@@ -312,9 +354,61 @@ export class MonitoringBridge {
   }
   
   /**
+   * Start a new session
+   */
+  async startSession(prompt: string, mode: string = 'interactive'): Promise<string> {
+    this.currentSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const sessionState: SessionState = {
+      id: this.currentSessionId,
+      startedAt: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
+      prompt,
+      mode,
+      tokens: { input: 0, output: 0, total: 0 },
+      tools: [],
+      memory: { ephemeral: 0, knowledge: 0, retrieval: 0 },
+      pipeline: {}
+    };
+    
+    // Save session state to file
+    await this.filePersistence.saveSessionState(sessionState);
+    
+    // Log session start
+    await this.filePersistence.logInfo('Session', `Started new session: ${this.currentSessionId}`, {
+      prompt,
+      mode
+    });
+    
+    return this.currentSessionId;
+  }
+  
+  /**
+   * Update current session with metrics
+   */
+  async updateSession(updates: Partial<SessionState>): Promise<void> {
+    if (!this.currentSessionId) return;
+    
+    await this.filePersistence.updateSessionState(this.currentSessionId, updates);
+  }
+  
+  /**
    * Stop monitoring
    */
   async stop() {
+    // Save final session state if exists
+    if (this.currentSessionId) {
+      await this.updateSession({
+        pipeline: {
+          ...((await this.filePersistence.loadSessionState(this.currentSessionId))?.pipeline || {}),
+          execution: { duration: Date.now(), completed: true }
+        }
+      });
+    }
+    
+    // Close file persistence
+    await this.filePersistence.close();
+    
     this.detach();
     await this.autonomousCollector.stop();
     console.log('🛑 Monitoring stopped');
