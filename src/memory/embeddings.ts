@@ -5,13 +5,11 @@
 
 import { OpenAI } from 'openai';
 import * as crypto from 'crypto';
-import { FilePersistenceManager } from '../persistence/FilePersistenceManager.js';
+import { cacheManager } from '../cache/CacheManager.js';
 
 export class EmbeddingsManager {
   private client: OpenAI;
   private deployment: string;
-  private cache = new Map<string, Float32Array>();
-  private filePersistence: FilePersistenceManager;
   
   constructor() {
     // Initialize Azure OpenAI client
@@ -33,28 +31,17 @@ export class EmbeddingsManager {
     });
     
     this.deployment = deployment;
-    
-    // Initialize file persistence for caching
-    this.filePersistence = FilePersistenceManager.getInstance();
-    this.loadCacheFromDisk();
   }
   
   /**
    * Generate embedding for text
    */
   async embed(text: string): Promise<Float32Array> {
-    // Check in-memory cache
-    const cacheKey = this.hashText(text);
-    if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)!;
-    }
-    
-    // Check file cache
-    const cachedEmbedding = await this.filePersistence.cacheGet(`embedding:${cacheKey}`);
-    if (cachedEmbedding) {
-      const embedding = new Float32Array(cachedEmbedding);
-      this.cache.set(cacheKey, embedding);
-      return embedding;
+    // Check cache
+    const cacheKey = `embed_${this.hashText(text)}`;
+    const cached = cacheManager.get<number[]>(cacheKey);
+    if (cached) {
+      return new Float32Array(cached);
     }
     
     try {
@@ -68,13 +55,10 @@ export class EmbeddingsManager {
       // Normalize the embedding
       const normalized = this.normalize(embedding);
       
-      // Cache it in memory and on disk
-      this.cache.set(cacheKey, normalized);
-      await this.filePersistence.cacheSet(
-        `embedding:${cacheKey}`,
-        Array.from(normalized),
-        7 * 24 * 60 * 60 * 1000 // 7 days TTL
-      );
+      // Cache it
+      cacheManager.set(cacheKey, Array.from(normalized), {
+        ttl: 7 * 24 * 60 * 60 * 1000 // 7 days TTL
+      });
       
       return normalized;
     } catch (error) {
@@ -92,9 +76,10 @@ export class EmbeddingsManager {
     const results: Float32Array[] = new Array(texts.length);
     
     for (let i = 0; i < texts.length; i++) {
-      const cacheKey = this.hashText(texts[i]);
-      if (this.cache.has(cacheKey)) {
-        results[i] = this.cache.get(cacheKey)!;
+      const cacheKey = `embed_${this.hashText(texts[i])}`;
+      const cached = cacheManager.get<number[]>(cacheKey);
+      if (cached) {
+        results[i] = new Float32Array(cached);
       } else {
         uncached.push({ text: texts[i], index: i });
       }
