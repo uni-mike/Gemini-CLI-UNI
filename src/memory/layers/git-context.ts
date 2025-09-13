@@ -48,12 +48,13 @@ export class GitContextLayer {
   /**
    * Parse and store git history
    */
-  async parseGitHistory(maxCommits: number = 200): Promise<void> {
+  async parseGitHistory(maxCommits: number = 50): Promise<void> {
     try {
-      // Get git log with patches
+      // Reduced from 200 to 50 commits to prevent hangs during session recovery
+      // Get git log with patches - use smaller buffer and commit limit
       const gitLog = execSync(
         `git log --patch --no-color --stat -n ${maxCommits} --format='%H|%an|%aI|%s'`,
-        { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 } // 50MB buffer
+        { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024, timeout: 3000 } // 20MB buffer, 3s timeout
       );
       
       const commits = this.parseGitLog(gitLog);
@@ -194,13 +195,26 @@ export class GitContextLayer {
     const embedding = await this.embeddings.embed(embeddingText);
     const embeddingBuffer = Buffer.from(this.embeddings.embeddingToBuffer(embedding));
     
+    // Validate commit data before storing
+    if (!commit.hash || commit.hash.length < 7 || !commit.hash.match(/^[0-9a-f]/i)) {
+      console.warn('Skipping invalid commit hash:', commit.hash);
+      return;
+    }
+    
+    // Validate date
+    const commitDate = new Date(commit.date);
+    if (isNaN(commitDate.getTime())) {
+      console.warn('Skipping commit with invalid date:', commit.date);
+      return;
+    }
+    
     // Store commit
     await this.prisma.gitCommit.create({
       data: {
         projectId: this.projectId,
         hash: commit.hash,
         author: commit.author,
-        date: commit.date,
+        date: commitDate,
         message: commit.message,
         filesChanged: JSON.stringify(commit.filesChanged),
         diffChunks: JSON.stringify(

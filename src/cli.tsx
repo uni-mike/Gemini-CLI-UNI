@@ -57,30 +57,36 @@ async function main() {
       if (response.data.status === 'healthy') {
         console.log('📊 Monitoring server detected, attaching bridge...');
         
-        // Create monitoring bridge
-        const prisma = new PrismaClient();
-        monitoringBridge = new MonitoringBridge(prisma, process.cwd());
-        await monitoringBridge.start();
-        
-        // Attach to orchestrator for real-time events
-        monitoringBridge.attachToOrchestrator(orchestrator);
-        
-        // Also attach to memory manager if it has events
-        if (memoryManager && typeof memoryManager.on === 'function') {
-          monitoringBridge.attachToMemoryManager(memoryManager);
-        }
-        
-        // Try to notify the monitoring server that an agent has connected
-        // Don't fail if monitoring is unavailable - agent should work independently
         try {
-          await axios.post('http://localhost:4000/api/attach-agent', {
-            agentId: process.pid,
-            projectId: 'flexicli-default',
-            timestamp: new Date().toISOString()
-          }, { timeout: 1000 });
-          console.log('✅ Monitoring bridge attached and registered successfully');
-        } catch (attachError) {
-          console.log('⚠️ Could not register with monitoring server, continuing without registration');
+          // Create monitoring bridge - wrap in try-catch to handle initialization errors
+          const prisma = new PrismaClient();
+          monitoringBridge = new MonitoringBridge(prisma, process.cwd());
+          await monitoringBridge.start();
+          
+          // Attach to orchestrator for real-time events
+          monitoringBridge.attachToOrchestrator(orchestrator);
+          
+          // Also attach to memory manager if it has events
+          if (memoryManager && typeof memoryManager.on === 'function') {
+            monitoringBridge.attachToMemoryManager(memoryManager);
+          }
+          
+          // Try to notify the monitoring server that an agent has connected
+          // Don't fail if monitoring is unavailable - agent should work independently
+          try {
+            await axios.post('http://localhost:4000/api/attach-agent', {
+              agentId: process.pid,
+              projectId: 'flexicli-default',
+              timestamp: new Date().toISOString()
+            }, { timeout: 1000 });
+            console.log('✅ Monitoring bridge attached and registered successfully');
+          } catch (attachError) {
+            console.log('⚠️ Could not register with monitoring server, continuing without registration');
+          }
+        } catch (bridgeError) {
+          console.log('⚠️ Failed to initialize monitoring bridge:', (bridgeError as Error).message);
+          console.log('📊 Continuing without monitoring integration');
+          monitoringBridge = null;
         }
       }
     } catch (error) {

@@ -7,19 +7,19 @@
 import { EventEmitter } from 'events';
 import { Orchestrator } from '../../core/orchestrator.js';
 import { MemoryManager } from '../../memory/memory-manager.js';
-import { MetricsCollector } from './MetricsCollector.js';
+import { HybridCollector } from './hybrid-collector.js';
 import { AutonomousCollector } from './autonomous-collector.js';
 import { PrismaClient } from '@prisma/client';
 
 export class MonitoringBridge {
-  private collector: MetricsCollector;
+  private collector: HybridCollector;
   private autonomousCollector: AutonomousCollector;
   private attachedModules: Map<string, EventEmitter> = new Map();
   private listeners: Map<string, Function[]> = new Map();
   
   constructor(prisma: PrismaClient, projectRoot: string) {
-    // Integrated collector for real-time events
-    this.collector = new MetricsCollector(prisma);
+    // Use HybridCollector which has all the required methods
+    this.collector = new HybridCollector(prisma, projectRoot, 'integrated');
     
     // Autonomous collector continues working even if agent dies
     this.autonomousCollector = new AutonomousCollector({
@@ -114,10 +114,27 @@ export class MonitoringBridge {
     listeners.push(() => orchestrator.off('tool-result', onToolResult));
     
     const onOrchestrationError = (error: any) => {
-      this.collector.recordEvent('error', 'orchestration_error', error);
+      // Log error but don't call non-existent recordEvent method
+      console.error('❌ [MONITORING] Orchestration error:', error);
     };
     orchestrator.on('orchestration-error', onOrchestrationError);
     listeners.push(() => orchestrator.off('orchestration-error', onOrchestrationError));
+    
+    // Track tool-execution events (for tests and custom tool events)
+    const onToolExecution = (data: any) => {
+      console.log('🔧 [MONITORING] Tool execution event received:', data);
+      
+      // Record the tool execution
+      if (this.collector && this.collector.recordToolExecution) {
+        this.collector.recordToolExecution(
+          data.tool || 'unknown',
+          data.success || false,
+          data.duration || 0
+        );
+      }
+    };
+    orchestrator.on('tool-execution', onToolExecution);
+    listeners.push(() => orchestrator.off('tool-execution', onToolExecution));
     
     // Track token usage from DeepSeek API
     const onTokenUsage = async (usage: any) => {
@@ -164,7 +181,7 @@ export class MonitoringBridge {
   }
   
   /**
-   * Attach to memory manager (optional - for token tracking)
+   * Attach to memory manager (optional - for memory layer and token tracking)
    */
   attachToMemoryManager(memoryManager: MemoryManager) {
     if (this.attachedModules.has('memory')) {
@@ -173,6 +190,34 @@ export class MonitoringBridge {
     }
     
     const listeners: Function[] = [];
+    
+    // Listen for memory layer updates
+    const onMemoryLayerUpdate = (data: any) => {
+      console.log('🧠 [MONITORING] Memory layer update:', data.layer, 'tokens:', data.tokens);
+      
+      // Track memory layer metrics
+      this.collector.recordMemoryMetrics({
+        layer: data.layer,
+        tokens: data.tokens,
+        size: data.size,
+        chunks: data.chunks || 0
+      });
+    };
+    memoryManager.on('memory-layer-update', onMemoryLayerUpdate);
+    listeners.push(() => memoryManager.off('memory-layer-update', onMemoryLayerUpdate));
+    
+    // Listen for overall memory updates
+    const onMemoryUpdate = (data: any) => {
+      console.log('💭 [MONITORING] Memory update, total tokens:', data.totalTokens);
+      
+      // Update overall memory metrics
+      this.collector.recordMemoryUpdate({
+        totalTokens: data.totalTokens,
+        layers: data.layers
+      });
+    };
+    memoryManager.on('memory-update', onMemoryUpdate);
+    listeners.push(() => memoryManager.off('memory-update', onMemoryUpdate));
     
     // Intercept buildPrompt to track token usage
     const originalBuildPrompt = memoryManager.buildPrompt.bind(memoryManager);
@@ -217,7 +262,7 @@ export class MonitoringBridge {
     this.attachedModules.set('memory', memoryManager);
     this.listeners.set('memory', listeners);
     
-    console.log('✅ Monitoring attached to memory manager (token tracking enabled)');
+    console.log('✅ Monitoring attached to memory manager (memory layer & token tracking enabled)');
   }
   
   /**

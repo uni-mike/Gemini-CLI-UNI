@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { MetricsCollector } from './metrics-collector.js';
+import { MetricsCollector } from './MetricsCollector.js';
 import { AutonomousCollector } from './autonomous-collector.js';
 import { PrismaClient } from '@prisma/client';
 
@@ -60,7 +60,7 @@ export class HybridCollector extends EventEmitter {
    * Initialize integrated collector
    */
   private initializeIntegrated() {
-    this.integratedCollector = new MetricsCollector(this.prisma);
+    this.integratedCollector = MetricsCollector.getInstance(this.prisma);
     
     // Forward all events
     this.integratedCollector.on('tokenUpdate', (data) => {
@@ -253,6 +253,95 @@ export class HybridCollector extends EventEmitter {
     }
   }
   
+  /**
+   * Record memory metrics for a specific layer
+   */
+  recordMemoryMetrics(metrics: {
+    layer: string;
+    tokens: number;
+    size: number;
+    chunks?: number;
+  }) {
+    if (this.integratedCollector) {
+      // Store memory metrics in the collector
+      const memoryData = {
+        layer: metrics.layer,
+        tokens: metrics.tokens,
+        size: metrics.size,
+        chunks: metrics.chunks || 0,
+        timestamp: Date.now()
+      };
+      
+      // Emit event for tracking
+      this.emit('metrics:memory', { source: 'integrated', data: memoryData });
+      this.bufferMetric('memory', memoryData);
+      
+      // Store in database
+      this.storeMemoryMetrics(memoryData);
+    }
+  }
+  
+  /**
+   * Record overall memory update
+   */
+  recordMemoryUpdate(update: {
+    totalTokens: number;
+    layers?: any;
+  }) {
+    if (this.integratedCollector) {
+      const updateData = {
+        totalTokens: update.totalTokens,
+        layers: update.layers,
+        timestamp: Date.now()
+      };
+      
+      this.emit('metrics:memory-update', { source: 'integrated', data: updateData });
+      this.bufferMetric('memory-update', updateData);
+    }
+  }
+  
+  /**
+   * Store memory metrics to database
+   */
+  private async storeMemoryMetrics(metrics: any) {
+    try {
+      // Store as execution log with type 'memory'
+      await this.prisma.executionLog.create({
+        data: {
+          projectId: this.projectRoot,
+          sessionId: await this.getCurrentSessionId(),
+          type: 'memory',
+          tool: `memory-${metrics.layer}`,
+          output: JSON.stringify(metrics),
+          success: true,
+          duration: 0
+        }
+      });
+    } catch (error) {
+      console.error('Failed to store memory metrics:', error);
+    }
+  }
+  
+  /**
+   * Get current session ID
+   */
+  private async getCurrentSessionId(): Promise<string | null> {
+    try {
+      const session = await this.prisma.session.findFirst({
+        where: {
+          projectId: this.projectRoot,
+          endedAt: null
+        },
+        orderBy: {
+          startedAt: 'desc'
+        }
+      });
+      return session?.id || null;
+    } catch (error) {
+      return null;
+    }
+  }
+  
   startPipelineStage(stage: any) {
     if (this.integratedCollector) {
       this.integratedCollector.startPipelineStage(stage);
@@ -274,6 +363,24 @@ export class HybridCollector extends EventEmitter {
   completeToolExecution(toolId: string, output?: any, error?: string) {
     if (this.integratedCollector) {
       this.integratedCollector.completeToolExecution(toolId, output, error);
+    }
+  }
+  
+  /**
+   * Write execution log to database
+   */
+  async writeExecutionLogToDB(execution: any) {
+    if (this.integratedCollector) {
+      return await this.integratedCollector.writeExecutionLogToDB(execution);
+    }
+  }
+  
+  /**
+   * Update session token count
+   */
+  async updateSessionTokens(tokens: number) {
+    if (this.integratedCollector) {
+      return await this.integratedCollector.updateSessionTokens(tokens);
     }
   }
   

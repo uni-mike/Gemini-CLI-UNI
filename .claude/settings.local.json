@@ -238,7 +238,19 @@
       "Bash(APPROVAL_MODE=yolo ./agent.sh --prompt \"Create a function that calculates fibonacci numbers\" --non-interactive)",
       "Bash(APPROVAL_MODE=yolo ./agent.sh --prompt \"List all available tools and their categories\" --non-interactive)",
       "Bash(awk:*)",
-      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo ./agent.sh --prompt \"Calculate 5 + 5\" --non-interactive)"
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo ./agent.sh --prompt \"Calculate 5 + 5\" --non-interactive)",
+      "Bash(./monitoring-dev.sh:*)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo ./agent.sh --prompt \"Create a file called test-monitoring.txt with content ''Testing FlexiCLI monitoring integration!''\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo ./agent.sh --prompt \"Create test-monitoring.txt with ''''Monitoring works!''''\" --non-interactive)",
+      "Bash(for endpoint in health overview tools pipeline memory metrics tokens sessions events agents projects)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo ./agent.sh --prompt \"Create a file test.txt with ''Hello World''\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo timeout 30 ./agent.sh --prompt \"Create a file called test-monitoring.txt with content ''Testing FlexiCLI monitoring system''\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo gtimeout 30 ./agent.sh --prompt \"What is 2 + 2?\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo ./agent.sh --prompt \"What is 2 + 2?\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 2 + 2?\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a file called monitoring-test.txt with the content ''Monitoring data flow test successful!''\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Calculate 10 + 20 and tell me the result\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Search for monitoring-related files in the codebase and create a summary file called monitoring-summary.txt\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

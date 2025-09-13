@@ -266,10 +266,28 @@ export class AutonomousCollector extends EventEmitter {
       }
     }
     
-    // Get chunk counts
-    const chunkCount = await this.prisma.chunk.count();
-    const commitCount = await this.prisma.gitCommit.count();
-    const knowledgeCount = await this.prisma.knowledge.count();
+    // Get chunk counts - wrap in try-catch for resilience
+    let chunkCount = 0;
+    let commitCount = 0;
+    let knowledgeCount = 0;
+    
+    try {
+      chunkCount = await this.prisma.chunk.count();
+    } catch (e) {
+      // Table might not exist yet
+    }
+    
+    try {
+      commitCount = await this.prisma.gitCommit.count();
+    } catch (e) {
+      // Table might not exist yet
+    }
+    
+    try {
+      knowledgeCount = await this.prisma.knowledge.count();
+    } catch (e) {
+      // Table might not exist yet
+    }
     
     this.metrics.set('databaseStats', {
       chunks: chunkCount,
