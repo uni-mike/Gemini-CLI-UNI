@@ -34,7 +34,7 @@ export const Sessions: React.FC<SessionsProps> = ({ sessions }) => {
                   {sessions.map((session, index) => (
                     <tr key={session.id || index} className="border-b border-slate-800 hover:bg-slate-800/50">
                       <td className="p-3 font-mono text-sm">
-                        {session.id?.substring(0, 8) || `session-${index}`}
+                        {session.id || `session-${index}`}
                       </td>
                       <td className="p-3">
                         <Badge className={`${

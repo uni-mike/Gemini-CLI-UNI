@@ -86,11 +86,11 @@ export class MemoryManager extends EventEmitter {
       this.ephemeral.restoreState(sessionState.ephemeralState);
     }
     
-    // Parse git history in background - don't await to prevent blocking
+    // Initialize git context in background - don't await to prevent blocking
     // Using setTimeout to ensure it runs after session recovery completes
     setTimeout(() => {
-      this.gitContext.parseGitHistory().catch(err => 
-        console.warn('Failed to parse git history:', err)
+      this.gitContext.initialize().catch(err => 
+        console.warn('Failed to initialize git context:', err)
       );
     }, 100);
     

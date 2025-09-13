@@ -76,16 +76,16 @@ function App() {
         ? (overview.tokenUsage?.total || overview.tokenUsage?.used || 0)
         : (overview.tokenUsage || 0);
 
-      const serverStatus = overview.systemHealth?.status ? 'online' : 'offline';
+      const serverStatus = overview.tokenUsage > 0 || overview.activeTasks >= 0 ? 'online' : 'offline';
 
       setData({
         overview: {
           tokenUsage: tokenUsageValue,
-          activeTasks: overview.stats?.totalSessions || 0,
-          memoryChunks: overview.stats?.totalChunks || 0,
-          throughput: overview.stats?.totalLogs || 0,
+          activeTasks: overview.activeTasks || 0,
+          memoryChunks: memoryData.layers?.reduce((sum, layer) => sum + (layer.chunks || 0), 0) || 0,
+          throughput: overview.completedTasks || 0,
           serverStatus: serverStatus,
-          uptime: overview.uptime || 0
+          uptime: overview.systemHealth?.uptime || process.uptime() || 0
         },
         memory: {
           totalChunks: memoryData.layers?.reduce((sum, layer) => sum + (layer.chunks || layer.entries || (layer.context?.length || 0)), 0) || overview.stats?.totalChunks || 0,

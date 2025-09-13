@@ -4,6 +4,7 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Modal } from './ui/modal';
 import { Tooltip } from './ui/tooltip';
+import { PortalTooltip } from './ui/portal-tooltip';
 import { Grid, List, Search } from 'lucide-react';
 import { Tool, ToolCategory } from '../types/monitoring';
 
@@ -14,6 +15,7 @@ export const Tools: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'error'>('all');
   const [toolsData, setToolsData] = useState<Tool[]>([]);
+  const [recentExecutions, setRecentExecutions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -31,6 +33,7 @@ export const Tools: React.FC = () => {
           setError(null); // Don't show error for empty database
         } else {
           setToolsData(data.tools || []);
+          setRecentExecutions(data.recentExecutions || []);
           setError(null);
         }
       } catch (err) {
@@ -69,32 +72,37 @@ export const Tools: React.FC = () => {
   const fetchExecutionData = async (tool: Tool) => {
     try {
       setExecutionLoading(true);
-      const response = await fetch(`/api/tools/${tool.name}/executions`);
-      const data = await response.json();
-      
-      if (data.error) {
-        setExecutionData([]);
-      } else {
-        let executions = data.executions || [];
-        
-        // Filter by status
-        if (statusFilter !== 'all') {
-          executions = executions.filter((exec: any) => exec.status === statusFilter);
-        }
-        
-        // Filter by search query
-        if (searchQuery) {
-          executions = executions.filter((exec: any) => 
-            (exec.parameters || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (exec.output || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (exec.id || '').toLowerCase().includes(searchQuery.toLowerCase())
-          );
-        }
-        
-        setExecutionData(executions);
+
+      // Filter recent executions for this specific tool
+      let executions = recentExecutions.filter((exec: any) => exec.tool === tool.name);
+
+      // Map the execution data to match the expected format with real details
+      executions = executions.map((exec: any, index: number) => ({
+        id: `exec-${index + 1}`,
+        status: exec.success ? 'success' : 'error',
+        timestamp: exec.timestamp,
+        duration: exec.duration,
+        parameters: exec.details || `${exec.tool} execution`,
+        output: exec.output || (exec.success ? 'Completed successfully' : 'Failed')
+      }));
+
+      // Filter by status
+      if (statusFilter !== 'all') {
+        executions = executions.filter((exec: any) => exec.status === statusFilter);
       }
+
+      // Filter by search query
+      if (searchQuery) {
+        executions = executions.filter((exec: any) =>
+          (exec.parameters || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (exec.output || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (exec.id || '').toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+
+      setExecutionData(executions);
     } catch (err) {
-      console.error('Failed to fetch execution data:', err);
+      console.error('Failed to process execution data:', err);
       setExecutionData([]);
     } finally {
       setExecutionLoading(false);
@@ -106,7 +114,7 @@ export const Tools: React.FC = () => {
     if (selectedTool && isModalOpen) {
       fetchExecutionData(selectedTool);
     }
-  }, [selectedTool, isModalOpen, statusFilter, searchQuery]);
+  }, [selectedTool, isModalOpen, statusFilter, searchQuery, recentExecutions]);
 
   return (
     <div className="space-y-6">
@@ -352,76 +360,73 @@ export const Tools: React.FC = () => {
               </div>
 
               {viewMode === 'table' ? (
-                <div className="max-h-96 overflow-y-auto overflow-x-hidden w-full">
+                <div className="w-full">
                   {executionLoading ? (
                     <div className="text-center py-8 text-slate-400">Loading execution data...</div>
                   ) : executionData.length === 0 ? (
                     <div className="text-center py-8 text-slate-400">No execution data available</div>
                   ) : (
                     <>
-                      {/* Header */}
-                      <div className="sticky top-0 bg-slate-900 border-b border-slate-700 grid grid-cols-6 gap-3 p-3 font-medium text-slate-400 text-sm min-w-0"
-                           style={{gridTemplateColumns: '12% 10% 16% 10% 26% 26%'}}>
-                        <div className="truncate">ID</div>
-                        <div className="truncate">Status</div>
-                        <div className="truncate">Timestamp</div>
-                        <div className="truncate">Duration</div>
-                        <div className="truncate">Input</div>
-                        <div className="truncate">Output</div>
+                      {/* Table Container with Scroll */}
+                      <div className="max-h-96 overflow-y-auto overflow-x-hidden">
+                        <table className="w-full">
+                          <thead className="sticky top-0 bg-slate-900 border-b border-slate-700">
+                            <tr>
+                              <th className="text-left p-3 font-medium text-slate-400 text-sm w-[15%]">ID</th>
+                              <th className="text-left p-3 font-medium text-slate-400 text-sm w-[10%]">Status</th>
+                              <th className="text-left p-3 font-medium text-slate-400 text-sm w-[20%]">Timestamp</th>
+                              <th className="text-left p-3 font-medium text-slate-400 text-sm w-[10%]">Duration</th>
+                              <th className="text-left p-3 font-medium text-slate-400 text-sm w-[22%]">Input</th>
+                              <th className="text-left p-3 font-medium text-slate-400 text-sm w-[23%]">Output</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {executionData.map((execution) => (
+                              <tr key={execution.id} className="border-b border-slate-800 hover:bg-slate-800/30">
+                                <td className="p-3 font-mono text-xs">{execution.id}</td>
+                                <td className="p-3">
+                                  <Badge className={execution.status === 'success' ? 'bg-green-600' : 'bg-red-600'}>
+                                    {execution.status}
+                                  </Badge>
+                                </td>
+                                <td className="p-3 text-xs text-slate-400">
+                                  {new Date(execution.timestamp || '').toLocaleString()}
+                                </td>
+                                <td className="p-3 text-blue-400 font-mono text-xs">
+                                  {execution.duration ? `${execution.duration.toFixed(0)}ms` : 'N/A'}
+                                </td>
+                                <td className="p-3">
+                                  {execution.parameters && execution.parameters.length > 30 ? (
+                                    <PortalTooltip content={execution.parameters} className="text-green-400">
+                                      <div className="text-green-400 font-mono text-xs truncate max-w-[200px]">
+                                        {`${execution.parameters.substring(0, 30)}...`}
+                                      </div>
+                                    </PortalTooltip>
+                                  ) : (
+                                    <div className="text-green-400 font-mono text-xs truncate max-w-[200px]">
+                                      {execution.parameters || 'N/A'}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="p-3">
+                                  {execution.output && execution.output.length > 30 ? (
+                                    <PortalTooltip content={execution.output} className="text-slate-300">
+                                      <div className="text-slate-300 font-mono text-xs truncate max-w-[200px]">
+                                        {`${execution.output.substring(0, 30)}...`}
+                                      </div>
+                                    </PortalTooltip>
+                                  ) : (
+                                    <div className="text-slate-300 font-mono text-xs truncate max-w-[200px]">
+                                      {execution.output || 'N/A'}
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                      
-                      {/* Data Rows */}
-                      <div className="space-y-0 w-full min-w-0">
-                        {executionData.map((execution) => (
-                      <div key={execution.id} 
-                           className="grid grid-cols-6 gap-3 p-3 border-b border-slate-800 hover:bg-slate-800/30 text-sm items-center min-w-0 w-full"
-                           style={{gridTemplateColumns: '12% 10% 16% 10% 26% 26%'}}>
-                        <div className="font-mono text-xs truncate min-w-0">{execution.id}</div>
-                        <div className="min-w-0 truncate">
-                          <Badge className={execution.status === 'success' ? 'bg-green-600' : 'bg-red-600'}>
-                            {execution.status}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-slate-400 truncate min-w-0">
-                          {new Date(execution.timestamp || '').toLocaleString()}
-                        </div>
-                        <div className="text-blue-400 font-mono text-xs truncate min-w-0">
-                          {execution.duration ? `${execution.duration.toFixed(0)}ms` : 'N/A'}
-                        </div>
-                        <Tooltip content={execution.parameters || ''} className="text-green-400 font-mono text-xs block">
-                          <div 
-                            className="cursor-help" 
-                            style={{
-                              width: '100%',
-                              maxWidth: '100%',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              display: 'block'
-                            }}
-                          >
-                            {execution.parameters || 'N/A'}
-                          </div>
-                        </Tooltip>
-                        <Tooltip content={execution.output || ''} className="text-slate-300 font-mono text-xs block">
-                          <div 
-                            className="cursor-help" 
-                            style={{
-                              width: '100%',
-                              maxWidth: '100%',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              display: 'block'
-                            }}
-                          >
-                            {execution.output || 'N/A'}
-                          </div>
-                        </Tooltip>
-                      </div>
-                    ))}
-                  </div>
-                </>
+                    </>
                   )}
                 </div>
               ) : (

@@ -254,7 +254,17 @@
       "Bash(./test-monitoring-comprehensive.sh:*)",
       "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a TypeScript function called fibonacci.ts that calculates the Nth fibonacci number using both recursive and iterative approaches. Include proper TypeScript types and test examples.\" --non-interactive)",
       "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 5 + 5? Just give me the answer\" --non-interactive)",
-      "Bash(SKIP_GIT_CONTEXT=true ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a file called test-monitoring-real.txt with content ''Real monitoring test successful!''\" --non-interactive)"
+      "Bash(SKIP_GIT_CONTEXT=true ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a file called test-monitoring-real.txt with content ''Real monitoring test successful!''\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo timeout 30 npx tsx src/cli.tsx --prompt \"Create a test file called git-test.txt with content ''''Git context working properly!''''\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo gtimeout 30 npx tsx src/cli.tsx --prompt \"Create a test file called git-test.txt with content ''''Git context working properly!''''\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 2+2?\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a file called test-git-context.txt with content ''Git context is now working properly!''\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 3+3?\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo timeout 10 npx tsx src/cli.tsx --prompt \"What is 2 + 2?\" --non-interactive)",
+      "Bash(./test-monitoring-fix.sh:*)",
+      "Bash(/Users/mike.admon/UNIPATH_PROJECT/gemini-cli/test-monitoring-fix.sh:*)",
+      "Bash(./test-monitoring-complete.sh:*)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo timeout 15 npx tsx src/cli.tsx --prompt \"What is the current Bitcoin price?\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

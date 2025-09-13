@@ -171,7 +171,10 @@ export class MonitoringBridge {
         this.collector.recordToolExecution(
           data.tool || 'unknown',
           data.success || false,
-          data.duration || 0
+          data.duration || 0,
+          data.error,
+          data.input || data.parameters || data.query || data.command,
+          data.output || data.result || data.response
         );
       }
     };

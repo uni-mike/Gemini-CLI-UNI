@@ -1,37 +1,39 @@
 /**
- * Git Context Layer
- * Parses and stores git commit history with embeddings
+ * Git Context Layer - Fixed Version
+ * Provides git history and diff context with proper error handling
  */
 
+import { MemoryLayer } from '../types.js';
 import { PrismaClient } from '@prisma/client';
-import { execSync } from 'child_process';
 import { EmbeddingsManager } from '../embeddings.js';
 import { TokenBudgetManager } from '../token-budget.js';
+import { execSync } from 'child_process';
 import { CHUNK_SIZES } from '../constants.js';
-// @ts-ignore
-import * as diff from 'jsdiff';
 
-export interface GitCommitInfo {
+interface GitCommitInfo {
   hash: string;
   author: string;
-  date: Date;
+  date: string;
   message: string;
   filesChanged: string[];
   diffChunks: DiffChunk[];
 }
 
-export interface DiffChunk {
+interface DiffChunk {
   file: string;
   additions: number;
   deletions: number;
   content: string;
 }
 
-export class GitContextLayer {
+export class GitContextLayer implements MemoryLayer {
+  name = 'Git Context';
+  priority = 3;
   private prisma: PrismaClient;
   private embeddings: EmbeddingsManager;
   private tokenBudget: TokenBudgetManager;
   private projectId: string;
+  private isGitRepo: boolean = false;
   
   constructor(
     prisma: PrismaClient,
@@ -45,104 +47,252 @@ export class GitContextLayer {
     this.projectId = projectId;
   }
   
-  /**
-   * Parse and store git history
-   */
-  async parseGitHistory(maxCommits: number = 50): Promise<void> {
+  async initialize(): Promise<void> {
+    console.log('🔄 Initializing git context layer...');
+    
     try {
-      // Reduced from 200 to 50 commits to prevent hangs during session recovery
-      // Get git log with patches - use smaller buffer and commit limit
-      const gitLog = execSync(
-        `git log --patch --no-color --stat -n ${maxCommits} --format='%H|%an|%aI|%s'`,
-        { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024, timeout: 3000 } // 20MB buffer, 3s timeout
-      );
+      // Check if we're in a git repository
+      try {
+        execSync('git rev-parse --git-dir', { encoding: 'utf8', stdio: 'pipe' });
+      } catch {
+        console.log('⚠️  Not a git repository - git context layer disabled');
+        this.isGitRepo = false;
+        return;
+      }
       
-      const commits = this.parseGitLog(gitLog);
+      this.isGitRepo = true;
       
-      // Store commits in database
+      // Load recent commits only if we're in a git repo
+      await this.loadRecentCommits();
+      
+      const stats = await this.getStatistics();
+      console.log(`✅ Git context layer initialized with ${stats} commits`);
+    } catch (error: any) {
+      // Check for specific git errors
+      if (error.message?.includes('not a git repository') || 
+          error.message?.includes('fatal:') ||
+          error.message?.includes('git')) {
+        console.log('⚠️  Not a git repository - git context layer disabled');
+        this.isGitRepo = false;
+        return;
+      }
+      
+      // Log other errors but don't throw - gracefully degrade
+      console.warn('Git context initialization warning:', error.message);
+      this.isGitRepo = false;
+    }
+  }
+  
+  async search(query: string): Promise<any[]> {
+    if (!this.isGitRepo) {
+      return [];
+    }
+    
+    // Search commits by message or file changes
+    const commits = await this.prisma.gitCommit.findMany({
+      where: {
+        projectId: this.projectId,
+        OR: [
+          { message: { contains: query } },
+          { filesChanged: { contains: query } }
+        ]
+      },
+      orderBy: { date: 'desc' },
+      take: 5
+    });
+    
+    return commits.map(commit => ({
+      type: 'commit',
+      hash: commit.hash,
+      message: commit.message,
+      date: commit.date,
+      filesChanged: JSON.parse(commit.filesChanged)
+    }));
+  }
+  
+  async getContext(limit: number): Promise<string> {
+    if (!this.isGitRepo) {
+      return '';
+    }
+    
+    // Get recent commits for context
+    const commits = await this.prisma.gitCommit.findMany({
+      where: { projectId: this.projectId },
+      orderBy: { date: 'desc' },
+      take: Math.min(limit, 10)
+    });
+    
+    if (commits.length === 0) {
+      return '';
+    }
+    
+    const context = commits.map(commit => {
+      const files = JSON.parse(commit.filesChanged);
+      return `${commit.hash.substring(0, 7)} - ${commit.message} (${files.length} files)`;
+    }).join('\n');
+    
+    return `Recent commits:\n${context}`;
+  }
+  
+  async getStatistics(): Promise<string> {
+    if (!this.isGitRepo) {
+      return '0 (not a git repository)';
+    }
+    
+    const count = await this.prisma.gitCommit.count({
+      where: { projectId: this.projectId }
+    });
+    return count.toString();
+  }
+  
+  /**
+   * Load recent commits from git log
+   */
+  private async loadRecentCommits(): Promise<void> {
+    try {
+      // Get last 10 commits with stats and patches
+      const gitOutput = execSync('git log --stat --patch -10', {
+        encoding: 'utf8',
+        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+        stdio: 'pipe'
+      });
+      
+      if (!gitOutput) {
+        console.log('No git commits found');
+        return;
+      }
+      
+      const commits = this.parseGitLog(gitOutput);
+      
+      // Store each commit
       for (const commit of commits) {
-        await this.storeCommit(commit);
+        try {
+          await this.storeCommit(commit);
+        } catch (error) {
+          // Skip individual commit errors
+          console.debug(`Skipped commit ${commit.hash}: ${error}`);
+        }
       }
     } catch (error) {
-      console.warn('Failed to parse git history:', error);
+      console.warn('Failed to load git commits:', error);
     }
   }
   
   /**
-   * Parse git log output
+   * Parse git log output - Fixed version
    */
-  private parseGitLog(gitLog: string): GitCommitInfo[] {
+  private parseGitLog(gitOutput: string): GitCommitInfo[] {
     const commits: GitCommitInfo[] = [];
-    const lines = gitLog.split('\n');
+    const lines = gitOutput.split('\n');
     
     let currentCommit: GitCommitInfo | null = null;
     let inDiff = false;
     let currentDiff = '';
     let currentFile = '';
     
-    for (const line of lines) {
-      // Commit header line
-      if (line.includes('|') && !inDiff) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // New commit starts with "commit "
+      if (line.startsWith('commit ')) {
         // Save previous commit if exists
-        if (currentCommit && currentDiff) {
-          currentCommit.diffChunks.push(this.parseDiffChunk(currentFile, currentDiff));
+        if (currentCommit) {
+          if (currentDiff && currentFile) {
+            currentCommit.diffChunks.push(this.parseDiffChunk(currentFile, currentDiff));
+          }
+          commits.push(currentCommit);
         }
         
-        const [hash, author, date, ...messageParts] = line.split('|');
-        currentCommit = {
-          hash: hash?.trim() || '',
-          author: author?.trim() || '',
-          date: new Date(date?.trim() || Date.now()),
-          message: messageParts.join('|').trim() || '',
-          filesChanged: [],
-          diffChunks: []
-        };
-        commits.push(currentCommit);
-        currentDiff = '';
-        currentFile = '';
-        inDiff = false;
+        // Extract commit hash (40 characters after "commit ")
+        const hash = line.substring(7).trim().split(' ')[0];
+        
+        // Validate it's a proper git hash (40 hex characters)
+        if (hash && hash.match(/^[0-9a-f]{40}$/i)) {
+          currentCommit = {
+            hash,
+            author: '',
+            date: '',
+            message: '',
+            filesChanged: [],
+            diffChunks: []
+          };
+          currentDiff = '';
+          currentFile = '';
+          inDiff = false;
+        } else {
+          currentCommit = null;
+        }
       }
-      // File change stat
-      else if (line.match(/^\s*\d+\s+files? changed/) && currentCommit) {
-        // Stats line, ignore
+      // Author line
+      else if (line.startsWith('Author:') && currentCommit) {
+        currentCommit.author = line.substring(7).trim();
       }
-      // File change list
+      // Date line
+      else if (line.startsWith('Date:') && currentCommit) {
+        currentCommit.date = line.substring(5).trim();
+      }
+      // Commit message (indented lines after Date)
+      else if (line.startsWith('    ') && currentCommit && !currentCommit.message && !inDiff) {
+        currentCommit.message = line.trim();
+      }
+      // File change stats (looks like " file.txt | 10 ++++")
       else if (line.match(/^\s+[\w\/\.\-]+\s+\|\s+\d+/) && currentCommit) {
         const match = line.match(/^\s+([\w\/\.\-]+)\s+\|/);
         if (match) {
           currentCommit.filesChanged.push(match[1]);
         }
       }
-      // Diff header
+      // Diff header starts with "diff --git"
       else if (line.startsWith('diff --git') && currentCommit) {
-        // Save previous diff chunk
+        // Save previous diff if exists
         if (currentDiff && currentFile) {
           currentCommit.diffChunks.push(this.parseDiffChunk(currentFile, currentDiff));
         }
         
+        // Extract filename from diff header
         const match = line.match(/diff --git a\/(.*) b\/(.*)/);
         if (match) {
-          currentFile = match[2];
+          currentFile = match[2] || match[1];
         }
         currentDiff = line + '\n';
         inDiff = true;
       }
-      // Accumulate diff content
-      else if (inDiff && currentCommit) {
+      // Continue accumulating diff content
+      else if (inDiff && currentCommit && (
+        line.startsWith('+++') || 
+        line.startsWith('---') || 
+        line.startsWith('@@') || 
+        line.startsWith('+') || 
+        line.startsWith('-') || 
+        line.startsWith(' ')
+      )) {
         currentDiff += line + '\n';
         
-        // Stop accumulating if diff gets too large
+        // Limit diff size
         if (this.tokenBudget.countTokens(currentDiff) > CHUNK_SIZES.DIFF.MAX_PER_FILE) {
           currentCommit.diffChunks.push(this.parseDiffChunk(currentFile, currentDiff));
           currentDiff = '';
+          currentFile = '';
           inDiff = false;
         }
       }
+      // Empty line or stats line ends the diff
+      else if ((line === '' || line.match(/^\s*\d+\s+files? changed/)) && inDiff && currentCommit) {
+        if (currentDiff && currentFile) {
+          currentCommit.diffChunks.push(this.parseDiffChunk(currentFile, currentDiff));
+        }
+        currentDiff = '';
+        currentFile = '';
+        inDiff = false;
+      }
     }
     
-    // Save last diff
-    if (currentCommit && currentDiff && currentFile) {
-      currentCommit.diffChunks.push(this.parseDiffChunk(currentFile, currentDiff));
+    // Save last commit
+    if (currentCommit) {
+      if (currentDiff && currentFile) {
+        currentCommit.diffChunks.push(this.parseDiffChunk(currentFile, currentDiff));
+      }
+      commits.push(currentCommit);
     }
     
     return commits;
@@ -176,7 +326,13 @@ export class GitContextLayer {
    * Store commit in database
    */
   private async storeCommit(commit: GitCommitInfo): Promise<void> {
-    // Check if commit already exists
+    // Validate commit data
+    if (!commit.hash || !commit.hash.match(/^[0-9a-f]{40}$/i)) {
+      // Silently skip invalid hashes
+      return;
+    }
+    
+    // Check if already exists
     const existing = await this.prisma.gitCommit.findUnique({
       where: {
         projectId_hash: {
@@ -187,182 +343,74 @@ export class GitContextLayer {
     });
     
     if (existing) {
-      return; // Skip if already stored
-    }
-    
-    // Generate embedding for commit message + file list
-    const embeddingText = `${commit.message}\nFiles: ${commit.filesChanged.join(', ')}`;
-    const embedding = await this.embeddings.embed(embeddingText);
-    const embeddingBuffer = Buffer.from(this.embeddings.embeddingToBuffer(embedding));
-    
-    // Validate commit data before storing
-    if (!commit.hash || commit.hash.length < 7 || !commit.hash.match(/^[0-9a-f]/i)) {
-      console.warn('Skipping invalid commit hash:', commit.hash);
       return;
     }
     
-    // Validate date
+    // Parse and validate date
     const commitDate = new Date(commit.date);
     if (isNaN(commitDate.getTime())) {
-      console.warn('Skipping commit with invalid date:', commit.date);
+      // Skip commits with invalid dates
       return;
     }
     
-    // Store commit
-    await this.prisma.gitCommit.create({
-      data: {
-        projectId: this.projectId,
-        hash: commit.hash,
-        author: commit.author,
-        date: commitDate,
-        message: commit.message,
-        filesChanged: JSON.stringify(commit.filesChanged),
-        diffChunks: JSON.stringify(
-          commit.diffChunks.map(chunk => ({
-            file: chunk.file,
-            additions: chunk.additions,
-            deletions: chunk.deletions,
-            // Store only summary, not full content to save space
-            summary: this.summarizeDiff(chunk.content)
-          }))
-        ),
-        embedding: embeddingBuffer
-      }
-    });
+    try {
+      // Generate embedding for commit
+      const embeddingText = `${commit.message}\nFiles: ${commit.filesChanged.join(', ')}`;
+      const embedding = await this.embeddings.embed(embeddingText);
+      const embeddingBuffer = Buffer.from(this.embeddings.embeddingToBuffer(embedding));
+      
+      // Store commit
+      await this.prisma.gitCommit.create({
+        data: {
+          projectId: this.projectId,
+          hash: commit.hash,
+          author: commit.author || 'Unknown',
+          date: commitDate,
+          message: commit.message || 'No message',
+          filesChanged: JSON.stringify(commit.filesChanged),
+          diffChunks: JSON.stringify(
+            commit.diffChunks.map(chunk => ({
+              file: chunk.file,
+              additions: chunk.additions,
+              deletions: chunk.deletions,
+              summary: this.summarizeDiff(chunk.content)
+            }))
+          ),
+          embedding: embeddingBuffer
+        }
+      });
+    } catch (error) {
+      // Silently skip storage errors for individual commits
+      console.debug(`Failed to store commit ${commit.hash.substring(0, 7)}:`, error);
+    }
   }
   
   /**
-   * Summarize diff content
+   * Summarize diff content to save space
    */
   private summarizeDiff(diffContent: string): string {
     const lines = diffContent.split('\n');
     const summary: string[] = [];
     
-    // Keep headers and context lines
     for (const line of lines) {
+      // Keep only important lines
       if (
         line.startsWith('diff --git') ||
-        line.startsWith('index ') ||
-        line.startsWith('---') ||
-        line.startsWith('+++') ||
-        line.startsWith('@@')
+        line.startsWith('@@') ||
+        line.startsWith('index ')
       ) {
         summary.push(line);
       }
     }
     
-    // Add change count
-    let additions = 0;
-    let deletions = 0;
-    for (const line of lines) {
-      if (line.startsWith('+') && !line.startsWith('+++')) additions++;
-      if (line.startsWith('-') && !line.startsWith('---')) deletions++;
-    }
-    
-    summary.push(`// +${additions} -${deletions} lines`);
+    // Add basic stats
+    const additions = lines.filter(l => l.startsWith('+') && !l.startsWith('+++')).length;
+    const deletions = lines.filter(l => l.startsWith('-') && !l.startsWith('---')).length;
+    summary.push(`Changes: +${additions} -${deletions}`);
     
     return summary.join('\n');
   }
   
-  /**
-   * Retrieve commits related to query
-   */
-  async retrieveCommits(
-    query: string,
-    options: {
-      limit?: number;
-      filesFilter?: string[];
-      afterDate?: Date;
-    } = {}
-  ): Promise<GitCommitInfo[]> {
-    const { limit = 10, filesFilter, afterDate } = options;
-    
-    // Generate query embedding
-    const queryEmbedding = await this.embeddings.embed(query);
-    
-    // Fetch commits from database
-    const commits = await this.prisma.gitCommit.findMany({
-      where: {
-        projectId: this.projectId,
-        ...(afterDate ? { date: { gte: afterDate } } : {})
-      },
-      orderBy: { date: 'desc' }
-    });
-    
-    // Filter by files if specified
-    let filtered = commits;
-    if (filesFilter && filesFilter.length > 0) {
-      filtered = commits.filter(commit => {
-        const files = JSON.parse(commit.filesChanged) as string[];
-        return files.some(file => filesFilter.some(filter => file.includes(filter)));
-      });
-    }
-    
-    // Calculate similarities
-    const scored = filtered
-      .filter(commit => commit.embedding !== null)
-      .map(commit => {
-        const commitEmbedding = this.embeddings.bufferToEmbedding(Buffer.from(commit.embedding!));
-        const similarity = this.embeddings.cosineSimilarity(queryEmbedding, commitEmbedding);
-        
-        return {
-          commit,
-          similarity
-        };
-      });
-    
-    // Sort by similarity
-    scored.sort((a, b) => b.similarity - a.similarity);
-    
-    // Take top results
-    const topCommits = scored.slice(0, limit);
-    
-    // Convert back to GitCommitInfo format
-    return topCommits.map(({ commit }) => ({
-      hash: commit.hash,
-      author: commit.author,
-      date: commit.date,
-      message: commit.message,
-      filesChanged: JSON.parse(commit.filesChanged),
-      diffChunks: JSON.parse(commit.diffChunks)
-    }));
-  }
-  
-  /**
-   * Get commits for specific files
-   */
-  async getCommitsForFiles(files: string[], limit: number = 10): Promise<GitCommitInfo[]> {
-    const commits = await this.prisma.gitCommit.findMany({
-      where: {
-        projectId: this.projectId
-      },
-      orderBy: { date: 'desc' },
-      take: limit * 3 // Get more initially to filter
-    });
-    
-    // Filter by files
-    const filtered = commits.filter(commit => {
-      const changedFiles = JSON.parse(commit.filesChanged) as string[];
-      return files.some(file => changedFiles.includes(file));
-    });
-    
-    // Convert to GitCommitInfo format
-    return filtered.slice(0, limit).map(commit => ({
-      hash: commit.hash,
-      author: commit.author,
-      date: commit.date,
-      message: commit.message,
-      filesChanged: JSON.parse(commit.filesChanged),
-      diffChunks: JSON.parse(commit.diffChunks)
-    }));
-  }
-  
-  /**
-   * Clear all git commits for project
-   */
-  async clearAll(): Promise<void> {
-    await this.prisma.gitCommit.deleteMany({
-      where: { projectId: this.projectId }
-    });
-  }
+  // Remove the old parseGitHistory method completely
+  // The new initialize() method replaces it
 }
