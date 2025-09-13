@@ -235,15 +235,16 @@ const nodeTypes = {
 };
 
 export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
-  // Get actual token usage from steps if available
-  const tokenUsage = steps?.find(s => s.name === 'token-usage')?.metrics?.total || 0;
-  const memoryChunks = steps?.find(s => s.name === 'memory-retrieval')?.metrics?.chunks || 0;
-  const gitCommits = steps?.find(s => s.name === 'git-context')?.metrics?.commits || 447;
+  // Get actual stats from the first step's metrics (contains pipeline stats)
+  const statsStep = steps?.[0];
+  const tokenUsage = statsStep?.metrics?.total || 0;
+  const memoryChunks = statsStep?.metrics?.chunks || 0;
+  const gitCommits = statsStep?.metrics?.commits || 0;
 
-  // Calculate actual metrics from steps
-  const getStepCount = (stepName: string) => {
-    const step = steps?.find(s => s.name === stepName);
-    return step?.metrics?.count || step?.metrics?.executions || 0;
+  // Get step counts from the actual steps data
+  const getStepCount = (nodeId: string) => {
+    const step = steps?.find(s => s.name === nodeId);
+    return step?.executions || 0;
   };
 
   // EXACT PIXEL-PERFECT MATCH TO YOUR REFERENCE SCREENSHOT
@@ -259,7 +260,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
         nodeType: 'deepseek',
         title: 'DeepSeek LLM',
         description: 'R1-0528 Model',
-        metric: `${getStepCount('user-input')} inputs`,
+        metric: `${getStepCount('llm')} calls`,
         status: 'Active',
         layer: 'AI',
         bgColor: 'bg-green-700'
@@ -293,7 +294,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
         nodeType: 'planner',
         title: 'Planner',
         description: 'Task Decomposition',
-        metric: `${getStepCount('task-planning')} plans`,
+        metric: `${getStepCount('planner')} plans`,
         status: 'Active',
         layer: 'Planning',
         bgColor: 'bg-purple-700'
@@ -309,7 +310,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
         nodeType: 'executor',
         title: 'Executor',
         description: 'Task Runner',
-        metric: `${getStepCount('deepseek-llm')} tasks`,
+        metric: `${getStepCount('input')} inputs`,
         status: 'Active',
         layer: 'Execution',
         bgColor: 'bg-red-700'
@@ -325,7 +326,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
         nodeType: 'monitoring',
         title: 'Monitoring',
         description: 'Real-time Metrics',
-        metric: `${getStepCount('tool-executor')} results`,
+        metric: `${getStepCount('output')} outputs`,
         status: 'Active',
         layer: 'Output',
         bgColor: 'bg-indigo-700'
@@ -343,7 +344,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
         nodeType: 'tools-registry',
         title: 'Tools Registry',
         description: 'Auto-discovery',
-        metric: `${getStepCount('tool-selection')} calls`,
+        metric: `${getStepCount('tools')} calls`,
         status: 'Active',
         layer: 'Tools',
         bgColor: 'bg-slate-700'
@@ -466,7 +467,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       targetPosition: Position.Left,
       style: { stroke: '#16a34a', strokeWidth: 2 },
       markerEnd: { type: 'arrowclosed', color: '#16a34a' },
-      label: `Reasoning (${getStepCount('task-planning')})`,
+      label: `Reasoning (${getStepCount('planner')})`,
       labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
       labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
     },
@@ -480,7 +481,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       targetPosition: Position.Left,
       style: { stroke: '#06b6d4', strokeWidth: 2 },
       markerEnd: { type: 'arrowclosed', color: '#06b6d4' },
-      label: `Context (${getStepCount('memory-retrieval')})`,
+      label: `Context (${getStepCount('memory')})`,
       labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
       labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
     },
@@ -579,7 +580,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       targetPosition: Position.Left,
       style: { stroke: '#dc2626', strokeWidth: 2 },
       markerEnd: { type: 'arrowclosed', color: '#dc2626' },
-      label: `Tool Calls (${getStepCount('tool-selection')})`,
+      label: `Tool Calls (${getStepCount('tools')})`,
       labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
       labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
     },
@@ -594,7 +595,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
       targetPosition: Position.Left,
       style: { stroke: '#ea580c', strokeWidth: 2 },
       markerEnd: { type: 'arrowclosed', color: '#ea580c' },
-      label: `Results (${getStepCount('tool-executor')})`,
+      label: `Results (${getStepCount('executor')})`,
       labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
       labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
     },
