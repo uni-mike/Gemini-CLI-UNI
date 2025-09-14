@@ -219,15 +219,15 @@ export class Orchestrator extends EventEmitter {
     
     this.executor.on('task-error', (result) => {
       this.emit('task-error', result);
-      // Ask planner for help when task fails
+      // IMPORTANT: Do NOT call handleFailureRecovery or ask AI for help
+      // Just send a simple trio message for logging and let generateFinalResponse handle it
       this.sendTrioMessage({
         from: 'executor',
-        to: 'planner',
-        type: 'question',
-        content: `❌ Task failed: ${result.error}. Need recovery strategy.`,
+        to: 'orchestrator',
+        type: 'error',
+        content: `❌ Task failed: ${result.error}`,
         data: result
       });
-      this.handleFailureRecovery(result);
     });
     
     this.executor.on('tool-execute', (data) => {
@@ -457,35 +457,43 @@ export class Orchestrator extends EventEmitter {
   }
   
   private async generateFinalResponse(prompt: string, plan: any, results: any[]): Promise<string> {
-    // Get any outputs from executed tools
-    const outputs = results.filter(r => r.output).map(r => r.output);
-    
-    // Check if we created/modified files - if so, just return success message
-    const fileCreated = outputs.some(o => 
-      typeof o === 'string' && (o.includes('Created ') || o.includes('Updated '))
-    );
-    
-    if (fileCreated) {
-      // File was created/updated - no need for explanation, the diff output says it all
-      return 'Files created/updated successfully.';
+    // CRITICAL: NO GENERIC AI FALLBACKS ALLOWED!
+    // This method must NEVER generate generic responses or "helpful explanations"
+    // when tasks fail. It should only report what actually happened.
+
+    const successfulResults = results.filter(r => r.success);
+    const failedResults = results.filter(r => !r.success);
+
+    // If all tasks succeeded, provide a brief success message
+    if (failedResults.length === 0) {
+      const outputs = results.filter(r => r.output).map(r => r.output);
+
+      // Check if we created/modified files
+      const fileCreated = outputs.some(o =>
+        typeof o === 'string' && (o.includes('Created ') || o.includes('Updated '))
+      );
+
+      if (fileCreated) {
+        return 'Files created/updated successfully.';
+      }
+
+      // For other successful operations, return a brief summary
+      return `Task completed successfully. ${results.length} operations executed.`;
     }
-    
-    // For other operations, let DeepSeek provide appropriate response
-    if (outputs.length > 0) {
-      const context = outputs.join('\n');
-      this.conversation.push({ 
-        role: 'user', 
-        content: `${prompt}\n\n[Tool outputs]:\n${context}` 
-      });
-    } else {
-      this.conversation.push({ role: 'user', content: prompt });
-    }
-    
-    // For final response generation, don't pass tools since we already have results
-    // The tool outputs are already in the conversation context
-    const response = await this.client.chat(this.conversation, []);
-    this.conversation.push({ role: 'assistant', content: response });
-    return response;
+
+    // If there are failures, report them directly - NO GENERIC RESPONSES
+    const failureMessages = failedResults.map(result => {
+      if (result.error) {
+        return `❌ ${result.task || 'Task'} failed: ${result.error}`;
+      }
+      return `❌ ${result.task || 'Task'} failed with unknown error`;
+    }).join('\n');
+
+    const summaryMessage = `${successfulResults.length}/${results.length} tasks completed successfully.\n\n${failureMessages}`;
+
+    // IMPORTANT: Do NOT call AI to generate explanatory text
+    // Just return the factual failure report
+    return summaryMessage;
   }
   
   private sendTrioMessage(message: TrioMessage) {
@@ -499,30 +507,27 @@ export class Orchestrator extends EventEmitter {
   }
   
   private async handleFailureRecovery(failedResult: any) {
-    // Smart recovery: ask LLM for alternative approach
-    const recoveryPrompt = `A task failed with error: ${failedResult.error}
+    // CRITICAL: NO AI-GENERATED RECOVERY SUGGESTIONS!
+    // This method should NEVER ask AI to generate "helpful" explanations
+    // or alternative approaches when tasks fail. This was the source of
+    // generic fallback responses that users complained about.
 
-Suggest an alternative approach using available tools.`;
-    
-    try {
-      const availableTools = globalRegistry.getTools();
-      const recovery = await this.client.chat(
-        [{ role: 'user', content: recoveryPrompt }],
-        availableTools
-      );
-      
-      this.sendTrioMessage({
-        from: 'orchestrator',
-        to: 'executor',
-        type: 'adjustment',
-        content: `💡 Recovery strategy: ${recovery.substring(0, 100)}...`,
-        data: { strategy: recovery }
-      });
-      
-      this.emit('status', `🔄 Applying recovery strategy...`);
-    } catch (e) {
-      console.warn('Recovery failed:', e);
+    // Only log the failure for debugging purposes
+    if (process.env.DEBUG === 'true') {
+      console.warn('⚠️ Task failure logged (no recovery attempted):', failedResult.error);
     }
+
+    // Send a simple failure notification to trio without AI suggestions
+    this.sendTrioMessage({
+      from: 'orchestrator',
+      to: 'executor',
+      type: 'error',
+      content: `❌ Task failed: ${failedResult.error}`,
+      data: { failedResult }
+    });
+
+    // Do NOT emit status or attempt AI-based recovery
+    // Let the generateFinalResponse method handle the user-facing error message
   }
   
   getTrioConversation(): TrioMessage[] {

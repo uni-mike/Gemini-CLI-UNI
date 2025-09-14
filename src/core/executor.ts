@@ -471,16 +471,47 @@ export class Executor extends EventEmitter {
 
   private extractFilePath(description: string): string {
     // Extract file path from description with better regex patterns
-    const match = description.match(/['"`]([^'"`]+\.[a-z]+)['"`]/i) ||
-                  description.match(/(?:file|called?)\s+(\S+\.[a-z]+)/i) ||
-                  description.match(/(?:create|write|make)\s+(\S+\.[a-z0-9]+)/i) ||
-                  description.match(/(\S+\.(?:html|css|js|ts|json|md|txt))/i);
-
-    if (process.env.DEBUG === 'true') {
-      console.log(`🔍 extractFilePath: "${description}" -> ${match ? match[1] : 'file.txt'}`);
+    // First look for script files and common extensions
+    const scriptMatch = description.match(/([a-zA-Z0-9_-]+\.(?:sh|py|js|ts|pl|rb|php|bat|cmd))/i);
+    if (scriptMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: script found: "${description}" -> ${scriptMatch[1]}`);
+      }
+      return scriptMatch[1];
     }
 
-    return match ? match[1] : 'file.txt';
+    // Look for quoted file paths
+    const quotedMatch = description.match(/['"`]([^'"`]+\.[a-z0-9]+)['"`]/i);
+    if (quotedMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: quoted path: "${description}" -> ${quotedMatch[1]}`);
+      }
+      return quotedMatch[1];
+    }
+
+    // Look for context-based file patterns
+    const contextMatch = description.match(/(?:file|called?|script|read|write|create|make)\s+([a-zA-Z0-9_.-]+\.[a-z0-9]+)/i);
+    if (contextMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: context match: "${description}" -> ${contextMatch[1]}`);
+      }
+      return contextMatch[1];
+    }
+
+    // Generic file pattern match
+    const genericMatch = description.match(/([a-zA-Z0-9_.-]+\.(?:html|css|js|ts|json|md|txt|yml|yaml))/i);
+    if (genericMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: generic match: "${description}" -> ${genericMatch[1]}`);
+      }
+      return genericMatch[1];
+    }
+
+    if (process.env.DEBUG === 'true') {
+      console.log(`🔍 extractFilePath: no match found: "${description}" -> file.txt`);
+    }
+
+    return 'file.txt';
   }
 
   private extractFilePathFromPlanDescription(description: string): string {
@@ -632,8 +663,39 @@ File content only:`;
   }
 
   private extractPath(description: string): string {
-    const match = description.match(/(?:in|at|from)\s+['"`]?([^'"`\s]+)['"`]?/i);
-    return match ? match[1] : '.';
+    // Handle common directory phrases dynamically
+    const lowerDesc = description.toLowerCase();
+
+    // Check for explicit directory references
+    if (lowerDesc.includes('current directory') || lowerDesc.includes('this directory') ||
+        lowerDesc.includes('working directory') || lowerDesc.includes('present directory')) {
+      return '.';
+    }
+
+    if (lowerDesc.includes('parent directory') || lowerDesc.includes('up directory')) {
+      return '..';
+    }
+
+    if (lowerDesc.includes('root directory')) {
+      return '/';
+    }
+
+    if (lowerDesc.includes('home directory')) {
+      return '~';
+    }
+
+    // Look for explicit path patterns
+    const pathMatch = description.match(/(?:in|at|from)\s+['"`]?([^'"`\s]+)['"`]?/i);
+    if (pathMatch) {
+      const extractedPath = pathMatch[1];
+      // Don't extract common words as paths
+      if (!['current', 'this', 'working', 'present', 'parent', 'root', 'home'].includes(extractedPath.toLowerCase())) {
+        return extractedPath;
+      }
+    }
+
+    // Default to current directory
+    return '.';
   }
 
   private extractQuery(description: string): string {
