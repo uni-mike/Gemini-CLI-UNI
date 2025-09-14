@@ -41,7 +41,10 @@
       "Bash(xargs rm:*)",
       "Bash(DEBUG=true ENABLE_MONITORING=true npx tsx src/cli.tsx --prompt \"Design and build a React plant watering scheduler app. Create complete architecture in WATERING_TEST folder with React frontend using TypeScript and Material-UI, Node.js backend with SQLite, and comprehensive design documentation with Mermaid diagrams. Include plant CRUD operations, watering schedule tracking, calendar view, and reminder system.\" --non-interactive)",
       "Bash(npx prisma migrate:*)",
-      "Bash(DEBUG=true ENABLE_MONITORING=false npx tsx src/cli.tsx --prompt \"Create a simple TypeScript file with a function that adds two numbers\" --non-interactive)"
+      "Bash(DEBUG=true ENABLE_MONITORING=false npx tsx src/cli.tsx --prompt \"Create a simple TypeScript file with a function that adds two numbers\" --non-interactive)",
+      "Bash(DEBUG=true ENABLE_MONITORING=false npx tsx src/cli.tsx --prompt \"Create a simple directory called TEST_DIR and create a TypeScript file called TEST_DIR/math.ts with functions to add and multiply two numbers\" --non-interactive)",
+      "Bash(DEBUG=true ENABLE_MONITORING=false npx tsx src/cli.tsx --prompt \"Create a directory called TEST_DIR and create a TypeScript file called TEST_DIR/math.ts with functions to add and multiply two numbers\" --non-interactive)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

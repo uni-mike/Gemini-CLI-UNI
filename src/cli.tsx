@@ -5,6 +5,8 @@ import { render } from 'ink';
 import { App } from './ui/App.js';
 import { Config } from './config/Config.js';
 import { toolDiscovery } from './tools/auto-discovery.js';
+import { ApprovalManager } from './approval/approval-manager.js';
+import { globalRegistry } from './tools/registry.js';
 import { Orchestrator } from './core/orchestrator.js';
 import { MemoryManager } from './memory/memory-manager.js';
 import { MonitoringBridge } from './monitoring/backend/monitoring-bridge.js';
@@ -150,7 +152,11 @@ async function main() {
   
   // Auto-discover and load all tools once at startup
   await toolDiscovery.discoverAndLoadTools();
-  
+
+  // Initialize approval manager and attach to registry
+  const approvalManager = new ApprovalManager(config);
+  globalRegistry.setApprovalManager(approvalManager);
+
   // Create orchestrator
   const orchestrator = new Orchestrator(config);
   
@@ -245,6 +251,7 @@ async function main() {
     
     // Cleanup before exiting
     await memoryManager.cleanup();
+    approvalManager.cleanup();
     
     // Detach monitoring if it was attached
     if (monitoringBridge) {
@@ -264,6 +271,7 @@ async function main() {
       process.on('SIGINT', async () => {
         instance.unmount();
         await memoryManager.cleanup();
+        approvalManager.cleanup();
         if (monitoringBridge) {
           monitoringBridge.detach();
         }
@@ -273,6 +281,7 @@ async function main() {
       process.on('SIGTERM', async () => {
         instance.unmount();
         await memoryManager.cleanup();
+        approvalManager.cleanup();
         if (monitoringBridge) {
           monitoringBridge.detach();
         }
@@ -282,6 +291,7 @@ async function main() {
       process.on('exit', async () => {
         instance.unmount();
         await memoryManager.cleanup();
+        approvalManager.cleanup();
         if (monitoringBridge) {
           monitoringBridge.detach();
         }
