@@ -8,6 +8,7 @@ import { DeepSeekClient } from '../llm/deepseek-client.js';
 import { globalRegistry } from '../tools/registry.js';
 import { Tool } from '../tools/base.js';
 import { PromptTemplates } from '../prompts/prompts.js';
+import { MemoryManager } from '../memory/memory-manager.js';
 
 export interface Task {
   id: string;
@@ -31,10 +32,13 @@ export interface TaskPlan {
 
 export class Planner extends EventEmitter {
   private client: DeepSeekClient;
+  private memoryManager: MemoryManager | null = null;
   
   constructor() {
     super();
-    this.client = new DeepSeekClient();
+    this.client = new DeepSeekClient({
+      timeout: 60000 // 60 seconds for complex prompts - matches orchestrator/executor
+    });
 
     // Forward token usage events from DeepSeek client
     this.client.on('token-usage', (usage: any) => {
@@ -60,9 +64,29 @@ export class Planner extends EventEmitter {
     });
   }
 
+  /**
+   * Set memory manager for context-aware planning
+   */
+  setMemoryManager(memoryManager: MemoryManager): void {
+    this.memoryManager = memoryManager;
+  }
+
   async createPlan(prompt: string): Promise<TaskPlan> {
     this.emit('planning-start', { prompt });
     this.emit('status', '🤔 Analyzing request...');
+
+    // Use memory context if available for better planning
+    let contextualPrompt = prompt;
+    if (this.memoryManager) {
+      try {
+        const promptComponents = await this.memoryManager.buildPrompt(prompt);
+        // Add context for better task decomposition
+        contextualPrompt = `${promptComponents.ephemeral}\n\n${promptComponents.knowledge}\n\nRequest: ${prompt}`;
+      } catch (error) {
+        console.warn('Failed to build memory context for planning:', error);
+        // Continue with original prompt
+      }
+    }
     
     try {
       // Get all available tools from registry
@@ -71,7 +95,7 @@ export class Planner extends EventEmitter {
       // Use enhanced JSON approach with forced JSON output
       // Pass tools to the prompt instead of as function parameters
       const taskPlanResponse = await this.client.chat(
-        [{ role: 'user', content: PromptTemplates.taskDecomposition(prompt, availableTools) }],
+        [{ role: 'user', content: PromptTemplates.taskDecomposition(contextualPrompt, availableTools) }],
         [], // Don't pass tools as functions - we inject them in the prompt
         true // forceJson = true
       );
@@ -104,12 +128,14 @@ export class Planner extends EventEmitter {
         };
       }
       
-      if (!parsedPlan.tasks || !Array.isArray(parsedPlan.tasks)) {
-        throw new Error('Invalid JSON structure - missing tasks array');
+      // Handle both old 'tasks' and new 'plan' format for backward compatibility
+      const taskArray = parsedPlan.tasks || parsedPlan.plan;
+      if (!taskArray || !Array.isArray(taskArray)) {
+        throw new Error('Invalid JSON structure - missing tasks/plan array');
       }
-      
+
       // Convert to internal Task format
-      const tasks = this.convertJsonToTasks(parsedPlan.tasks);
+      const tasks = this.convertJsonToTasks(taskArray);
       
       // Identify dependencies
       this.identifyDependencies(tasks);

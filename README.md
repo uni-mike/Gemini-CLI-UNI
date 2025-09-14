@@ -6,7 +6,7 @@
 
 ## Overview
 
-FlexiCLI is an advanced command-line interface featuring complete memory management, real-time monitoring, and sophisticated token economics optimized for DeepSeek R1 model. It provides autonomous task execution with intelligent context retrieval and comprehensive monitoring capabilities.
+FlexiCLI is an advanced command-line interface featuring a memory-integrated trio architecture (Orchestrator, Planner, Executor), complete memory management, real-time monitoring, and sophisticated token economics optimized for DeepSeek V3.1 model. It provides autonomous task execution with intelligent context retrieval, atomic task decomposition, and comprehensive monitoring capabilities.
 
 ```mermaid
 graph LR
@@ -61,6 +61,44 @@ APPROVAL_MODE=yolo ./agent.sh --prompt "Fix the bug" --non-interactive
 ```
 
 ## Key Features
+
+### 🏗️ Memory-Integrated Trio Architecture
+
+```mermaid
+flowchart TD
+    subgraph "Trio System"
+        O[Orchestrator]
+        P[Planner]
+        E[Executor]
+    end
+
+    subgraph "Memory Manager"
+        MM[Memory Manager]
+        TB[Token Budget]
+        EM[Ephemeral Memory]
+        RL[Retrieval Layer]
+        GL[Git Context]
+    end
+
+    User --> O
+    O --> P
+    P --> E
+    E --> O
+    O <--> MM
+    P <--> MM
+    E <--> MM
+    MM --> TB
+    MM --> EM
+    MM --> RL
+    MM --> GL
+```
+
+**New in v1.0.1 (Memory Integration Update):**
+- **Orchestrator**: Coordinates all trio operations with memory context awareness
+- **Planner**: Breaks down complex tasks into atomic steps using memory-informed planning
+- **Executor**: Executes individual tasks with full memory layer access
+- **Memory Manager**: Shared across all trio components for consistent context
+- **Atomic Task Decomposition**: Enforces single-action tasks with success criteria validation
 
 ### 🧠 Complete Memory Pipeline
 

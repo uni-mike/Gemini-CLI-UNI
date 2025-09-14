@@ -11,6 +11,7 @@ import { Planner } from './planner.js';
 import { Executor, ExecutionContext } from './executor.js';
 import { globalRegistry } from '../tools/registry.js'; // Only for slash commands
 import { MonitoringSystem } from '../monitoring/backend/index.js';
+import { MemoryManager } from '../memory/memory-manager.js';
 
 export interface ExecutionResult {
   success: boolean;
@@ -39,7 +40,7 @@ export class Orchestrator extends EventEmitter {
   private trioMessages: TrioMessage[] = [];
   private monitoring: MonitoringSystem | null = null;
   private monitoringEnabled: boolean = true;
-  private memoryManager: any = null;
+  private memoryManager: MemoryManager | null = null;
   
   constructor(config: Config) {
     super();
@@ -62,9 +63,17 @@ export class Orchestrator extends EventEmitter {
       taskHistory: []
     };
     
-    // Use real client (API key required)
-    this.client = new DeepSeekClient();
+    // Use real client with proper timeout configuration (API key required)
+    this.client = new DeepSeekClient({
+      timeout: 60000 // 60 seconds for complex prompts - matches planner/executor
+    });
     
+    // Initialize memory manager for better context awareness
+    this.memoryManager = new MemoryManager('concise');
+
+    // Connect memory manager to trio components for context sharing
+    this.planner.setMemoryManager(this.memoryManager);
+
     // Forward events from trio components
     this.setupTrioEvents();
     
@@ -253,7 +262,33 @@ export class Orchestrator extends EventEmitter {
     });
   }
   
+  /**
+   * Initialize memory manager for better context awareness
+   */
+  async initialize(): Promise<void> {
+    if (this.memoryManager) {
+      await this.memoryManager.initialize();
+
+      // Listen to memory layer updates for better trio communication
+      this.memoryManager.on('memory-layer-update', (data: any) => {
+        this.emit('memory-update', data);
+        this.sendTrioMessage({
+          from: 'orchestrator',
+          to: 'all',
+          type: 'status',
+          content: `📊 Memory layer updated: ${data.layer} (${data.tokens} tokens)`,
+          data
+        });
+      });
+    }
+  }
+
   async execute(prompt: string): Promise<ExecutionResult> {
+    // Initialize memory manager if not done yet
+    if (this.memoryManager && !this.memoryManager.initialized) {
+      await this.initialize();
+    }
+
     this.emit('orchestration-start', { prompt });
     this.emit('status', '🎯 Orchestrator starting...');
     this.toolsUsed = [];
@@ -334,6 +369,24 @@ export class Orchestrator extends EventEmitter {
         }
       }
       
+      // Step 4: Store execution context in memory for learning
+      if (this.memoryManager) {
+        // Store successful task patterns for future reference
+        const successfulTasks = results.filter(r => r.success);
+        if (successfulTasks.length > 0) {
+          await this.memoryManager.storeKnowledge(
+            `successful_pattern_${Date.now()}`,
+            `Successfully executed ${successfulTasks.length} tasks: ${successfulTasks.map(r => r.taskId).join(', ')}`,
+            'execution_pattern'
+          );
+        }
+
+        // Add the interaction to memory for context
+        this.memoryManager.addAssistantResponse(
+          `Executed ${results.length} tasks with ${results.filter(r => r.success).length} successes`
+        );
+      }
+
       // Step 4: Generate final response based on execution results
       let finalResponse = await this.generateFinalResponse(prompt, plan, results);
       

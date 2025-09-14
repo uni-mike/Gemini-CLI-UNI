@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Script to test and fix timeout issues
+# Created: $(date)
+# Author: System Administrator
+
+# Configuration
+TIMEOUT_DURATION=30
+LOG_FILE="/var/log/timeout_test.log"
+TARGET_HOSTS=("google.com" "github.com" "stackoverflow.com")
+
+# Function to test connection timeout
+test_connection() {
+    local host=$1
+    echo "Testing connection to $host with timeout $TIMEOUT_DURATION seconds..."
+    
+    if curl --max-time $TIMEOUT_DURATION --silent --output /dev/null "https://$host"; then
+        echo "SUCCESS: Connection to $host completed within timeout period" | tee -a $LOG_FILE
+        return 0
+    else
+        echo "ERROR: Timeout occurred when connecting to $host" | tee -a $LOG_FILE
+        return 1
+    fi
+}
+
+# Function to apply timeout fixes
+apply_fix() {
+    echo "Applying timeout fixes..."
+    
+    # Increase TCP keepalive settings
+    sysctl -w net.ipv4.tcp_keepalive_time=300
+    sysctl -w net.ipv4.tcp_keepalive_intvl=60
+    sysctl -w net.ipv4.tcp_keepalive_probes=5
+    
+    # Increase connection tracking timeout
+    sysctl -w net.netfilter.nf_conntrack_tcp_timeout_established=86400
+    
+    echo "Timeout fixes applied successfully" | tee -a $LOG_FILE
+}
+
+# Main execution
+main() {
+    echo "Starting timeout test at $(date)" | tee $LOG_FILE
+    
+    # Test connections to all target hosts
+    for host in "${TARGET_HOSTS[@]}"; do
+        if ! test_connection "$host"; then
+            echo "Timeout detected! Applying fixes..." | tee -a $LOG_FILE
+            apply_fix
+            break
+        fi
+    done
+    
+    echo "Timeout test completed at $(date)" | tee -a $LOG_FILE
+}
+
+# Execute main function
+main "$@"

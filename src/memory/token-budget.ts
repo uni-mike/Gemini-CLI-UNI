@@ -197,4 +197,11 @@ Output Limit: ${modeLimit} (reasoning cap: ${this.getReasoningCap()})`;
   getUsage(): TokenUsage {
     return { ...this.currentUsage };
   }
+
+  /**
+   * Get total usage for compatibility
+   */
+  getTotalUsage(): number {
+    return this.currentUsage.input.total;
+  }
 }

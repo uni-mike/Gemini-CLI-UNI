@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a simple Express API server with TypeScript that handles GET /health endpoint returning {status: ''ok''}\" --non-interactive)"
+      "Bash(DATABASE_URL=\"file:/Users/mike.admon/UNIPATH_PROJECT/gemini-cli/.flexicli/flexicli.db\" ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx /Users/mike.admon/UNIPATH_PROJECT/gemini-cli/src/cli.tsx --prompt \"What is 3+3? Also create test-external.txt with ''External execution works!''\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx /Users/mike.admon/UNIPATH_PROJECT/gemini-cli/src/cli.tsx --prompt \"What is 2 + 2?\" --non-interactive)",
+      "Bash(DATABASE_URL=\"file:/Users/mike.admon/UNIPATH_PROJECT/gemini-cli/.flexicli/flexicli.db\" ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx /Users/mike.admon/UNIPATH_PROJECT/gemini-cli/src/cli.tsx --prompt \"What is 3 + 5? Also create a file called validation-complete.txt with content ''FlexiCLI external directory execution working perfectly!''\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

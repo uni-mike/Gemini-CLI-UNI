@@ -47,7 +47,9 @@ export class Executor extends EventEmitter {
   constructor() {
     super();
     this.activeExecutions = new Map();
-    this.client = new DeepSeekClient();
+    this.client = new DeepSeekClient({
+      timeout: 60000 // 60 seconds for complex prompts - matches orchestrator/planner
+    });
 
     // Forward token usage events from DeepSeek client
     this.client.on('token-usage', (usage: any) => {

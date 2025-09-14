@@ -1,20 +1,33 @@
-const express = require('express');
-const app = express();
-const port = process.env.PORT || 3000;
+import os
 
-app.use(express.json());
+def verify_file_created(file_path, expected_content):
+    """
+    Verify that a file exists and contains the expected content.
+    
+    Args:
+        file_path (str): Path to the file to verify
+        expected_content (str): The expected content of the file
+    
+    Returns:
+        bool: True if file exists and content matches, False otherwise
+    """
+    try:
+        # Check if file exists
+        if not os.path.exists(file_path):
+            return False
+        
+        # Read file content
+        with open(file_path, 'r', encoding='utf-8') as file:
+            actual_content = file.read()
+        
+        # Compare content
+        return actual_content == expected_content
+        
+    except Exception as e:
+        print(f"Error verifying file: {e}")
+        return False
 
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
-
-module.exports = app;
+# Example usage (commented out):
+# if __name__ == "__main__":
+#     result = verify_file_created("test.txt", "Hello, World!")
+#     print(f"File verification: {result}")

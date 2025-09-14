@@ -51,11 +51,12 @@ export class MemoryManager extends EventEmitter {
     this.tokenBudget = new TokenBudgetManager(mode);
     this.embeddings = new EmbeddingsManager();
     
-    // Initialize Prisma with project-specific database
+    // Initialize Prisma - use DATABASE_URL env var if available, otherwise use project-specific path
+    const databaseUrl = process.env.DATABASE_URL || `file:${this.projectManager.getDbPath()}`;
     this.prisma = new PrismaClient({
       datasources: {
         db: {
-          url: `file:${this.projectManager.getDbPath()}`
+          url: databaseUrl
         }
       }
     });

@@ -40,10 +40,17 @@ export class ProjectManager {
   }
   
   /**
-   * Detect project root (use CWD for now)
+   * Detect project root - use centralized approach when DATABASE_URL is set
    */
   private detectProjectRoot(): string {
-    // Always use current directory for consistent database location
+    // If DATABASE_URL is set, we're using centralized database - use a fixed root path
+    if (process.env.DATABASE_URL) {
+      // Extract the project root from DATABASE_URL path for consistency
+      const dbPath = process.env.DATABASE_URL.replace('file:', '');
+      const projectRoot = dbPath.replace('/.flexicli/flexicli.db', '');
+      return projectRoot;
+    }
+    // Otherwise use current directory for per-directory databases
     return process.cwd();
   }
   
