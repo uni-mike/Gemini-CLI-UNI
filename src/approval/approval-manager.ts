@@ -185,10 +185,28 @@ export class ApprovalManager {
       return SensitivityLevel.MEDIUM;
     }
 
-    // Read operations are generally safe
-    if (toolName === 'read_file' || toolName === 'glob' || toolName === 'grep' ||
-        toolName === 'ls' || toolName === 'memory') {
-      return SensitivityLevel.NONE;
+    // Read operations are generally safe - should not trigger approval
+    if (toolName === 'read_file' || toolName === 'Read' || toolName === 'glob' ||
+        toolName === 'Glob' || toolName === 'grep' || toolName === 'Grep' ||
+        toolName === 'ls' || toolName === 'memory' || toolName === 'bash') {
+      // For bash commands, check if they are safe read operations
+      if (toolName === 'bash') {
+        const command = params.command?.toLowerCase() || '';
+        // Safe read-only commands should not trigger approval
+        if (command.match(/^(ls|cat|head|tail|pwd|whoami|date|echo|which|find|locate|tree|du|df|ps|top|history|env|printenv|uname|file|stat|wc)\s/) ||
+            command === 'ls' || command === 'pwd' || command === 'whoami' ||
+            command === 'date' || command === 'history' || command === 'env' ||
+            command.startsWith('echo ') || command.startsWith('cat ') ||
+            command.startsWith('head ') || command.startsWith('tail ') ||
+            command.startsWith('find ') || command.startsWith('grep ') ||
+            command.startsWith('tree') || command.startsWith('which ')) {
+          return SensitivityLevel.NONE;
+        }
+        // All other bash commands follow normal classification below
+      } else {
+        // Non-bash read tools are always safe
+        return SensitivityLevel.NONE;
+      }
     }
 
     // Default to low for unknown operations
