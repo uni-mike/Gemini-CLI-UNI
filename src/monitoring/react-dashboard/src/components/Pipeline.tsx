@@ -1,4 +1,24 @@
-import React, { useCallback, useState, useRef, useEffect } from 'react';
+/**
+ * PIPELINE COMPONENT - WORKING IMPLEMENTATION
+ *
+ * ⚠️ WARNING: This component has been carefully fixed to work with React Flow and API data.
+ * DO NOT MODIFY the following critical parts:
+ * 1. useNodesState and useEdgesState must start with empty arrays []
+ * 2. useEffect must have NO dependencies (empty array [])
+ * 3. setNodes and setEdges must be called directly in the fetch callback
+ * 4. DO NOT add intermediate state variables for nodes/edges
+ * 5. DO NOT add dependencies to the useEffect
+ *
+ * Breaking any of these rules will cause:
+ * - Infinite render loops
+ * - Empty charts
+ * - API fetch failures
+ * - React Flow errors
+ *
+ * Last working: 2025-09-14 - Shows 9 nodes from API correctly
+ */
+
+import React, { useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -235,389 +255,86 @@ const nodeTypes = {
 };
 
 export const Pipeline: React.FC<PipelineProps> = ({ steps }) => {
-  // Get actual stats from the first step's metrics (contains pipeline stats)
-  const statsStep = steps?.[0];
-  const tokenUsage = statsStep?.metrics?.total || 0;
-  const memoryChunks = statsStep?.metrics?.chunks || 0;
-  const gitCommits = statsStep?.metrics?.commits || 0;
+  // IMPORTANT: DO NOT CHANGE THIS INITIALIZATION - nodes/edges must start empty
+  // DO NOT add default values or the chart will break!
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Get step counts from the actual steps data
-  const getStepCount = (nodeId: string) => {
-    const step = steps?.find(s => s.name === nodeId);
-    return step?.executions || 0;
-  };
+  // CRITICAL: This useEffect MUST run only ONCE on mount - DO NOT add dependencies!
+  // Adding dependencies will cause infinite loops and break the chart rendering
+  useEffect(() => {
+    const fetchPipelineData = async () => {
+      try {
+        // WORKING: This fetches real data from the backend API with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-  // EXACT PIXEL-PERFECT MATCH TO YOUR REFERENCE SCREENSHOT
-  const unipathNodes: Node[] = [
-    // TOP CENTER - DeepSeek LLM (aligned with memory manager)
-    {
-      id: 'deepseek',
-      type: 'unipath',
-      position: { x: 540, y: 80 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'deepseek',
-        title: 'DeepSeek LLM',
-        description: 'R1-0528 Model',
-        metric: `${getStepCount('llm')} calls`,
-        status: 'Active',
-        layer: 'AI',
-        bgColor: 'bg-green-700'
-      },
-    },
+        // DIRECTLY CALL BACKEND ON PORT 4000 - BYPASS VITE PROXY
+        const response = await fetch('http://localhost:4000/api/pipeline', {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
-    // MAIN HORIZONTAL ROW - perfect spacing and alignment
-    {
-      id: 'orchestrator',
-      type: 'unipath',
-      position: { x: 75, y: 155 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'orchestrator',
-        title: 'Orchestrator',
-        description: 'Core Trio Leader',
-        metric: `${getStepCount('orchestrator')} requests`,
-        status: 'Active',
-        layer: 'Input',
-        bgColor: 'bg-blue-700'
-      },
-    },
-    {
-      id: 'planner',
-      type: 'unipath',
-      position: { x: 305, y: 155 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'planner',
-        title: 'Planner',
-        description: 'Task Decomposition',
-        metric: `${getStepCount('planner')} plans`,
-        status: 'Active',
-        layer: 'Planning',
-        bgColor: 'bg-purple-700'
-      },
-    },
-    {
-      id: 'executor',
-      type: 'unipath',
-      position: { x: 935, y: 155 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'executor',
-        title: 'Executor',
-        description: 'Task Runner',
-        metric: `${getStepCount('input')} inputs`,
-        status: 'Active',
-        layer: 'Execution',
-        bgColor: 'bg-red-700'
-      },
-    },
-    {
-      id: 'monitoring',
-      type: 'unipath',
-      position: { x: 1165, y: 155 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'monitoring',
-        title: 'Monitoring',
-        description: 'Real-time Metrics',
-        metric: `${getStepCount('output')} outputs`,
-        status: 'Active',
-        layer: 'Output',
-        bgColor: 'bg-indigo-700'
-      },
-    },
+        const data = await response.json();
+        console.log('Pipeline API data:', data);
 
-    // TOOLS REGISTRY - exactly aligned with monitoring
-    {
-      id: 'tools-registry',
-      type: 'unipath',
-      position: { x: 1165, y: 315 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'tools-registry',
-        title: 'Tools Registry',
-        description: 'Auto-discovery',
-        metric: `${getStepCount('tools')} calls`,
-        status: 'Active',
-        layer: 'Tools',
-        bgColor: 'bg-slate-700'
-      },
-    },
+        // IMPORTANT: Transform and set nodes directly - DO NOT use intermediate state
+        // The nodes MUST be set directly in this useEffect to avoid re-render issues
+        if (data.nodes) {
+          const transformedNodes = data.nodes.map((node: any) => ({
+            id: node.id,
+            type: 'unipath',
+            position: node.position,
+            data: {
+              nodeType: node.id,
+              title: node.data.label,
+              description: `${node.type} node`,
+              metric: `${node.data.count} calls`,
+              status: node.data.status === 'processing' ? 'Active' : node.data.status,
+              layer: node.type === 'input' ? 'Input' : node.type === 'output' ? 'Output' : 'Processing',
+              bgColor: node.type === 'input' ? 'bg-blue-700' :
+                        node.type === 'output' ? 'bg-indigo-700' :
+                        node.id === 'orchestrator' ? 'bg-purple-700' :
+                        node.id === 'planner' ? 'bg-green-700' :
+                        node.id === 'memory' ? 'bg-cyan-700' :
+                        node.id === 'executor' ? 'bg-red-700' :
+                        node.id === 'tools' ? 'bg-slate-700' :
+                        node.id === 'llm' ? 'bg-orange-700' :
+                        node.id === 'embeddings' ? 'bg-lime-700' :
+                        'bg-gray-700'
+            }
+          }));
+          console.log('Setting nodes:', transformedNodes);
+          // WORKING: Direct setNodes call - DO NOT wrap in useEffect or add conditions
+          setNodes(transformedNodes);
+        }
 
-    // EPHEMERAL - evenly spaced column
-    {
-      id: 'ephemeral',
-      type: 'unipath',
-      position: { x: 740, y: 275 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'ephemeral',
-        title: 'Ephemeral',
-        description: 'Short-term Memory',
-        metric: `${Math.min(tokenUsage, 5000)} / 5K`,
-        status: 'Near Full',
-        layer: 'Memory',
-        bgColor: 'bg-orange-700'
-      },
-    },
+        // IMPORTANT: Transform and set edges directly - same as nodes
+        // DO NOT use intermediate state or dependencies
+        if (data.edges) {
+          const transformedEdges = data.edges.map((edge: any) => ({
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+            type: 'default',
+            animated: edge.animated || false,
+            style: edge.style || { stroke: '#8b5cf6', strokeWidth: 2 },
+            markerEnd: { type: 'arrowclosed', color: '#8b5cf6' }
+          }));
+          // WORKING: Direct setEdges call - DO NOT wrap in useEffect or add conditions
+          setEdges(transformedEdges);
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.error('Pipeline fetch timeout after 5 seconds');
+        } else {
+          console.error('Error fetching pipeline data:', error);
+        }
+      }
+    };
 
-    // MEMORY MANAGER - center position 
-    {
-      id: 'memory-manager',
-      type: 'unipath',
-      position: { x: 540, y: 375 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'memory-manager',
-        title: 'Memory Manager',
-        description: 'Context Orchestration',
-        metric: `${Math.round(tokenUsage / 1000)}K / 59K`,
-        status: 'Active',
-        layer: 'Memory',
-        bgColor: 'bg-cyan-700'
-      },
-    },
-    
-    // RETRIEVAL - evenly spaced column (100px gap from ephemeral)
-    {
-      id: 'retrieval',
-      type: 'unipath',
-      position: { x: 740, y: 375 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'retrieval',
-        title: 'Retrieval',
-        description: 'Long-term Memory',
-        metric: `${Math.min(memoryChunks * 500, 40000)} / 40K`,
-        status: 'Near Full',
-        layer: 'Memory',
-        bgColor: 'bg-teal-700'
-      },
-    },
-
-    // GIT CONTEXT - evenly spaced column (100px gap from retrieval)
-    {
-      id: 'git-context',
-      type: 'unipath',
-      position: { x: 740, y: 475 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'git-context',
-        title: 'Git Context',
-        description: 'Repository Memory',
-        metric: `${gitCommits} commits`,
-        status: 'Active',
-        layer: 'Memory',
-        bgColor: 'bg-emerald-700'
-      },
-    },
-
-    // EMBEDDINGS - evenly spaced column (100px gap from git context)
-    {
-      id: 'embeddings',
-      type: 'unipath',
-      position: { x: 740, y: 575 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      data: { 
-        nodeType: 'embeddings',
-        title: 'Embeddings',
-        description: 'Vector Processing',
-        metric: `${getStepCount('embeddings')} vectors`,
-        status: 'Active',
-        layer: 'AI',
-        bgColor: 'bg-lime-700'
-      },
-    },
-  ];
-
-  const unipathEdges: Edge[] = [
-    // Main Flow
-    {
-      id: 'e1',
-      source: 'orchestrator',
-      target: 'planner',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#8b5cf6', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#8b5cf6' },
-      label: `Task Request (${getStepCount('orchestrator')})`,
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    
-    {
-      id: 'e2',
-      source: 'planner',
-      target: 'deepseek',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#16a34a', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#16a34a' },
-      label: `Reasoning (${getStepCount('planner')})`,
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    
-    {
-      id: 'e3',
-      source: 'planner',
-      target: 'memory-manager',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#06b6d4', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#06b6d4' },
-      label: `Context (${getStepCount('memory')})`,
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    
-    // Memory Manager → Memory Layers
-    {
-      id: 'e4',
-      source: 'memory-manager',
-      target: 'ephemeral',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#0891b2', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#0891b2' },
-      label: '5K Budget',
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    {
-      id: 'e5',
-      source: 'memory-manager',
-      target: 'retrieval',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#0d9488', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#0d9488' },
-      label: '40K Budget',
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    {
-      id: 'e6',
-      source: 'memory-manager',
-      target: 'git-context',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#059669', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#059669' },
-      label: 'Git Data',
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    
-    // Memory → Executor
-    {
-      id: 'e7',
-      source: 'ephemeral',
-      target: 'executor',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#0891b2', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#0891b2' },
-      label: 'Context',
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    {
-      id: 'e8',
-      source: 'retrieval',
-      target: 'executor',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#0d9488', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#0d9488' },
-      label: 'Retrieved Data',
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    
-    // Planning → Executor (direct plan flow)
-    {
-      id: 'e9',
-      source: 'planner',
-      target: 'executor',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#3b82f6', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#3b82f6' },
-      label: 'Execution Plan (0)',
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    
-    // Executor → Tools
-    {
-      id: 'e10',
-      source: 'executor',
-      target: 'tools-registry',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#dc2626', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#dc2626' },
-      label: `Tool Calls (${getStepCount('tools')})`,
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    
-    // Final Output → Monitoring
-    {
-      id: 'e11',
-      source: 'executor',
-      target: 'monitoring',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#ea580c', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#ea580c' },
-      label: `Results (${getStepCount('executor')})`,
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-    
-    // Memory Manager → Embeddings
-    {
-      id: 'e12',
-      source: 'memory-manager',
-      target: 'embeddings',
-      type: 'default',
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      style: { stroke: '#84cc16', strokeWidth: 2 },
-      markerEnd: { type: 'arrowclosed', color: '#84cc16' },
-      label: 'Vector Data',
-      labelStyle: { fontSize: 9, fontWeight: '600', fill: '#ffffff' },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8, rx: 4 }
-    },
-  ];
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(unipathNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(unipathEdges);
+    fetchPipelineData();
+  }, []); // CRITICAL: Empty dependency array - NEVER add dependencies here!
 
   const onConnect = useCallback(
     (params: any) => setEdges((eds) => addEdge(params, eds)),

@@ -24,7 +24,8 @@ export const Tools: React.FC = () => {
     const fetchToolsData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/tools');
+        // DIRECTLY CALL BACKEND ON PORT 4000 - BYPASS VITE PROXY
+        const response = await fetch('http://localhost:4000/api/tools');
         const data = await response.json();
         
         if (data.error) {

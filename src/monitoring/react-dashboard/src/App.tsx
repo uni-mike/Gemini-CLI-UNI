@@ -41,17 +41,20 @@ function App() {
 
   const fetchData = async () => {
     try {
+      // DIRECTLY CALL BACKEND ON PORT 4000 - BYPASS VITE PROXY
+      const BACKEND_URL = 'http://localhost:4000';
+
       // Fetch all data from different endpoints
       const [overviewRes, memoryRes, sessionsRes, pipelineRes, agentsRes, projectsRes] = await Promise.all([
-        fetch('/api/overview'),
-        fetch('/api/memory').catch(() => ({ ok: false })),
-        fetch('/api/sessions').catch(() => ({ ok: false })),
-        fetch('/api/pipeline').catch(() => ({ ok: false })),
-        fetch('/api/agents').catch(() => ({ ok: false })),
-        fetch('/api/projects').catch(() => ({ ok: false }))
+        fetch(`${BACKEND_URL}/api/overview`).catch(err => { console.error('Overview fetch error:', err); return { ok: false }; }),
+        fetch(`${BACKEND_URL}/api/memory`).catch(err => { console.error('Memory fetch error:', err); return { ok: false }; }),
+        fetch(`${BACKEND_URL}/api/sessions`).catch(err => { console.error('Sessions fetch error:', err); return { ok: false }; }),
+        fetch(`${BACKEND_URL}/api/pipeline`).catch(err => { console.error('Pipeline fetch error:', err); return { ok: false }; }),
+        fetch(`${BACKEND_URL}/api/agents`).catch(err => { console.error('Agents fetch error:', err); return { ok: false }; }),
+        fetch(`${BACKEND_URL}/api/projects`).catch(err => { console.error('Projects fetch error:', err); return { ok: false }; })
       ]);
 
-      const overview = await overviewRes.json();
+      const overview = overviewRes.ok ? await overviewRes.json() : {};
       const memoryData = memoryRes.ok ? await memoryRes.json() : {};
       const sessionsData = sessionsRes.ok ? await sessionsRes.json() : [];
       const pipelineData = pipelineRes.ok ? await pipelineRes.json() : { steps: [] };
@@ -125,7 +128,7 @@ function App() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 10000); // Reduced frequency to improve performance
+    const interval = setInterval(fetchData, 10000); // Back to original 10 seconds
     return () => clearInterval(interval);
   }, []);
 

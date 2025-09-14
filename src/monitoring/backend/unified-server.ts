@@ -598,9 +598,18 @@ export class UnifiedMonitoringServer {
           orderBy: { startedAt: 'desc' },
           take: 1
         });
-        const totalTokens = sessions[0]?.tokensUsed || 9400;
+        const totalTokens = sessions[0]?.tokensUsed || 0;
 
-        const memoryChunks = await this.prisma.chunk.count();
+        // Get chunk counts and estimate token usage
+        const chunks = await this.prisma.chunk.findMany({
+          select: { content: true, chunkType: true }
+        });
+
+        // Estimate tokens for retrieved chunks (avg 500 tokens per chunk)
+        const retrievedChunks = chunks.filter(c => c.chunkType === 'code' || c.chunkType === 'docs');
+        const retrievedTokens = retrievedChunks.length * 500; // Rough estimate
+
+        const memoryChunks = chunks.length;
         const gitCommits = await this.prisma.gitCommit.count();
 
         res.json({

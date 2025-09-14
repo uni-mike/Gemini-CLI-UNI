@@ -264,7 +264,8 @@
       "Bash(./test-monitoring-fix.sh:*)",
       "Bash(/Users/mike.admon/UNIPATH_PROJECT/gemini-cli/test-monitoring-fix.sh:*)",
       "Bash(./test-monitoring-complete.sh:*)",
-      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo timeout 15 npx tsx src/cli.tsx --prompt \"What is the current Bitcoin price?\" --non-interactive)"
+      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo timeout 15 npx tsx src/cli.tsx --prompt \"What is the current Bitcoin price?\" --non-interactive)",
+      "Bash(time curl:*)"
     ],
     "deny": [],
     "ask": []
