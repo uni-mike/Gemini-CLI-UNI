@@ -48,11 +48,28 @@ export class Executor extends EventEmitter {
     super();
     this.activeExecutions = new Map();
     this.client = new DeepSeekClient();
-    
+
     // Forward token usage events from DeepSeek client
     this.client.on('token-usage', (usage: any) => {
       console.log('📊 [EXECUTOR] Token usage from DeepSeek:', usage);
       this.emit('token-usage', usage);
+    });
+
+    // Handle retry events for better user feedback
+    this.client.on('retry', (data: any) => {
+      this.emit('status', `🔄 Execution API retry (${data.attempt}/${data.maxRetries})...`);
+    });
+
+    // Handle timeout events
+    this.client.on('timeout', (data: any) => {
+      this.emit('status', `⏱️ Execution timeout - ${data.message}`);
+    });
+
+    // Handle error events with proper feedback
+    this.client.on('error', (error: any) => {
+      if (!error.willRetry) {
+        this.emit('status', `❌ Execution error: ${error.message}`);
+      }
     });
   }
 
@@ -488,12 +505,10 @@ export class Executor extends EventEmitter {
 
 Return only the file content, no explanations or markdown blocks. Make it complete and functional.`;
 
-      // Get all available tools from registry
-      const availableTools = globalRegistry.getTools();
-      
+      // Don't pass tools as functions - we have them in the prompt
       const content = await this.client.chat([
         { role: 'user', content: contentPrompt }
-      ], availableTools, false); // Use temperature 0 for consistency
+      ], [], false); // Use temperature 0 for consistency, no tools as functions
       
       return content.trim();
     } catch (error) {

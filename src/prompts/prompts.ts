@@ -7,39 +7,32 @@ export class PromptTemplates {
   /**
    * Task decomposition prompt - structured JSON with enhanced cleaning
    * Uses forced JSON response format with temperature 0 for consistency
+   * Now includes available tools dynamically from registry
    */
-  static taskDecomposition(request: string): string {
-    return `Analyze this request and create a JSON execution plan: "${request}"
-
-For casual conversation (greetings, thanks, simple questions), return:
-{
-  "type": "conversation",
-  "response": "[your response]"
-}
-
-For development/coding tasks, return:
-{
-  "type": "tasks", 
-  "tasks": [
-    {
-      "description": "[what this task does]",
-      "type": "[web|file|command]",
-      "tools": ["[tool-name]"],
-      "action": "[search|write|run]",
-      "query": "[search terms]", // for web tasks only
-      "filename": "[file.ext]", // for file tasks only
-      "content": "[complete file content]", // for file tasks only
-      "command": "[exact command]" // for command tasks only
+  static taskDecomposition(request: string, availableTools?: any[]): string {
+    // Build tool list dynamically if provided
+    let toolSection = '';
+    if (availableTools && availableTools.length > 0) {
+      const toolList = availableTools.map(t => `- ${t.name}: ${t.description}`).join('\n');
+      toolSection = `\nAvailable tools:\n${toolList}\n`;
     }
-  ]
-}
 
-Requirements:
-- Break complex requests into 3-8 atomic tasks
-- Use web search for current information (prices, latest docs, trends)
-- Include complete file content for file creation tasks
-- Each task does ONE thing: search web OR create file OR run command
-- Response must be valid JSON only`;
+    return `REQUEST: "${request}"
+${toolSection}
+IMPORTANT: Return ONLY valid JSON. No explanations, no thinking, no markdown.
+
+For conversations/questions, output:
+{"type":"conversation","response":"[direct answer]"}
+
+For coding/development tasks, output:
+{"type":"tasks","tasks":[{"description":"[task]","type":"[web|file|command]","tools":["[tool-name]"],"action":"[search|write|run]","filename":"[file.ext]","content":"[complete code]"}]}
+
+Rules:
+- Split into 3-8 atomic tasks maximum
+- Each task = ONE action only
+- Include COMPLETE file content in "content" field
+- Use exact tool names from available tools list
+- Output pure JSON only`;
   }
 
   /**

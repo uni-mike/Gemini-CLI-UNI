@@ -10,7 +10,7 @@ export enum ApprovalMode {
 }
 
 export class Config {
-  private model: string = 'DeepSeek-R1-0528';
+  private model: string = 'DeepSeek-V3.1';
   private approvalMode: ApprovalMode = ApprovalMode.DEFAULT;
   private interactive: boolean = true;
   private debugMode: boolean = false;

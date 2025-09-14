@@ -71,8 +71,33 @@ export class Orchestrator extends EventEmitter {
     // Forward LLM events (only used for final response generation)
     this.client.on('start', (data: any) => this.emit('llm-start', data));
     this.client.on('complete', (data: any) => this.emit('llm-complete', data));
-    this.client.on('error', (error: any) => this.emit('llm-error', error));
-    
+    this.client.on('error', (error: any) => {
+      // Enhanced error handling with user feedback
+      if (error.final) {
+        console.error(`❌ DeepSeek API failed completely: ${error.message}`);
+        this.emit('status', `❌ API Error: ${error.message}`);
+      } else if (error.willRetry) {
+        console.log(`🔄 API error (will retry): ${error.message}`);
+        this.emit('status', `⚠️ API issue, retrying...`);
+      } else {
+        console.error(`❌ API error: ${error.message}`);
+        this.emit('status', `❌ API Error: ${error.message}`);
+      }
+      this.emit('llm-error', error);
+    });
+
+    // Handle retry events from DeepSeek client
+    this.client.on('retry', (data: any) => {
+      console.log(`🔄 Retrying API call (attempt ${data.attempt}/${data.maxRetries})`);
+      this.emit('status', `🔄 Retrying API call (attempt ${data.attempt}/${data.maxRetries})...`);
+    });
+
+    // Handle timeout events from DeepSeek client
+    this.client.on('timeout', (data: any) => {
+      console.error(`⏱️ API timeout: ${data.message}`);
+      this.emit('status', `⏱️ API timeout - ${data.message}`);
+    });
+
     // Forward token usage events from DeepSeek client to monitoring
     this.client.on('token-usage', (usage: any) => {
       console.log('📊 [ORCHESTRATOR] Token usage from DeepSeek:', usage);

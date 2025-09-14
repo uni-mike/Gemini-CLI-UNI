@@ -35,11 +35,28 @@ export class Planner extends EventEmitter {
   constructor() {
     super();
     this.client = new DeepSeekClient();
-    
+
     // Forward token usage events from DeepSeek client
     this.client.on('token-usage', (usage: any) => {
       console.log('📊 [PLANNER] Token usage from DeepSeek:', usage);
       this.emit('token-usage', usage);
+    });
+
+    // Handle retry events for better user feedback
+    this.client.on('retry', (data: any) => {
+      this.emit('status', `🔄 Planning API retry (${data.attempt}/${data.maxRetries})...`);
+    });
+
+    // Handle timeout events
+    this.client.on('timeout', (data: any) => {
+      this.emit('status', `⏱️ Planning timeout - ${data.message}`);
+    });
+
+    // Handle error events with proper feedback
+    this.client.on('error', (error: any) => {
+      if (!error.willRetry) {
+        this.emit('status', `❌ Planning error: ${error.message}`);
+      }
     });
   }
 
@@ -50,11 +67,12 @@ export class Planner extends EventEmitter {
     try {
       // Get all available tools from registry
       const availableTools = globalRegistry.getTools();
-      
+
       // Use enhanced JSON approach with forced JSON output
+      // Pass tools to the prompt instead of as function parameters
       const taskPlanResponse = await this.client.chat(
-        [{ role: 'user', content: PromptTemplates.taskDecomposition(prompt) }],
-        availableTools,
+        [{ role: 'user', content: PromptTemplates.taskDecomposition(prompt, availableTools) }],
+        [], // Don't pass tools as functions - we inject them in the prompt
         true // forceJson = true
       );
       
