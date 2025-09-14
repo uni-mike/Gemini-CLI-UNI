@@ -33,11 +33,12 @@ export interface TaskPlan {
 export class Planner extends EventEmitter {
   private client: DeepSeekClient;
   private memoryManager: MemoryManager | null = null;
-  
-  constructor() {
+
+  constructor(config?: any) {
     super();
     this.client = new DeepSeekClient({
-      timeout: 60000 // 60 seconds for complex prompts - matches orchestrator/executor
+      model: config?.getModel() || 'DeepSeek-V3.1', // Ensure correct model is used
+      timeout: 120000 // 120 seconds for complex prompts - matches orchestrator/executor
     });
 
     // Forward token usage events from DeepSeek client

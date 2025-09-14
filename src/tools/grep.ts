@@ -21,11 +21,11 @@ export class GrepTool extends Tool {
   
   async execute(params: ToolParams): Promise<ToolResult> {
     const { pattern, path = '.', flags = '' } = params;
-    
-    if (!pattern) {
+
+    if (!pattern || typeof pattern !== 'string' || pattern.trim() === '') {
       return {
         success: false,
-        error: 'Pattern is required'
+        error: 'Pattern is required and must be a non-empty string'
       };
     }
     

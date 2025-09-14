@@ -32,7 +32,7 @@ export class DeepSeekClient extends EventEmitter {
     this.baseUrl = config.baseUrl || process.env.ENDPOINT || '';
     this.model = config.model || process.env.MODEL || 'DeepSeek-V3.1';
     this.apiVersion = process.env.API_VERSION || '2024-05-01-preview';
-    this.timeout = config.timeout || 60000; // Default 60 seconds for complex prompts
+    this.timeout = config.timeout || 120000; // Default 120 seconds for complex prompts
   }
 
   async chat(messages: Message[], tools?: any[], forceJson?: boolean): Promise<string> {

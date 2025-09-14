@@ -46,8 +46,8 @@ export class Orchestrator extends EventEmitter {
     super();
     this.config = config;
     
-    // Initialize the trio components
-    this.planner = new Planner();
+    // Initialize the trio components with config for correct model
+    this.planner = new Planner(config);
     this.executor = new Executor();
     
     // Initialize execution context
@@ -65,7 +65,8 @@ export class Orchestrator extends EventEmitter {
     
     // Use real client with proper timeout configuration (API key required)
     this.client = new DeepSeekClient({
-      timeout: 60000 // 60 seconds for complex prompts - matches planner/executor
+      model: config.getModel(), // Ensure correct model is used
+      timeout: 120000 // 120 seconds for complex prompts - matches planner/executor
     });
     
     // Initialize memory manager for better context awareness
@@ -429,7 +430,7 @@ export class Orchestrator extends EventEmitter {
     
     if (fileCreated) {
       // File was created/updated - no need for explanation, the diff output says it all
-      return 'Done.';
+      return 'Files created/updated successfully.';
     }
     
     // For other operations, let DeepSeek provide appropriate response
