@@ -186,8 +186,10 @@ export class ApprovalManager {
     }
 
     // Read operations are generally safe - should not trigger approval
-    if (toolName === 'read_file' || toolName === 'Read' || toolName === 'glob' ||
-        toolName === 'Glob' || toolName === 'grep' || toolName === 'Grep' ||
+    if (toolName === 'read_file' || toolName === 'read-file' || toolName === 'Read' ||
+        toolName === 'glob' || toolName === 'Glob' ||
+        toolName === 'grep' || toolName === 'Grep' ||
+        toolName === 'rg' || toolName === 'ripgrep' || toolName === 'rip-grep' ||
         toolName === 'ls' || toolName === 'memory' || toolName === 'bash') {
       // For bash commands, check if they are safe read operations
       if (toolName === 'bash') {
