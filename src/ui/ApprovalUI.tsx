@@ -36,8 +36,12 @@ export const ApprovalUI: React.FC<ApprovalUIProps> = ({
 }) => {
   const [selection, setSelection] = useState<1 | 2 | 3 | 4>(1);
   const [showingDetails, setShowingDetails] = useState(false);
+  const [executed, setExecuted] = useState(false);
 
   useInput((input, key) => {
+    // Prevent multiple executions
+    if (executed) return;
+
     if (showingDetails) {
       // Any key exits detail view
       setShowingDetails(false);
@@ -49,6 +53,7 @@ export const ApprovalUI: React.FC<ApprovalUIProps> = ({
     } else if (key.downArrow) {
       setSelection(prev => prev < 4 ? (prev + 1) as (1 | 2 | 3 | 4) : 1);
     } else if (key.return) {
+      setExecuted(true);
       switch (selection) {
         case 1:
           onApprove();
@@ -60,6 +65,7 @@ export const ApprovalUI: React.FC<ApprovalUIProps> = ({
           onReject();
           break;
         case 4:
+          setExecuted(false); // Allow going back after viewing details
           setShowingDetails(true);
           onShowDetails();
           break;
@@ -67,6 +73,7 @@ export const ApprovalUI: React.FC<ApprovalUIProps> = ({
     } else if (input >= '1' && input <= '4') {
       const num = parseInt(input) as (1 | 2 | 3 | 4);
       setSelection(num);
+      setExecuted(true);
       // Immediately execute the action when number key is pressed
       switch (num) {
         case 1:
@@ -79,6 +86,7 @@ export const ApprovalUI: React.FC<ApprovalUIProps> = ({
           onReject();
           break;
         case 4:
+          setExecuted(false); // Allow going back after viewing details
           setShowingDetails(true);
           onShowDetails();
           break;
