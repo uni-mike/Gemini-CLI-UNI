@@ -221,16 +221,28 @@ export class Executor extends EventEmitter {
         throw new Error('Task execution aborted');
       }
       
-      // Use planner-provided arguments if available, otherwise parse from description
+      // TOOL SELECTION FIX: Use planner-provided arguments if available, otherwise parse from description
       let args = task.arguments?.[toolName];
+
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 Looking for arguments for tool "${toolName}" in:`, JSON.stringify(task.arguments, null, 2));
+      }
 
       if (!args) {
         // No arguments from planner, fall back to parsing
+        if (process.env.DEBUG === 'true') {
+          console.log(`🔍 No planner arguments found for "${toolName}", falling back to parsing from: "${task.description}"`);
+        }
         args = await this.parseToolArguments(toolName, task.description, context);
       } else {
         // Planner provided arguments - use them with minimal processing
         if (process.env.DEBUG === 'true') {
           console.log(`🔍 Using planner arguments for ${toolName}:`, JSON.stringify(args, null, 2));
+        }
+
+        // CRITICAL FIX: For bash tool, ensure command is properly set
+        if (toolName === 'bash' && !args.command && args.description) {
+          args.command = this.extractCommand(args.description || task.description);
         }
 
         // Only generate content if explicitly null or empty AND not already provided
@@ -240,6 +252,19 @@ export class Executor extends EventEmitter {
               console.log('🔍 Content not provided by planner, generating...');
             }
             args.content = await this.generateFileContent(task.description);
+          }
+        }
+
+        // CRITICAL FIX: For write_file/file tools, ensure proper file paths from planner
+        if ((toolName === 'write_file' || toolName === 'file') && !args.file_path && !args.path) {
+          // Extract from planner-provided file_path or path field
+          if (task.arguments?.write_file?.file_path) {
+            args.file_path = task.arguments.write_file.file_path;
+          } else if (task.arguments?.file?.path) {
+            args.path = task.arguments.file.path;
+          } else {
+            // Fall back to parsing from description but with better patterns
+            args.file_path = this.extractFilePathFromPlanDescription(task.description);
           }
         }
 
@@ -450,11 +475,37 @@ export class Executor extends EventEmitter {
                   description.match(/(?:file|called?)\s+(\S+\.[a-z]+)/i) ||
                   description.match(/(?:create|write|make)\s+(\S+\.[a-z0-9]+)/i) ||
                   description.match(/(\S+\.(?:html|css|js|ts|json|md|txt))/i);
-    
+
     if (process.env.DEBUG === 'true') {
       console.log(`🔍 extractFilePath: "${description}" -> ${match ? match[1] : 'file.txt'}`);
     }
-    
+
+    return match ? match[1] : 'file.txt';
+  }
+
+  private extractFilePathFromPlanDescription(description: string): string {
+    // Enhanced file path extraction for planner-provided descriptions with structured paths
+    // Look for structured paths like "WATERING_TEST/backend/package.json"
+    const structuredMatch = description.match(/([A-Z_]+\/[^"'\s]+\.[a-z0-9]+)/i) ||
+                           description.match(/([a-zA-Z_][a-zA-Z0-9_]*\/[^"'\s]+\.[a-z0-9]+)/i);
+
+    if (structuredMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePathFromPlanDescription: structured path found: "${structuredMatch[1]}"`);
+      }
+      return structuredMatch[1];
+    }
+
+    // Fall back to regular extraction but with better patterns for project files
+    const match = description.match(/['"`]([^'"`]+\.[a-z0-9]+)['"`]/i) ||
+                  description.match(/(?:file|path|called?)\s+([^\s]+\.[a-z0-9]+)/i) ||
+                  description.match(/(?:create|write|make)\s+([^\s]+\.[a-z0-9]+)/i) ||
+                  description.match(/([^\s]+\.(?:js|ts|tsx|jsx|json|md|html|css|txt|yaml|yml))/i);
+
+    if (process.env.DEBUG === 'true') {
+      console.log(`🔍 extractFilePathFromPlanDescription: "${description}" -> ${match ? match[1] : 'file.txt'}`);
+    }
+
     return match ? match[1] : 'file.txt';
   }
   

@@ -513,25 +513,53 @@ export class Planner extends EventEmitter {
   private convertJsonToTasks(jsonTasks: any[]): Task[] {
     // Convert JSON tasks to internal Task format
     return jsonTasks.map((jsonTask, index) => {
-      const tools = jsonTask.tools || this.identifyRequiredTools(jsonTask.description);
-      
+      // CRITICAL FIX: Handle both DeepSeek formats - 'tool' field (preferred) and legacy 'type' field
+      const specifiedTool = jsonTask.tool; // DeepSeek provides this directly
+      const tools = jsonTask.tools || (specifiedTool ? [specifiedTool] : this.identifyRequiredTools(jsonTask.description));
+
       // Build arguments based on task type and tools
       let taskArgs: Record<string, any> = {};
-      
-      if (jsonTask.type === 'file' && tools.includes('file')) {
+
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 Converting task: tool="${specifiedTool}", type="${jsonTask.type}", inferred tools: [${tools.join(', ')}]`);
+      }
+
+      // Handle bash/command tasks - check both 'tool' and legacy 'type' fields
+      if ((specifiedTool === 'bash' || jsonTask.type === 'command') && (tools.includes('bash') || specifiedTool === 'bash')) {
+        taskArgs.bash = {
+          command: jsonTask.command || this.extractCommand(jsonTask.description)
+        };
+        // Ensure bash is in tools array
+        if (!tools.includes('bash')) {
+          tools.push('bash');
+        }
+      }
+
+      // Handle write_file tasks - check both 'tool' and legacy 'type' fields
+      if ((specifiedTool === 'write_file' || jsonTask.type === 'file') && (tools.includes('write_file') || specifiedTool === 'write_file')) {
+        taskArgs.write_file = {
+          file_path: jsonTask.file_path || jsonTask.filename || this.extractFilename(jsonTask.description),
+          content: jsonTask.content || null // Use provided content or trigger generation
+        };
+        // Ensure write_file is in tools array
+        if (!tools.includes('write_file')) {
+          tools.push('write_file');
+        }
+      }
+
+      // Handle generic file tasks (fallback)
+      if ((specifiedTool === 'file' || jsonTask.type === 'file') && tools.includes('file')) {
         taskArgs.file = {
           action: 'write',
           path: jsonTask.filename || this.extractFilename(jsonTask.description),
           content: jsonTask.content || null // Use provided content or trigger generation
         };
       }
-      
-      if (jsonTask.type === 'command' && tools.includes('bash')) {
-        taskArgs.bash = {
-          command: jsonTask.command || this.extractCommand(jsonTask.description)
-        };
+
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 Final task arguments:`, JSON.stringify(taskArgs, null, 2));
       }
-      
+
       return {
         id: `task_${Date.now()}_${index}`,
         description: jsonTask.description,

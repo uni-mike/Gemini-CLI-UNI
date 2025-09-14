@@ -33,10 +33,48 @@ async function main() {
   const config = new Config();
   await config.initialize();
 
-  // CRITICAL DB VALIDATION - DO NOT REMOVE OR MODIFY!
+  // CRITICAL DB VALIDATION WITH CONCURRENT PROTECTION - DO NOT REMOVE OR MODIFY!
   // Always validate database schema exists before proceeding to prevent Prisma errors
   // This prevents "Table does not exist" errors when agent starts with fresh/cleared DB
+  // RACE CONDITION FIX: Use file-based lock to prevent multiple agents running migrations simultaneously
   try {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const lockFile = path.join(process.cwd(), '.flexicli', 'migration.lock');
+    const maxWaitTime = 30000; // 30 seconds maximum wait
+    const checkInterval = 100; // Check every 100ms
+
+    // Ensure .flexicli directory exists
+    try {
+      await fs.mkdir(path.join(process.cwd(), '.flexicli'), { recursive: true });
+    } catch (e) {
+      // Directory might already exist
+    }
+
+    // Wait for any ongoing migrations to complete
+    let waitTime = 0;
+    while (waitTime < maxWaitTime) {
+      try {
+        await fs.access(lockFile);
+        // Lock file exists, another agent is running migrations
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
+        waitTime += checkInterval;
+        continue;
+      } catch {
+        // Lock file doesn't exist, we can proceed
+        break;
+      }
+    }
+
+    if (waitTime >= maxWaitTime) {
+      console.log('⚠️ Migration lock timeout, removing stale lock file...');
+      try {
+        await fs.unlink(lockFile);
+      } catch (e) {
+        // Lock file might have been removed by another process
+      }
+    }
+
     const prismaClient = new PrismaClient();
 
     // Test basic database connectivity by checking if any table exists
@@ -48,30 +86,52 @@ async function main() {
     } catch (schemaError: any) {
       if (schemaError.code === 'P2021') {
         console.log('📊 Database schema not found, initializing...');
-        console.log('🔧 Running Prisma migrations to create tables...');
 
-        // Import spawn to run Prisma migrate
-        const { spawn } = await import('child_process');
-        const migrateProcess = spawn('npx', ['prisma', 'migrate', 'deploy'], {
-          stdio: 'inherit',
-          cwd: process.cwd()
-        });
+        // Create lock file to prevent race conditions with other agents
+        try {
+          await fs.writeFile(lockFile, JSON.stringify({
+            pid: process.pid,
+            startTime: new Date().toISOString()
+          }));
+          console.log('🔒 Database migration lock acquired');
+        } catch (lockError) {
+          console.log('⚠️ Could not create migration lock, proceeding anyway...');
+        }
 
-        await new Promise<void>((resolve, reject) => {
-          migrateProcess.on('close', (code) => {
-            if (code === 0) {
-              console.log('✅ Database schema initialized successfully');
-              resolve();
-            } else {
-              reject(new Error(`Prisma migrate failed with code ${code}`));
-            }
+        try {
+          console.log('🔧 Running Prisma migrations to create tables...');
+
+          // Import spawn to run Prisma migrate
+          const { spawn } = await import('child_process');
+          const migrateProcess = spawn('npx', ['prisma', 'migrate', 'deploy'], {
+            stdio: 'inherit',
+            cwd: process.cwd()
           });
-          migrateProcess.on('error', reject);
-        });
 
-        // Verify schema was created
-        await prismaClient.project.findFirst();
-        console.log('✅ Database schema validation completed');
+          await new Promise<void>((resolve, reject) => {
+            migrateProcess.on('close', (code) => {
+              if (code === 0) {
+                console.log('✅ Database schema initialized successfully');
+                resolve();
+              } else {
+                reject(new Error(`Prisma migrate failed with code ${code}`));
+              }
+            });
+            migrateProcess.on('error', reject);
+          });
+
+          // Verify schema was created
+          await prismaClient.project.findFirst();
+          console.log('✅ Database schema validation completed');
+        } finally {
+          // Always remove lock file, even if migration fails
+          try {
+            await fs.unlink(lockFile);
+            console.log('🔓 Database migration lock released');
+          } catch (unlockError) {
+            console.log('⚠️ Could not remove migration lock file');
+          }
+        }
       } else {
         throw schemaError;
       }

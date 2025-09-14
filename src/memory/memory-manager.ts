@@ -103,6 +103,7 @@ export class MemoryManager extends EventEmitter {
   
   /**
    * Ensure database is initialized
+   * RACE CONDITION PROTECTION: Handle concurrent database access gracefully
    */
   private async ensureDatabase(): Promise<void> {
     try {
@@ -110,13 +111,22 @@ export class MemoryManager extends EventEmitter {
       const schemaVersion = await this.prisma.schemaVersion.findFirst({
         orderBy: { appliedAt: 'desc' }
       });
-      
+
       if (!schemaVersion || schemaVersion.version < 1) {
-        // Initialize schema
-        await this.prisma.schemaVersion.create({
-          data: { version: 1 }
-        });
-        
+        // Initialize schema - handle race condition where another agent might have created it
+        try {
+          await this.prisma.schemaVersion.create({
+            data: { version: 1 }
+          });
+        } catch (createError: any) {
+          // If it fails with unique constraint, another agent already created it - that's fine
+          if (createError.code === 'P2002') {
+            console.log('📊 Schema version already created by another agent');
+          } else {
+            throw createError;
+          }
+        }
+
         // Ensure project record exists
         const projectId = this.projectManager.getProjectId();
         const metadata = this.projectManager.getMetadata();

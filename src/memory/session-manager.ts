@@ -110,35 +110,45 @@ export class SessionManager {
   
   /**
    * Find crashed sessions
+   * RACE CONDITION PROTECTION: Handle database table not existing during concurrent startup
    */
   private async findCrashedSession(projectId: string): Promise<Session | null> {
-    const sessions = await this.prisma.session.findMany({
-      where: {
-        projectId,
-        status: 'active'
-      },
-      orderBy: { startedAt: 'desc' },
-      take: 1
-    });
-    
-    if (sessions.length === 0) {
-      return null;
-    }
-    
-    const session = sessions[0];
-    
-    // Check if session is stale (older than 1 hour)
-    const ageMs = Date.now() - session.startedAt.getTime();
-    if (ageMs > 60 * 60 * 1000) {
-      // Mark as crashed and return for recovery
-      await this.prisma.session.update({
-        where: { id: session.id },
-        data: { status: 'crashed' }
+    try {
+      const sessions = await this.prisma.session.findMany({
+        where: {
+          projectId,
+          status: 'active'
+        },
+        orderBy: { startedAt: 'desc' },
+        take: 1
       });
-      return session;
+
+      if (sessions.length === 0) {
+        return null;
+      }
+
+      const session = sessions[0];
+
+      // Check if session is stale (older than 1 hour)
+      const ageMs = Date.now() - session.startedAt.getTime();
+      if (ageMs > 60 * 60 * 1000) {
+        // Mark as crashed and return for recovery
+        await this.prisma.session.update({
+          where: { id: session.id },
+          data: { status: 'crashed' }
+        });
+        return session;
+      }
+
+      return null;
+    } catch (dbError: any) {
+      // Handle case where Session table doesn't exist yet (concurrent startup)
+      if (dbError.code === 'P2021') {
+        console.log('📊 Session table not ready yet, skipping crash recovery');
+        return null;
+      }
+      throw dbError;
     }
-    
-    return null;
   }
   
   /**
