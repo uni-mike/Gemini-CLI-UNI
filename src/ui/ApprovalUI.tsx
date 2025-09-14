@@ -67,6 +67,22 @@ export const ApprovalUI: React.FC<ApprovalUIProps> = ({
     } else if (input >= '1' && input <= '4') {
       const num = parseInt(input) as (1 | 2 | 3 | 4);
       setSelection(num);
+      // Immediately execute the action when number key is pressed
+      switch (num) {
+        case 1:
+          onApprove();
+          break;
+        case 2:
+          onApproveAndRemember();
+          break;
+        case 3:
+          onReject();
+          break;
+        case 4:
+          setShowingDetails(true);
+          onShowDetails();
+          break;
+      }
     }
   });
 

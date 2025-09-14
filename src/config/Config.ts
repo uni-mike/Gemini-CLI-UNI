@@ -19,9 +19,16 @@ export class Config {
     // Read from environment variables
     this.approvalMode = (process.env.APPROVAL_MODE as ApprovalMode) || ApprovalMode.DEFAULT;
     this.debugMode = process.env.DEBUG === 'true';
-    
+
     // Check if stdin is a TTY for interactive mode
     this.interactive = process.stdin.isTTY || process.env.APPROVAL_MODE === 'yolo';
+
+    // If running with --non-interactive flag, force YOLO mode for approvals
+    const args = process.argv;
+    if (args.includes('--non-interactive')) {
+      this.approvalMode = ApprovalMode.YOLO;
+      this.interactive = false;
+    }
   }
   
   async initialize(): Promise<void> {
