@@ -120,12 +120,16 @@ async function main() {
     const result = await orchestrator.execute(argv.prompt);
     
     if (result.success) {
-      console.log(`\n✨ Response:\n${result.response}\n`);
+      if (result.response) {
+        console.log(`\n✨ Response:\n${result.response}\n`);
+      } else {
+        console.log(`\n✅ Task completed successfully.\n`);
+      }
       if (result.toolsUsed && result.toolsUsed.length > 0) {
         console.log(`📊 Tools used: ${result.toolsUsed.join(', ')}\n`);
       }
     } else {
-      console.error(`\n❌ Error: ${result.error}\n`);
+      console.error(`\n❌ Error: ${result.error || 'Task execution failed'}\n`);
     }
     
     // Cleanup before exiting

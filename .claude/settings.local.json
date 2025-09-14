@@ -1,9 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(DATABASE_URL=\"file:/Users/mike.admon/UNIPATH_PROJECT/gemini-cli/.flexicli/flexicli.db\" ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx /Users/mike.admon/UNIPATH_PROJECT/gemini-cli/src/cli.tsx --prompt \"What is 3+3? Also create test-external.txt with ''External execution works!''\" --non-interactive)",
-      "Bash(ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx /Users/mike.admon/UNIPATH_PROJECT/gemini-cli/src/cli.tsx --prompt \"What is 2 + 2?\" --non-interactive)",
-      "Bash(DATABASE_URL=\"file:/Users/mike.admon/UNIPATH_PROJECT/gemini-cli/.flexicli/flexicli.db\" ENABLE_MONITORING=true APPROVAL_MODE=yolo npx tsx /Users/mike.admon/UNIPATH_PROJECT/gemini-cli/src/cli.tsx --prompt \"What is 3 + 5? Also create a file called validation-complete.txt with content ''FlexiCLI external directory execution working perfectly!''\" --non-interactive)"
+      "Bash(ENABLE_MONITORING=false APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"lets design and then build react application that will manage watering schedules of plants. lets start with planning, in the end I want to have MD file with all design and architectyre including Mermain chart. After review, we will maybe adjust and then coding. Use WATERING_TEST folder for all files/code you build for this tasks\" --non-interactive)",
+      "Bash(ENABLE_MONITORING=false APPROVAL_MODE=yolo npx tsx /Users/mike.admon/UNIPATH_PROJECT/gemini-cli/src/cli.tsx --prompt \"Create a simple test file called autonomous-test.txt with content ''FlexiCLI autonomous operation working perfectly without monitoring interference!''\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

@@ -102,8 +102,10 @@ export class EmbeddingsManager {
         const normalized = this.normalize(embedding);
         
         const { text, index } = uncached[i];
-        const cacheKey = this.hashText(text);
-        this.cache.set(cacheKey, normalized);
+        const cacheKey = `embed_${this.hashText(text)}`;
+        cacheManager.set(cacheKey, Array.from(normalized), {
+          ttl: 7 * 24 * 60 * 60 * 1000 // 7 days TTL
+        });
         results[index] = normalized;
       }
       
@@ -228,7 +230,7 @@ export class EmbeddingsManager {
    * Clear embedding cache
    */
   clearCache(): void {
-    this.cache.clear();
+    cacheManager.clear();
   }
   
   /**
@@ -260,14 +262,8 @@ export class EmbeddingsManager {
    */
   async persistCache(): Promise<void> {
     try {
-      for (const [key, embedding] of this.cache.entries()) {
-        await this.filePersistence.cacheSet(
-          `embedding:${key}`,
-          Array.from(embedding),
-          7 * 24 * 60 * 60 * 1000 // 7 days TTL
-        );
-      }
-      console.log(`💾 Persisted ${this.cache.size} embeddings to disk cache`);
+      // Cache manager handles its own persistence
+      console.log('💾 Cache persistence handled by CacheManager');
     } catch (error) {
       console.warn('Failed to persist embeddings cache:', error);
     }
