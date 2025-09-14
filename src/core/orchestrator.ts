@@ -114,8 +114,8 @@ export class Orchestrator extends EventEmitter {
       this.emit('token-usage', usage);
     });
     
-    // Initialize monitoring by default (unless disabled)
-    if (process.env.DISABLE_MONITORING !== 'true') {
+    // Initialize monitoring only if explicitly enabled
+    if (process.env.ENABLE_MONITORING === 'true') {
       this.initializeMonitoring();
     }
   }

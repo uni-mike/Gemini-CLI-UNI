@@ -537,8 +537,36 @@ Return only the file content, no explanations or markdown blocks. Make it comple
   }
 
   private extractPattern(description: string): string {
-    const match = description.match(/(?:for|pattern)\s+['"`]([^'"`]+)['"`]/i);
-    return match ? match[1] : '';
+    // Try to find quoted patterns first
+    let match = description.match(/(?:for|pattern)\s+['"`]([^'"`]+)['"`]/i);
+    if (match) return match[1];
+
+    // Try to find patterns in common search contexts
+    match = description.match(/(?:search|find|grep|look)\s+(?:for\s+)?['"`]([^'"`]+)['"`]/i);
+    if (match) return match[1];
+
+    // Try to find file extensions or common patterns
+    match = description.match(/\*\.(\w+)/);
+    if (match) return `*.${match[1]}`;
+
+    // Try to find any quoted strings as potential patterns
+    match = description.match(/['"`]([^'"`]+)['"`]/);
+    if (match) return match[1];
+
+    // Try to extract key terms as fallback patterns
+    match = description.match(/(?:search|find|grep|look).*?(\w+\.\w+|\w{3,})/i);
+    if (match) return match[1];
+
+    // Fallback patterns based on context
+    if (description.toLowerCase().includes('react')) return 'react';
+    if (description.toLowerCase().includes('component')) return 'component';
+    if (description.toLowerCase().includes('function')) return 'function';
+    if (description.toLowerCase().includes('class')) return 'class';
+    if (description.toLowerCase().includes('test')) return 'test';
+    if (description.toLowerCase().includes('error')) return 'error';
+
+    // Last resort: return a safe default pattern
+    return '.*';
   }
 
   private extractPath(description: string): string {

@@ -38,13 +38,20 @@ export class MonitoringBridge {
    * Start monitoring (works with or without agent)
    */
   async start() {
+    // Only start if monitoring is explicitly enabled
+    const monitoringEnabled = process.env.ENABLE_MONITORING === 'true';
+    if (!monitoringEnabled) {
+      console.log('📊 Monitoring disabled via ENABLE_MONITORING=false, skipping initialization');
+      return;
+    }
+
     // Initialize file persistence
     await this.filePersistence.initialize();
-    
-    // Always start autonomous monitoring (reads DB, logs, files)
+
+    // Start autonomous monitoring (reads DB, logs, files)
     await this.autonomousCollector.start();
     console.log('📊 Autonomous monitoring started (will survive agent crashes)');
-    
+
     // Log monitoring start
     await this.filePersistence.logInfo('MonitoringBridge', 'Monitoring system started');
   }

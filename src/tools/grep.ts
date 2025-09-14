@@ -28,15 +28,24 @@ export class GrepTool extends Tool {
         error: 'Pattern is required and must be a non-empty string'
       };
     }
-    
+
     try {
+      // Auto-detect if we need recursive search for directories
+      let finalFlags = flags;
+      if (path === '.' || path.endsWith('/') || !path.includes('.')) {
+        // Likely a directory - add recursive flag if not already present
+        if (!finalFlags.includes('-r') && !finalFlags.includes('-R')) {
+          finalFlags = `-r ${finalFlags}`.trim();
+        }
+      }
+
       // Use grep or ripgrep if available
-      const command = `grep ${flags} "${pattern}" ${path}`;
+      const command = `grep ${finalFlags} "${pattern}" ${path}`;
       const { stdout, stderr } = await execAsync(command, {
         encoding: 'utf8',
-        maxBuffer: 5 * 1024 * 1024 // 5MB
+        maxBuffer: 20 * 1024 * 1024 // 20MB - increased for large search results
       });
-      
+
       return {
         success: true,
         output: stdout || 'No matches found'
