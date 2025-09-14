@@ -31,7 +31,9 @@
       "Bash(xargs ls:*)",
       "Bash(sort:*)",
       "Bash(DEBUG=false ENABLE_MONITORING=false npx tsx src/cli.tsx --prompt \"Create a simple test documentation file with project overview\" --non-interactive)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
