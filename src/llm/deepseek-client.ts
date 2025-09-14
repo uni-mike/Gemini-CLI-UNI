@@ -187,10 +187,26 @@ export class DeepSeekClient extends EventEmitter {
           // CRITICAL: Extract JSON first, ignore Mermaid diagrams
           // DeepSeek often returns JSON followed by Mermaid - prioritize JSON extraction
 
-          // First, try to extract JSON from the beginning of response
-          const jsonMatch = content.match(/^(\s*\{[\s\S]*?\}\s*)/);
-          if (jsonMatch) {
-            content = jsonMatch[1];
+          // First, try to extract complete JSON object from the beginning of response
+          // Use proper JSON bracket matching instead of non-greedy regex
+          if (content.trim().startsWith('{')) {
+            let braceCount = 0;
+            let jsonEnd = -1;
+
+            for (let i = 0; i < content.length; i++) {
+              if (content[i] === '{') braceCount++;
+              if (content[i] === '}') {
+                braceCount--;
+                if (braceCount === 0) {
+                  jsonEnd = i + 1;
+                  break;
+                }
+              }
+            }
+
+            if (jsonEnd > 0) {
+              content = content.substring(0, jsonEnd).trim();
+            }
           } else if (content.includes('```json')) {
             // Look specifically for JSON code blocks
             const jsonPattern = /```json\s*\n?([\s\S]*?)\n?```/;
