@@ -81,13 +81,13 @@ echo ""
 # Set environment variables for comprehensive debugging
 export DEBUG=true
 export ENABLE_MONITORING=$ENABLE_MONITORING
-export APPROVAL_MODE=yolo
+export APPROVAL_MODE=default  # Changed to prompt for all approvals
 
 # Display final configuration
 echo -e "${YELLOW}🚀 Final Configuration:${NC}"
 echo -e "  • Debug Mode: ${GREEN}ENABLED${NC}"
 echo -e "  • Monitoring: ${GREEN}$([[ $ENABLE_MONITORING == true ]] && echo "ENABLED" || echo "OPTIONAL")${NC}"
-echo -e "  • Approval: ${GREEN}YOLO (Auto-approve)${NC}"
+echo -e "  • Approval: ${GREEN}DEFAULT (Prompts for sensitive operations)${NC}"
 echo -e "  • Database: ${GREEN}VALIDATED${NC}"
 echo ""
 
@@ -96,13 +96,13 @@ case $choice in
         echo -e "${GREEN}🧪 Running Simple Test...${NC}"
         echo -e "${BLUE}Command: Create a TypeScript function with proper types${NC}"
         echo ""
-        npx tsx src/cli.tsx --prompt "Create a TypeScript file with a function that calculates the factorial of a number, include proper type annotations and JSDoc comments" --non-interactive
+        npx tsx src/cli.tsx --prompt "Create a TypeScript file with a function that calculates the factorial of a number, include proper type annotations and JSDoc comments"
         ;;
     2)
         echo -e "${GREEN}🔬 Running Complex Test...${NC}"
         echo -e "${BLUE}Command: Multi-step React application with components${NC}"
         echo ""
-        npx tsx src/cli.tsx --prompt "Create a complete React TypeScript application with: 1) Main App component with routing, 2) Dashboard component with state management, 3) User profile component with form handling, 4) API service layer with TypeScript interfaces, 5) Proper folder structure and exports" --non-interactive
+        npx tsx src/cli.tsx --prompt "Create a complete React TypeScript application with: 1) Main App component with routing, 2) Dashboard component with state management, 3) User profile component with form handling, 4) API service layer with TypeScript interfaces, 5) Proper folder structure and exports"
         ;;
     3)
         echo -e "${GREEN}💻 Starting Interactive Mode...${NC}"
@@ -119,7 +119,7 @@ case $choice in
         echo ""
         echo -e "${BLUE}Executing: $custom_prompt${NC}"
         echo ""
-        npx tsx src/cli.tsx --prompt "$custom_prompt" --non-interactive
+        npx tsx src/cli.tsx --prompt "$custom_prompt"
         ;;
     *)
         echo -e "${RED}Invalid option. Starting interactive mode by default...${NC}"
