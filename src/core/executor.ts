@@ -221,30 +221,30 @@ export class Executor extends EventEmitter {
         throw new Error('Task execution aborted');
       }
       
-      // Use AI-provided arguments if available, otherwise parse from description
+      // Use planner-provided arguments if available, otherwise parse from description
       let args = task.arguments?.[toolName];
-      
+
       if (!args) {
+        // No arguments from planner, fall back to parsing
         args = await this.parseToolArguments(toolName, task.description, context);
       } else {
-        // Fix field names for write_file tool - AI provides filename/content but tool expects file_path/content
-        if (toolName === 'write_file') {
-          if (args.filename && !args.file_path) {
-            args.file_path = args.filename;
-            delete args.filename;
-          }
-          // Ensure content is properly set from task, not from previous results
-          if (!args.content || args.content === null || args.content === '') {
+        // Planner provided arguments - use them with minimal processing
+        if (process.env.DEBUG === 'true') {
+          console.log(`🔍 Using planner arguments for ${toolName}:`, JSON.stringify(args, null, 2));
+        }
+
+        // Only generate content if explicitly null or empty AND not already provided
+        if (toolName === 'write_file' || toolName === 'file') {
+          if (args.content === null || (typeof args.content === 'undefined')) {
+            if (process.env.DEBUG === 'true') {
+              console.log('🔍 Content not provided by planner, generating...');
+            }
             args.content = await this.generateFileContent(task.description);
           }
         }
-        // Check if file content needs generation 
-        if (toolName === 'file' && (!args.content || args.content === null || args.content === '')) {
-          args.content = await this.generateFileContent(task.description);
-        }
-        
+
         if (process.env.DEBUG === 'true') {
-          console.log('🔍 Using AI-provided arguments (content generated if needed):', JSON.stringify({...args, content: args.content ? `${args.content.substring(0, 100)}...` : 'empty'}, null, 2));
+          console.log('🔍 Using final arguments:', JSON.stringify({...args, content: args.content ? `${args.content.substring(0, 100)}...` : 'empty'}, null, 2));
         }
       }
       
@@ -449,7 +449,7 @@ export class Executor extends EventEmitter {
     const match = description.match(/['"`]([^'"`]+\.[a-z]+)['"`]/i) ||
                   description.match(/(?:file|called?)\s+(\S+\.[a-z]+)/i) ||
                   description.match(/(?:create|write|make)\s+(\S+\.[a-z0-9]+)/i) ||
-                  description.match(/(\S+\.html|\.css|\.js|\.ts|\.json|\.md|\.txt)/i);
+                  description.match(/(\S+\.(?:html|css|js|ts|json|md|txt))/i);
     
     if (process.env.DEBUG === 'true') {
       console.log(`🔍 extractFilePath: "${description}" -> ${match ? match[1] : 'file.txt'}`);
@@ -503,14 +503,25 @@ export class Executor extends EventEmitter {
 
   private async generateFileContent(description: string): Promise<string> {
     try {
-      const contentPrompt = `Generate the code/content for: ${description}
+      const contentPrompt = `TASK: ${description}
 
-Return only the file content, no explanations or markdown blocks. Make it complete and functional.`;
+CRITICAL: Generate ONLY the exact file content specified in the task above.
+If the task mentions specific content (like 'console.log("hello")'), use EXACTLY that content.
+If the task specifies a file path (like WATERING_TEST/test.js), note the filename but only return the content.
+
+OUTPUT REQUIREMENTS:
+- Return ONLY raw file content
+- NO explanations, markdown blocks, or comments about the task
+- NO code block wrappers
+- NO file paths in output
+- Follow the EXACT content requirements from the task
+
+File content only:`;
 
       // Don't pass tools as functions - we have them in the prompt
       const content = await this.client.chat([
         { role: 'user', content: contentPrompt }
-      ], [], false); // Use temperature 0 for consistency, no tools as functions
+      ], [], false, 32000); // Use temperature 0 for consistency, max tokens for code generation
       
       return content.trim();
     } catch (error) {

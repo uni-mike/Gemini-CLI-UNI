@@ -10,11 +10,19 @@ export class PromptTemplates {
    * Now includes available tools dynamically from registry
    */
   static taskDecomposition(request: string, availableTools?: any[]): string {
-    // Build tool list dynamically if provided
+    // Build detailed tool list with parameter schemas
     let toolSection = '';
     if (availableTools && availableTools.length > 0) {
-      const toolList = availableTools.map(t => `- ${t.name}: ${t.description}`).join('\n');
-      toolSection = `\nAvailable tools:\n${toolList}\n`;
+      const toolDetails = availableTools.map(t => {
+        const params = t.parameterSchema || [];
+        const paramList = params.map(p =>
+          `    - ${p.name} (${p.type}${p.required ? ', required' : ', optional'}): ${p.description || 'No description'}`
+        ).join('\n');
+
+        return `- ${t.name}: ${t.description}\n${paramList.length > 0 ? paramList : '    No parameters'}`;
+      }).join('\n\n');
+
+      toolSection = `\nAvailable tools with parameter schemas:\n${toolDetails}\n`;
     }
 
     return `REQUEST: "${request}"
@@ -23,14 +31,23 @@ CRITICAL: You must decompose complex tasks into ATOMIC steps. Each task must be 
 
 ANALYZE FIRST:
 1. Is this a simple question? → {"type":"conversation","response":"[answer]"}
-2. Is this a development task? → Break into atomic steps below
+2. Is this a design/documentation request? → Create design documents with JSON structure below
+3. Is this an implementation task? → Break into atomic steps below
 
-For development tasks, output:
+For ALL tasks (design OR implementation), output JSON in this format:
 {"type":"tasks","plan":[
-  {"id":"step1","description":"ONE atomic action","tool":"web","action":"search","query":"[specific search]","success_criteria":"[what constitutes success]"},
-  {"id":"step2","description":"ONE atomic action","tool":"bash","action":"run","command":"[single command]","success_criteria":"[what output to expect]"},
-  {"id":"step3","description":"ONE atomic action","tool":"file","action":"write","filename":"[exact path]","success_criteria":"[file exists with expected content]"}
+  {"id":"step1","description":"ONE atomic action","tool":"write_file","file_path":"[exact path]","content":"[file content]","success_criteria":"[what constitutes success]"},
+  {"id":"step2","description":"ONE atomic action","tool":"bash","command":"[single command]","success_criteria":"[what output to expect]"},
+  {"id":"step3","description":"ONE atomic action","tool":"web","action":"search","query":"[specific search]","success_criteria":"[what constitutes success]"}
 ]}
+
+CRITICAL TOOL USAGE RULES:
+- Use "write_file" tool for creating files (NOT "file")
+- Use exact parameter names from tool schemas
+- For write_file: use "file_path" and "content" parameters
+- For bash: use "command" parameter
+- Always provide exact file paths including directories
+- Always specify exact content for files when known
 
 ATOMIC TASK RULES (CRITICAL):
 - Maximum 5-8 steps total
@@ -50,7 +67,16 @@ VALIDATION CHECKLIST:
 ✓ No assumption about existing files/directories
 ✓ Recovery actions for likely failures
 
-Output pure JSON only.`;
+CRITICAL OUTPUT REQUIREMENTS:
+- Return ONLY valid JSON, no explanations or markdown or Mermaid diagrams
+- No code blocks with backticks
+- No text before or after JSON
+- Ensure all quotes are properly escaped
+- Must be parseable by JSON.parse()
+- If including diagrams in file content, escape them properly as strings within JSON
+- Example: {\"type\":\"tasks\",\"plan\":[{\"id\":\"doc1\",\"tool\":\"write_file\",\"file_path\":\"design.md\",\"content\":\"# Design\\n\\n\`\`\`mermaid\\ngraph TD...\"}]}
+
+Output valid JSON only:`;
   }
 
   /**
@@ -72,37 +98,12 @@ Options: file, bash, web, edit, git
 Answer with one word:`;
   }
 
-  /**
-   * Emergency fallback for when JSON parsing fails completely
-   */
-  static emergencyDecomposition(request: string): string[] {
-    // Basic rule-based decomposition as absolute fallback
-    if (request.toLowerCase().includes('express') && request.toLowerCase().includes('api')) {
-      return [
-        'Create package.json with Express dependencies',
-        'Create main server.js file',
-        'Create authentication middleware',
-        'Create user routes file',
-        'Create environment configuration',
-        'Install required npm packages'
-      ];
-    }
-    
-    if (request.toLowerCase().includes('create') && request.toLowerCase().includes('calculator')) {
-      return [
-        'Create package.json file',
-        'Create calculator.js with math functions',
-        'Create test file for calculator',
-        'Create README documentation'
-      ];
-    }
-
-    // Generic fallback
-    return [
-      `Analyze the request: ${request}`,
-      `Create the main implementation`,
-      `Test the implementation`,
-      `Document the solution`
-    ];
-  }
+  // EMERGENCY DECOMPOSITION METHOD REMOVED!
+  // DO NOT ADD emergencyDecomposition() OR ANY HARDCODED TASK DECOMPOSITION!
+  //
+  // All task decomposition must go through AI models (DeepSeek, etc.).
+  // If AI fails, the orchestrator should retry with different prompts or models,
+  // never fall back to hardcoded rule-based decomposition.
+  //
+  // This ensures all content and task planning remains AI-driven and adaptive.
 }

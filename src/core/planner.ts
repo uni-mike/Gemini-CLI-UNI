@@ -105,14 +105,32 @@ export class Planner extends EventEmitter {
         console.log('🔍 Task decomposition JSON response:', taskPlanResponse);
       }
       
-      // Parse structured JSON response
+      // Parse structured JSON response with retry logic
       let parsedPlan: any;
       try {
         parsedPlan = JSON.parse(taskPlanResponse);
       } catch (parseError) {
-        console.error('❌ Failed to parse JSON:', parseError);
+        console.error('❌ Failed to parse JSON on first attempt:', parseError);
         console.log('🔍 Raw response:', taskPlanResponse);
-        throw new Error('DeepSeek returned invalid JSON');
+
+        // Try a simpler retry prompt without asking DeepSeek to think about design vs implementation
+        console.log('🔄 Retrying with simplified prompt...');
+        const simplePrompt = `TASK: ${contextualPrompt}\n\nCreate a JSON plan with this exact format:\n{"type":"tasks","plan":[{"id":"step1","description":"action","tool":"write_file","file_path":"exact/path","content":"file content"}]}\n\nReturn ONLY valid JSON, no explanations:`;
+
+        const retryResponse = await this.client.chat(
+          [{ role: 'user', content: simplePrompt }],
+          [],
+          true
+        );
+
+        try {
+          parsedPlan = JSON.parse(retryResponse);
+          console.log('✅ Retry successful');
+        } catch (retryError) {
+          console.error('❌ Retry also failed:', retryError);
+          console.log('🔍 Retry response:', retryResponse);
+          throw new Error('DeepSeek returned invalid JSON after retry');
+        }
       }
       
       // Handle conversation vs. task response
@@ -154,9 +172,10 @@ export class Planner extends EventEmitter {
       return plan;
       
     } catch (error) {
-      // Emergency fallback using rule-based decomposition
-      console.warn('Smart planning failed, using emergency fallback:', error);
-      return this.createEmergencyPlan(prompt);
+      // NEVER USE EMERGENCY FALLBACK! Let the orchestrator handle failures by rerouting to AI.
+      // Proper error handling: throw error back to orchestrator for AI-based retry/rerouting
+      console.error('Planning failed - rerouting to orchestrator for AI-based retry:', error);
+      throw error; // Orchestrator should handle this with proper AI-based recovery
     }
   }
   
@@ -524,31 +543,14 @@ export class Planner extends EventEmitter {
     });
   }
   
-  private createEmergencyPlan(prompt: string): TaskPlan {
-    // Use rule-based emergency fallback
-    const taskDescriptions = PromptTemplates.emergencyDecomposition(prompt);
-    
-    const tasks = taskDescriptions.map((description, index) => ({
-      id: `emergency_task_${index}`,
-      description,
-      type: 'tool' as const,
-      tools: ['file'],
-      arguments: {
-        file: {
-          action: 'write',
-          path: this.extractFilename(description),
-          content: ''
-        }
-      },
-      priority: index + 1
-    }));
-    
-    return {
-      id: `emergency_plan_${Date.now()}`,
-      originalPrompt: prompt,
-      tasks,
-      complexity: 'moderate' as const,
-      parallelizable: false
-    };
-  }
+  // EMERGENCY FALLBACK METHODS REMOVED!
+  // DO NOT ADD createEmergencyPlan() OR ANY HARDCODED FALLBACK METHODS!
+  //
+  // Proper error handling flow:
+  // 1. Planner fails -> throw error to orchestrator
+  // 2. Orchestrator catches error -> retry with different prompt/approach via AI
+  // 3. If retry fails -> orchestrator can try alternative AI models or simpler prompts
+  // 4. Never use hardcoded/rule-based fallbacks - always route through AI agents
+  //
+  // This ensures the system remains autonomous and AI-driven at all levels.
 }

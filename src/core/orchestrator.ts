@@ -1,6 +1,12 @@
 /**
- * Main Orchestrator
- * Connects LLM with tools and manages execution flow
+ * Main Orchestrator - Autonomous AI-Driven Agent System
+ * Connects LLM with tools and manages execution flow through Planner-Executor pattern
+ *
+ * CRITICAL: NO EMERGENCY FALLBACKS ALLOWED!
+ * - All failures must be handled through AI-based recovery (retry with different prompts, models, etc.)
+ * - Never add hardcoded/rule-based fallback methods
+ * - Always route failures back through the AI agent trio (Orchestrator->Planner->Executor)
+ * - This ensures the system remains fully autonomous and AI-driven
  */
 
 import { EventEmitter } from 'events';
@@ -411,11 +417,42 @@ export class Orchestrator extends EventEmitter {
         toolsUsed: this.toolsUsed
       };
     } catch (error: any) {
+      // PROPER ERROR HANDLING - NO EMERGENCY FALLBACKS!
+      // If planner fails, try AI-based recovery strategies
+
+      console.log('🔄 Planning failed, attempting AI-based recovery...');
       this.emit('orchestration-error', error);
-      return {
-        success: false,
-        error: error.message
-      };
+
+      try {
+        // Strategy 1: Retry with simplified prompt
+        console.log('🔄 Strategy 1: Retrying with simplified prompt...');
+        const simplifiedPrompt = `Task: ${prompt}\n\nPlease break this into simple steps and return JSON format only.`;
+        const recoveryPlan = await this.planner.createPlan(simplifiedPrompt);
+
+        console.log('✅ Recovery strategy 1 succeeded');
+        const recoveryResults = await this.executor.executePlan(recoveryPlan, this.executionContext);
+
+        const finalResponse = await this.generateFinalResponse(prompt, recoveryPlan, recoveryResults);
+
+        this.emit('orchestration-complete', { response: finalResponse });
+        return {
+          success: recoveryResults.every(r => r.success),
+          response: finalResponse,
+          toolsUsed: this.toolsUsed
+        };
+
+      } catch (recoveryError: any) {
+        // Strategy 2: Could add more AI-based recovery strategies here
+        // e.g., try different AI models, break down into smaller parts, etc.
+
+        console.error('❌ All AI-based recovery strategies failed:', recoveryError);
+        this.emit('orchestration-error', recoveryError);
+
+        return {
+          success: false,
+          error: `Planning failed: ${error.message}. Recovery also failed: ${recoveryError.message}`
+        };
+      }
     }
   }
   

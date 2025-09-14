@@ -367,20 +367,25 @@ export class GitContextLayer implements MemoryLayer {
           author: commit.author || 'Unknown',
           date: commitDate,
           message: commit.message || 'No message',
-          filesChanged: JSON.stringify(commit.filesChanged),
-          diffChunks: JSON.stringify(
-            commit.diffChunks.map(chunk => ({
-              file: chunk.file,
-              additions: chunk.additions,
-              deletions: chunk.deletions,
-              summary: this.summarizeDiff(chunk.content)
-            }))
-          ),
-          embedding: embeddingBuffer
+        filesChanged: JSON.stringify(commit.filesChanged),
+        diffChunks: JSON.stringify(
+          commit.diffChunks.map(chunk => ({
+            file: chunk.file,
+            additions: chunk.additions,
+            deletions: chunk.deletions,
+            summary: this.summarizeDiff(chunk.content)
+          }))
+        ),
+        embedding: embeddingBuffer
         }
       });
     } catch (error) {
-      // Silently skip storage errors for individual commits
+      if (error.code === 'P2002') {
+        // Duplicate constraint - commit already exists, skip silently
+        console.debug(`Commit ${commit.hash.substring(0, 7)} already exists, skipping`);
+        return;
+      }
+      // Log other errors but don't crash
       console.debug(`Failed to store commit ${commit.hash.substring(0, 7)}:`, error);
     }
   }

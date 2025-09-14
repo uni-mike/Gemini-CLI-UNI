@@ -4,7 +4,9 @@
  */
 
 import { Tool, ToolParams, ToolResult, ParameterSchema } from './base.js';
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, writeFile, mkdir, access } from 'fs/promises';
+import { dirname } from 'path';
+import { constants } from 'fs';
 
 export class FileTool extends Tool {
   name = 'file';
@@ -26,6 +28,14 @@ export class FileTool extends Tool {
           return { success: true, output: data };
           
         case 'write':
+          // Create directory if it doesn't exist
+          const dir = dirname(path as string);
+          try {
+            await access(dir, constants.F_OK);
+          } catch {
+            await mkdir(dir, { recursive: true });
+          }
+
           await writeFile(path as string, content as string, 'utf8');
           
           // Generate git-diff style output for file creation
