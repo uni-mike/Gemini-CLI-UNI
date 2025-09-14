@@ -184,14 +184,28 @@ export class DeepSeekClient extends EventEmitter {
           // JSON-specific cleaning
           content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
-          // Remove markdown code blocks if present
-          if (content.includes('```json') || content.includes('```')) {
-            const pattern = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
-            const match = content.match(pattern);
-            if (match) {
-              content = match[1];
+          // CRITICAL: Extract JSON first, ignore Mermaid diagrams
+          // DeepSeek often returns JSON followed by Mermaid - prioritize JSON extraction
+
+          // First, try to extract JSON from the beginning of response
+          const jsonMatch = content.match(/^(\s*\{[\s\S]*?\}\s*)/);
+          if (jsonMatch) {
+            content = jsonMatch[1];
+          } else if (content.includes('```json')) {
+            // Look specifically for JSON code blocks
+            const jsonPattern = /```json\s*\n?([\s\S]*?)\n?```/;
+            const jsonBlockMatch = content.match(jsonPattern);
+            if (jsonBlockMatch) {
+              content = jsonBlockMatch[1];
+            }
+          } else if (content.includes('```') && content.trim().startsWith('{')) {
+            // JSON at start, but followed by code blocks - extract the JSON part only
+            const beforeCodeBlock = content.split('```')[0].trim();
+            if (beforeCodeBlock.startsWith('{')) {
+              content = beforeCodeBlock;
             }
           }
+          // DO NOT extract Mermaid or other non-JSON code blocks when forceJson=true
 
           content = content.trim();
 
