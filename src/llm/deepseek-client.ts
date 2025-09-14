@@ -46,17 +46,17 @@ export class DeepSeekClient extends EventEmitter {
     const promptLength = processedMessages.reduce((acc, msg) => acc + msg.content.length, 0);
     const estimatedTokens = Math.ceil(promptLength / 4); // Rough estimate: 4 chars per token
 
-    // Economic allocation: use what's needed, not max
-    // Simple prompts: 2K, Medium: 8K, Complex: 16K, Very Complex: 32K
+    // INCREASED LIMITS: Never truncate comprehensive responses!
+    // Planning tasks need full responses - much higher token allocation
     let maxTokens: number;
     if (estimatedTokens < 500) {
-      maxTokens = 2000;  // Simple prompts
+      maxTokens = 8000;   // Simple prompts - INCREASED from 2000
     } else if (estimatedTokens < 2000) {
-      maxTokens = 8000;  // Medium complexity
+      maxTokens = 16000;  // Medium complexity - INCREASED from 8000
     } else if (estimatedTokens < 5000) {
-      maxTokens = 16000; // Complex prompts
+      maxTokens = 32000;  // Complex prompts - INCREASED from 16000
     } else {
-      maxTokens = 32000; // Very complex prompts (max supported)
+      maxTokens = 64000;  // Very complex prompts - INCREASED from 32000 (may auto-cap at API limit)
     }
 
     const requestBody: any = {
