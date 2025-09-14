@@ -42,9 +42,22 @@ export class DeepSeekClient extends EventEmitter {
     const processedMessages = [...messages];
 
     // Dynamic token allocation based on prompt complexity
+    // DeepSeek-V3.1 supports up to 32K output tokens (verified on Azure)
     const promptLength = processedMessages.reduce((acc, msg) => acc + msg.content.length, 0);
     const estimatedTokens = Math.ceil(promptLength / 4); // Rough estimate: 4 chars per token
-    const maxTokens = Math.min(8000, Math.max(2000, estimatedTokens * 3)); // 3x prompt size, min 2000, max 8000
+
+    // Economic allocation: use what's needed, not max
+    // Simple prompts: 2K, Medium: 8K, Complex: 16K, Very Complex: 32K
+    let maxTokens: number;
+    if (estimatedTokens < 500) {
+      maxTokens = 2000;  // Simple prompts
+    } else if (estimatedTokens < 2000) {
+      maxTokens = 8000;  // Medium complexity
+    } else if (estimatedTokens < 5000) {
+      maxTokens = 16000; // Complex prompts
+    } else {
+      maxTokens = 32000; // Very complex prompts (max supported)
+    }
 
     const requestBody: any = {
       model: this.model,
