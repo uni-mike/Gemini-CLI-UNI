@@ -169,6 +169,17 @@ export class DeepSeekClient extends EventEmitter {
         // Sometimes content is null and only reasoning_content is provided
         let content = choice.message.content || choice.message.reasoning_content || '';
 
+        // Check if response was truncated (finish_reason will be 'length' instead of 'stop')
+        const wasTruncated = choice.finish_reason === 'length';
+        if (wasTruncated) {
+          console.warn(`⚠️ Response was truncated at ${maxTokens} tokens. Consider increasing max_tokens.`);
+          this.emit('warning', {
+            type: 'truncated_response',
+            message: `Response truncated at ${maxTokens} tokens`,
+            maxTokens
+          });
+        }
+
         if (forceJson) {
           // JSON-specific cleaning
           content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
@@ -183,6 +194,12 @@ export class DeepSeekClient extends EventEmitter {
           }
 
           content = content.trim();
+
+          // If JSON was truncated, try to fix it
+          if (wasTruncated && forceJson) {
+            console.warn('⚠️ Attempting to repair truncated JSON...');
+            content = this.attemptJsonRepair(content);
+          }
         } else {
           // Standard cleaning for non-JSON responses
           content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
@@ -313,6 +330,49 @@ export class DeepSeekClient extends EventEmitter {
       console.error('❌ DeepSeek streaming error:', errorMessage);
       this.emit('error', { message: errorMessage, streaming: true });
       throw error;
+    }
+  }
+
+  private attemptJsonRepair(json: string): string {
+    try {
+      // Try to parse as-is first
+      JSON.parse(json);
+      return json; // It's already valid
+    } catch {
+      // Common truncation patterns and fixes
+      let repaired = json;
+
+      // Count open/close braces and brackets
+      const openBraces = (repaired.match(/{/g) || []).length;
+      const closeBraces = (repaired.match(/}/g) || []).length;
+      const openBrackets = (repaired.match(/\[/g) || []).length;
+      const closeBrackets = (repaired.match(/]/g) || []).length;
+
+      // Remove incomplete last item if there's a trailing comma
+      if (repaired.match(/,\s*$/)) {
+        repaired = repaired.replace(/,\s*$/, '');
+      }
+
+      // Add missing close brackets
+      for (let i = 0; i < openBrackets - closeBrackets; i++) {
+        repaired += ']';
+      }
+
+      // Add missing close braces
+      for (let i = 0; i < openBraces - closeBraces; i++) {
+        repaired += '}';
+      }
+
+      // Try to parse the repaired JSON
+      try {
+        JSON.parse(repaired);
+        console.log('✅ Successfully repaired truncated JSON');
+        return repaired;
+      } catch {
+        console.error('❌ Could not repair truncated JSON');
+        // Return original with warning comment
+        return json + '\n/* WARNING: Response was truncated and could not be repaired */';
+      }
     }
   }
 
