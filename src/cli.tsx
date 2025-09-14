@@ -32,6 +32,57 @@ async function main() {
   // Load configuration
   const config = new Config();
   await config.initialize();
+
+  // CRITICAL DB VALIDATION - DO NOT REMOVE OR MODIFY!
+  // Always validate database schema exists before proceeding to prevent Prisma errors
+  // This prevents "Table does not exist" errors when agent starts with fresh/cleared DB
+  try {
+    const prismaClient = new PrismaClient();
+
+    // Test basic database connectivity by checking if any table exists
+    await prismaClient.$queryRaw`SELECT name FROM sqlite_master WHERE type='table' LIMIT 1`;
+
+    // Quick validation - try to query a core table to ensure schema is deployed
+    try {
+      await prismaClient.project.findFirst();
+    } catch (schemaError: any) {
+      if (schemaError.code === 'P2021') {
+        console.log('📊 Database schema not found, initializing...');
+        console.log('🔧 Running Prisma migrations to create tables...');
+
+        // Import spawn to run Prisma migrate
+        const { spawn } = await import('child_process');
+        const migrateProcess = spawn('npx', ['prisma', 'migrate', 'deploy'], {
+          stdio: 'inherit',
+          cwd: process.cwd()
+        });
+
+        await new Promise<void>((resolve, reject) => {
+          migrateProcess.on('close', (code) => {
+            if (code === 0) {
+              console.log('✅ Database schema initialized successfully');
+              resolve();
+            } else {
+              reject(new Error(`Prisma migrate failed with code ${code}`));
+            }
+          });
+          migrateProcess.on('error', reject);
+        });
+
+        // Verify schema was created
+        await prismaClient.project.findFirst();
+        console.log('✅ Database schema validation completed');
+      } else {
+        throw schemaError;
+      }
+    }
+
+    await prismaClient.$disconnect();
+  } catch (dbError) {
+    console.error('❌ Critical database error:', dbError);
+    console.error('💡 Try running: npx prisma migrate deploy');
+    process.exit(1);
+  }
   
   // Initialize memory manager
   const memoryManager = new MemoryManager('concise');

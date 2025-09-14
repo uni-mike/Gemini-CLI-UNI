@@ -1,30 +1,35 @@
-# FlexiCLI - Intelligent CLI with Complete Memory
+# FlexiCLI - Autonomous AI Agent System
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/FlexiCLI/flexicli)
-[![Model](https://img.shields.io/badge/model-DeepSeek--R1--0528-green.svg)](https://deepseek.com)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/FlexiCLI/flexicli)
+[![Model](https://img.shields.io/badge/model-DeepSeek--V3.1-green.svg)](https://deepseek.com)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 ## Overview
 
-FlexiCLI is an advanced command-line interface featuring a memory-integrated trio architecture (Orchestrator, Planner, Executor), complete memory management, real-time monitoring, and sophisticated token economics optimized for DeepSeek V3.1 model. It provides autonomous task execution with intelligent context retrieval, atomic task decomposition, and comprehensive monitoring capabilities.
+FlexiCLI is a fully autonomous AI agent system featuring a memory-integrated trio architecture (Orchestrator, Planner, Executor) with complete memory persistence, smart state management, and robust error recovery. The system operates entirely autonomously with optional monitoring capabilities, powered by DeepSeek V3.1 with enhanced JSON parsing and token optimization.
 
 ```mermaid
 graph LR
-    U[User] --> A[Agent CLI]
-    U --> M[Monitoring Dashboard]
-    A --> O[Orchestrator]
+    U[User] --> CLI[FlexiCLI Agent]
+    CLI --> O[Orchestrator]
+    O --> P[Planner]
+    O --> E[Executor]
     O --> MM[Memory Manager]
-    O --> DS[DeepSeek R1]
     MM --> DB[(SQLite DB)]
-    M --> API[Monitoring API]
-    API --> DB
+    MM --> Cache[(Cache)]
+    MM --> Logs[(Logs)]
+
+    style CLI fill:#e1f5fe
+    style DB fill:#f3e5f5
+    style Cache fill:#e8f5e8
+    style Logs fill:#fff3e0
 ```
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 - Git
 - SQLite3
@@ -41,243 +46,237 @@ npm install
 
 # Set up environment
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your DeepSeek API credentials
+
+# Initialize database
+npx prisma migrate deploy
 ```
 
 ### Basic Usage
 
 ```bash
-# Start monitoring dashboard (optional)
-./monitoring.sh start
-
-# Run the agent interactively
-./agent.sh
+# Run agent interactively
+npx tsx src/cli.tsx
 
 # Run a single command
-./agent.sh --prompt "Create a README file"
+npx tsx src/cli.tsx --prompt "Create a simple React app" --non-interactive
 
-# Non-interactive with auto-approval
-APPROVAL_MODE=yolo ./agent.sh --prompt "Fix the bug" --non-interactive
+# Run with debug mode
+DEBUG=true npx tsx src/cli.tsx --prompt "Build a TypeScript API" --non-interactive
+
+# Run with monitoring enabled (optional)
+ENABLE_MONITORING=true npx tsx src/cli.tsx --prompt "Your task here" --non-interactive
 ```
 
 ## Key Features
+
+### 🤖 Fully Autonomous Operation
+
+- **No Emergency Fallbacks**: Pure AI-based decision making and error recovery
+- **Smart State Management**: Persistent memory across sessions with automatic DB schema validation
+- **Robust Error Handling**: AI-powered retry mechanisms with exponential backoff
+- **Self-Validating**: Automatic database schema initialization with inline protection comments
 
 ### 🏗️ Memory-Integrated Trio Architecture
 
 ```mermaid
 flowchart TD
-    subgraph "Trio System"
-        O[Orchestrator]
-        P[Planner]
-        E[Executor]
+    subgraph "Core Trio System"
+        O[Orchestrator<br/>Coordinates & Manages]
+        P[Planner<br/>Strategic Planning]
+        E[Executor<br/>Task Execution]
     end
 
-    subgraph "Memory Manager"
+    subgraph "Memory Layers"
         MM[Memory Manager]
-        TB[Token Budget]
-        EM[Ephemeral Memory]
+        GL[Git Context Layer]
         RL[Retrieval Layer]
-        GL[Git Context]
+        EM[Ephemeral Memory]
+        TB[Token Budget Manager]
     end
 
-    User --> O
-    O --> P
+    subgraph "Persistence"
+        DB[(SQLite Database)]
+        FS[(File System)]
+        LOGS[(Logs)]
+    end
+
+    U[User Input] --> O
+    O <--> P
+    O <--> E
     P --> E
-    E --> O
+
     O <--> MM
     P <--> MM
     E <--> MM
-    MM --> TB
-    MM --> EM
-    MM --> RL
+
     MM --> GL
+    MM --> RL
+    MM --> EM
+    MM --> TB
+
+    GL --> DB
+    RL --> DB
+    MM --> FS
+    O --> LOGS
+
+    style O fill:#e3f2fd
+    style P fill:#f3e5f5
+    style E fill:#e8f5e8
+    style MM fill:#fff8e1
+    style DB fill:#fce4ec
 ```
 
-**New in v1.0.1 (Memory Integration Update):**
-- **Orchestrator**: Coordinates all trio operations with memory context awareness
-- **Planner**: Breaks down complex tasks into atomic steps using memory-informed planning
-- **Executor**: Executes individual tasks with full memory layer access
-- **Memory Manager**: Shared across all trio components for consistent context
-- **Atomic Task Decomposition**: Enforces single-action tasks with success criteria validation
+### 🧠 Advanced Memory Management
 
-### 🧠 Complete Memory Pipeline
+- **Git Context Layer**: Automatic code context indexing with vector embeddings
+- **Retrieval Layer**: Intelligent context retrieval with similarity search
+- **Ephemeral Memory**: Session-based working memory with token budgeting
+- **Persistent Storage**: SQLite database with automatic schema validation
 
-```mermaid
-flowchart TD
-    subgraph "Memory Layers"
-        E[Ephemeral Memory]
-        R[Retrieval System]
-        K[Knowledge Base]
-        G[Git Context]
-    end
-    
-    Q[Query] --> E
-    Q --> R
-    R --> EMB[Embeddings]
-    EMB --> SS[Similarity Search]
-    SS --> CTX[Context Builder]
-    E --> CTX
-    K --> CTX
-    G --> CTX
-    CTX --> P[Prompt]
+### 🔄 Enhanced DeepSeek V3.1 Integration
+
+- **Fixed JSON Parsing**: Robust extraction prioritizing JSON over Mermaid diagrams
+- **Dynamic Token Allocation**: Intelligent token limits based on prompt complexity (8K-64K range)
+- **Response Optimization**: No truncation, complete response handling
+- **Retry Logic**: Exponential backoff with smart error classification
+
+### 📊 Optional Monitoring System
+
+- **Autonomous Operation**: Agent runs independently, monitoring reads data when available
+- **Real-time Dashboards**: React-based UI for session tracking (optional)
+- **Comprehensive Logging**: All actions logged to database and files
+- **Tool Execution Tracking**: Complete audit trail of all operations
+
+## System Architecture
+
+The system operates through a clean separation of concerns:
+
+### Core Components
+
+1. **Orchestrator** (`src/core/orchestrator.ts`)
+   - Manages overall workflow and coordination
+   - Handles errors with AI-based recovery (no emergency fallbacks)
+   - Forwards events to monitoring system
+
+2. **Planner** (`src/core/planner.ts`)
+   - Strategic task decomposition using AI planning
+   - Returns structured JSON plans with success criteria
+   - No hardcoded task templates
+
+3. **Executor** (`src/core/executor.ts`)
+   - Executes individual tasks from plans
+   - Tool selection and parameter generation
+   - Results validation and reporting
+
+4. **Memory Manager** (`src/memory/memory-manager.ts`)
+   - Coordinates all memory layers
+   - Token budget management
+   - Session persistence and recovery
+
+### Data Storage Structure
+
+```
+.flexicli/
+├── flexicli.db          # SQLite database (auto-created)
+├── cache/               # Temporary cache storage
+├── logs/               # Session logs (auto-populated)
+└── meta.json           # Project metadata
 ```
 
-- **Ephemeral Memory**: Recent conversation context
-- **Retrieval System**: Vector-based semantic search
-- **Knowledge Base**: Project patterns and preferences
-- **Git Context**: Version control integration
+### Database Tables
 
-### 📊 Real-Time Monitoring
+- **Chunk**: Vector embeddings for code context
+- **ExecutionLog**: Tool execution audit trail
+- **GitCommit**: Git context layer data
+- **Knowledge**: Persistent knowledge storage
+- **Project**: Project metadata
+- **Session**: Session management
+- **SessionSnapshot**: State snapshots
+- **SchemaVersion**: Migration tracking
 
-Access comprehensive monitoring at http://localhost:3000
+## Recent Major Fixes
 
-- Live token usage tracking
-- Memory pipeline visualization
-- Performance metrics
-- Session history
-- Tool execution logs
+### v2.0.0 - Autonomous System Overhaul
 
-### 🎯 Token Economics
+- ✅ **Emergency Fallback Removal**: Eliminated all hardcoded fallbacks, pure AI decision making
+- ✅ **JSON Parsing Fixes**: Robust DeepSeek response parsing, fixed Mermaid extraction bugs
+- ✅ **Token Optimization**: Dynamic allocation (8K-64K) prevents truncation
+- ✅ **Database Auto-Validation**: Automatic schema initialization with protection comments
+- ✅ **Memory Pipeline**: Complete persistence of all layers (chunks, sessions, logs)
+- ✅ **Error Recovery**: AI-powered retry mechanisms with exponential backoff
+- ✅ **Documentation Cleanup**: Organized structure under `docs/` subfolders
 
-Optimized for DeepSeek R1 0528:
-- **Input**: 128K tokens max
-- **Output**: 32K tokens max
-- **Reasoning Suppression**: Automatic removal of think tags
-- **Mode-based Budgets**: Direct (1K), Concise (6K), Deep (15K)
+### Critical Bug Fixes
 
-### 🔧 Tool Ecosystem
+1. **JSON Extraction Priority**: Now correctly extracts JSON when mixed with Mermaid content
+2. **Token Limits**: Increased 4x-8x to handle complex planning tasks without truncation
+3. **Schema Validation**: Auto-creates database schema on startup, prevents "Table does not exist" errors
+4. **Memory Persistence**: All memory layers properly stored and retrieved from database
 
-13+ integrated tools:
-- File operations (Read/Write/Edit)
-- Shell execution (Bash commands)
-- Web tools (Search/Fetch)
-- Memory operations
-- Git integration
+## Development
 
-## Documentation
+### Project Structure
 
-### Core Documentation
+```
+src/
+├── cli.tsx                 # Main CLI entry point with DB validation
+├── core/                   # Orchestrator, Planner, Executor trio
+├── memory/                 # Memory management and persistence
+├── llm/                    # DeepSeek client with enhanced JSON parsing
+├── tools/                  # Tool discovery and execution
+├── monitoring/             # Optional monitoring system
+└── config/                 # Configuration management
 
-- [🏗️ Architecture](docs/ARCHITECTURE.md) - System design and component overview
-- [💰 Token Economics](docs/TOKEN_ECONOMICS.md) - Token management and optimization
-- [🧠 Memory Pipeline](docs/MEMORY_PIPELINE.md) - Complete memory system documentation
-- [📋 Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md) - Project completion report
+docs/
+├── architecture/           # System architecture documentation
+├── development/           # Development and implementation notes
+├── guides/                # User guides and tutorials
+└── research/              # Research and model comparisons
+```
 
-### Development
-
-- [🔧 Mock Fix Documentation](docs/development/MOCK_FIX.md) - How mock data was removed
-- [🚀 Agent Pipeline](docs/architecture/AGENT_PIPELINE.md) - Agent architecture details
-- [📝 TODO List](docs/TODO.md) - Future enhancements and tasks
-
-## Scripts
-
-### Control Scripts
-
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| `agent.sh` | Main agent control | `./agent.sh [options]` |
-| `monitoring.sh` | Monitoring control | `./monitoring.sh start\|stop\|status` |
-| `test-complete.sh` | Run full test suite | `./test-complete.sh` |
-
-### Options
+### Running Tests
 
 ```bash
-# Agent options
---prompt "text"      # Run single command
---non-interactive    # No user interaction
---approval-mode MODE # default|yolo|strict
---help              # Show help
+# Run unit tests
+npm test
 
-# Environment variables
-APPROVAL_MODE       # Set approval mode
-ENABLE_MONITORING   # Enable monitoring integration
-DEBUG              # Enable debug logging
+# Run integration tests
+npm run test:integration
+
+# Run with coverage
+npm run test:coverage
 ```
 
-## Project Structure
-
-```
-flexicli/
-├── src/
-│   ├── core/           # Orchestrator and core logic
-│   ├── memory/         # Memory management system
-│   ├── llm/            # DeepSeek client
-│   ├── tools/          # Tool implementations
-│   ├── ui/             # React Ink CLI interface
-│   └── monitoring/     # Monitoring system
-│       ├── backend/    # API server
-│       └── react-dashboard/  # Web UI
-├── docs/               # Documentation
-├── .flexicli/          # Project database
-├── agent.sh           # Agent control script
-└── monitoring.sh      # Monitoring control script
-```
-
-## Testing
-
-```bash
-# Run complete test suite
-chmod +x test-complete.sh
-./test-complete.sh
-
-# Test individual components
-./agent.sh --help
-./monitoring.sh status
-```
-
-## Configuration
-
-### Environment Variables (.env)
-
-```env
-# DeepSeek API
-DEEPSEEK_API_KEY=your_key_here
-DEEPSEEK_MODEL=deepseek-r1-0528
-
-# Azure OpenAI (for embeddings)
-AZURE_OPENAI_API_KEY=your_key_here
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_DEPLOYMENT=text-embedding-3-large
-
-# Monitoring
-MONITORING_PORT=4000
-DASHBOARD_PORT=3000
-
-# Agent Settings
-DEFAULT_APPROVAL_MODE=default
-DEFAULT_OPERATING_MODE=concise
-```
-
-## Troubleshooting
-
-### Common Issues
-
-| Issue | Solution |
-|-------|----------|
-| Port already in use | `./monitoring.sh stop` then restart |
-| Token limit exceeded | Switch to concise mode or clear context |
-| Embeddings not working | Check Azure OpenAI credentials |
-| Database errors | Check `.flexicli/` permissions |
-
-### Debug Mode
-
-```bash
-# Enable debug logging
-DEBUG=true ./agent.sh
-
-# Check logs
-tail -f /tmp/flexicli-*.log
-```
-
-## Contributing
-
-We welcome contributions! Please follow these guidelines:
+### Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests
+3. Make your changes with appropriate tests
+4. Update documentation if needed
 5. Submit a pull request
+
+## Environment Variables
+
+```bash
+# DeepSeek API Configuration (Required)
+API_KEY=your_deepseek_api_key
+ENDPOINT=https://your-deepseek-endpoint.com
+MODEL=DeepSeek-V3.1
+
+# Optional Configuration
+DEBUG=true                    # Enable debug logging
+ENABLE_MONITORING=true        # Enable monitoring system
+DATABASE_URL=file:./data.db   # Custom database path
+```
+
+## Documentation
+
+- [Architecture Overview](docs/architecture/ARCHITECTURE.md)
+- [Memory Pipeline](docs/architecture/MEMORY_PIPELINE.md)
+- [Agent Pipeline](docs/architecture/AGENT_PIPELINE.md)
+- [Development Guide](docs/development/IMPLEMENTATION_SUMMARY.md)
+- [Model Research](docs/research/DEEPSEEK_MODELS_COMPARISON.md)
 
 ## License
 
@@ -285,17 +284,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- 📧 Email: support@flexicli.ai
-- 💬 Discord: [Join our community](https://discord.gg/flexicli)
-- 🐛 Issues: [GitHub Issues](https://github.com/FlexiCLI/flexicli/issues)
-
-## Acknowledgments
-
-- DeepSeek for the R1 model
-- Azure OpenAI for embeddings
-- React Ink for CLI interface
-- The open-source community
-
----
-
-**FlexiCLI v1.0.0** | Built with ❤️ by Mike Admon | Powered by DeepSeek R1
+For issues and questions:
+- GitHub Issues: [FlexiCLI Issues](https://github.com/FlexiCLI/flexicli/issues)
+- Documentation: [docs/](docs/)
