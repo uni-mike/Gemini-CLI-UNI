@@ -49,7 +49,8 @@
       "Bash(DEBUG=false ENABLE_MONITORING=false APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Build a complete task management app in TASK_APP folder. Create React frontend with TypeScript, Node.js backend with Express and SQLite, and comprehensive documentation. Include task CRUD operations, priority levels, due dates, categories, and a responsive dashboard. Make it fully functional with proper error handling.\" --non-interactive)",
       "Bash(npm install)",
       "Bash(timeout:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create directory TEST_FIX with file TEST_FIX/sample.txt containing ''Hello World''\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

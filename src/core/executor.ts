@@ -241,8 +241,28 @@ export class Executor extends EventEmitter {
         }
 
         // CRITICAL FIX: For bash tool, ensure command is properly set
-        if (toolName === 'bash' && !args.command && args.description) {
-          args.command = this.extractCommand(args.description || task.description);
+        if (toolName === 'bash' && !args.command) {
+          // First, check if the planner provided command directly in the plan definition
+          if (task.command) {
+            args.command = task.command;
+            if (process.env.DEBUG === 'true') {
+              console.log(`🔍 Using direct planner command: "${task.command}"`);
+            }
+          }
+          // Second, check in nested arguments
+          else if (task.arguments?.bash?.command) {
+            args.command = task.arguments.bash.command;
+            if (process.env.DEBUG === 'true') {
+              console.log(`🔍 Using nested bash command: "${task.arguments.bash.command}"`);
+            }
+          }
+          // Finally, extract from description
+          else if (args.description || task.description) {
+            args.command = this.extractCommand(args.description || task.description);
+            if (process.env.DEBUG === 'true') {
+              console.log(`🔍 Extracted command from description: "${args.command}"`);
+            }
+          }
         }
 
         // Smart timeout for bash script execution and long-running commands
@@ -281,14 +301,30 @@ export class Executor extends EventEmitter {
 
         // CRITICAL FIX: For write_file/file tools, ensure proper file paths from planner
         if ((toolName === 'write_file' || toolName === 'file') && !args.file_path && !args.path) {
-          // Extract from planner-provided file_path or path field
-          if (task.arguments?.write_file?.file_path) {
+          // First, check if the planner provided file_path directly in the plan definition
+          if (task.file_path) {
+            args.file_path = task.file_path;
+            if (process.env.DEBUG === 'true') {
+              console.log(`🔍 Using direct planner file_path: "${task.file_path}"`);
+            }
+          }
+          // Second, extract from planner-provided nested arguments
+          else if (task.arguments?.write_file?.file_path) {
             args.file_path = task.arguments.write_file.file_path;
+            if (process.env.DEBUG === 'true') {
+              console.log(`🔍 Using nested write_file file_path: "${task.arguments.write_file.file_path}"`);
+            }
           } else if (task.arguments?.file?.path) {
             args.path = task.arguments.file.path;
+            if (process.env.DEBUG === 'true') {
+              console.log(`🔍 Using nested file path: "${task.arguments.file.path}"`);
+            }
           } else {
             // Fall back to parsing from description but with better patterns
             args.file_path = this.extractFilePathFromPlanDescription(task.description);
+            if (process.env.DEBUG === 'true') {
+              console.log(`🔍 Extracted from description: "${args.file_path}"`);
+            }
           }
         }
 
