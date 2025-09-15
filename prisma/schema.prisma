@@ -13,6 +13,25 @@ model SchemaVersion {
   appliedAt DateTime @default(now())
 }
 
+model Cache {
+  id          String   @id @default(uuid())
+  projectId   String
+  cacheKey    String   @unique
+  originalKey String
+  value       String
+  category    String   @default("general") // "embedding", "general", etc.
+  size        Int
+  accessCount Int      @default(0)
+  lastAccess  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  ttl         DateTime
+
+  @@index([projectId, category])
+  @@index([lastAccess])
+  @@index([ttl])
+  @@index([accessCount])
+}
+
 model Project {
   id        String         @id @default(uuid())
   rootPath  String         @unique

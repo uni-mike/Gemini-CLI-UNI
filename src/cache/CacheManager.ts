@@ -1,12 +1,11 @@
 /**
- * CacheManager - Efficient in-memory caching with LRU eviction
- * Uses memory-first approach with optional persistence
+ * CacheManager - Database-based caching with LRU in-memory layer
+ * Features: FIFO cleanup, age-based expiration, proper database persistence
  */
 
 import { LRUCache } from 'lru-cache';
 import { createHash } from 'crypto';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
 
 export interface CacheOptions {
   max?: number; // Maximum number of items
@@ -20,20 +19,22 @@ export interface CacheOptions {
 export class CacheManager {
   private static instance: CacheManager;
   private cache: LRUCache<string, any>;
-  private persistPath: string;
+  private keyToOriginal: Map<string, string> = new Map(); // Track original keys for embeddings
+  private prisma: PrismaClient;
   private persistInterval: NodeJS.Timeout | null = null;
-  
+  private projectId: string = 'default'; // Will be set dynamically
+
   private constructor() {
-    this.persistPath = path.join(process.cwd(), '.flexicli', 'cache.json');
-    
+    this.prisma = new PrismaClient();
+
     // Initialize LRU cache with sensible defaults
     this.cache = new LRUCache<string, any>({
       max: 500, // Maximum 500 items
       maxSize: 50 * 1024 * 1024, // 50MB max size
-      ttl: 1000 * 60 * 60 * 24 * 7, // 7 days default TTL
+      ttl: 1000 * 60 * 60 * 24 * 3, // 3 days default TTL
       updateAgeOnGet: true, // Keep frequently accessed items
       allowStale: true, // Return stale while revalidating
-      
+
       // Calculate size for memory management
       sizeCalculation: (value: any) => {
         if (typeof value === 'string') return value.length;
@@ -41,47 +42,54 @@ export class CacheManager {
         if (value instanceof Float32Array) return value.length * 4;
         return JSON.stringify(value).length;
       },
-      
+
       // Dispose callback for cleanup
       dispose: (value: any, key: string) => {
         console.debug(`Cache evicted: ${key}`);
       }
     });
-    
+
     // Load persisted cache on startup
     this.loadPersistedCache().catch(console.error);
-    
-    // Persist cache periodically (every 5 minutes)
+
+    // Persist cache periodically (every 5 minutes) and cleanup old entries
     this.persistInterval = setInterval(() => {
       this.persistCache().catch(console.error);
+      this.cleanupExpiredEntries().catch(console.error);
     }, 5 * 60 * 1000);
   }
-  
+
   static getInstance(): CacheManager {
     if (!CacheManager.instance) {
       CacheManager.instance = new CacheManager();
     }
     return CacheManager.instance;
   }
-  
+
   /**
    * Generate cache key from input
    */
   private getCacheKey(key: string): string {
     return createHash('sha256').update(key).digest('hex');
   }
-  
+
   /**
    * Set value in cache
    */
   set(key: string, value: any, options?: CacheOptions): void {
     const cacheKey = this.getCacheKey(key);
+
+    // Track original key for embeddings persistence
+    if (key.startsWith('embed_')) {
+      this.keyToOriginal.set(cacheKey, key);
+    }
+
     this.cache.set(cacheKey, value, {
       ttl: options?.ttl,
       size: options?.sizeCalculation?.(value, key)
     });
   }
-  
+
   /**
    * Get value from cache
    */
@@ -89,7 +97,7 @@ export class CacheManager {
     const cacheKey = this.getCacheKey(key);
     return this.cache.get(cacheKey) as T | undefined;
   }
-  
+
   /**
    * Check if key exists
    */
@@ -97,7 +105,7 @@ export class CacheManager {
     const cacheKey = this.getCacheKey(key);
     return this.cache.has(cacheKey);
   }
-  
+
   /**
    * Delete from cache
    */
@@ -105,14 +113,14 @@ export class CacheManager {
     const cacheKey = this.getCacheKey(key);
     return this.cache.delete(cacheKey);
   }
-  
+
   /**
    * Clear entire cache
    */
   clear(): void {
     this.cache.clear();
   }
-  
+
   /**
    * Get cache statistics
    */
@@ -122,63 +130,221 @@ export class CacheManager {
       calculatedSize: this.cache.calculatedSize,
       maxSize: this.cache.maxSize,
       itemCount: this.cache.size,
-      hitRate: this.cache.size > 0 ? 
+      hitRate: this.cache.size > 0 ?
         (this.cache as any).hits / ((this.cache as any).hits + (this.cache as any).misses) : 0
     };
   }
-  
+
   /**
-   * Persist critical cache entries to disk
+   * Persist critical cache entries to database with FIFO and aging
    */
   private async persistCache(): Promise<void> {
     try {
-      // Only persist embeddings and critical data
-      const criticalEntries: Record<string, any> = {};
-      let count = 0;
-      
-      for (const [key, value] of this.cache.entries()) {
-        // Only persist embeddings (they're expensive to regenerate)
-        if (key.startsWith('embed_')) {
-          criticalEntries[key] = value;
-          count++;
-          if (count >= 100) break; // Limit persistence
+      const now = new Date();
+      const criticalEntries: Array<{key: string, value: any, category: string}> = [];
+
+      for (const [hashedKey, value] of this.cache.entries()) {
+        // Check if this is an embedding using original key mapping
+        const originalKey = this.keyToOriginal.get(hashedKey);
+        if (originalKey && originalKey.startsWith('embed_')) {
+          criticalEntries.push({
+            key: originalKey,
+            value: value,
+            category: 'embedding'
+          });
         }
       }
-      
-      if (Object.keys(criticalEntries).length > 0) {
-        await fs.mkdir(path.dirname(this.persistPath), { recursive: true });
-        await fs.writeFile(
-          this.persistPath,
-          JSON.stringify(criticalEntries),
-          'utf-8'
-        );
+
+      // Upsert cache entries to database
+      for (const entry of criticalEntries) {
+        const valueStr = JSON.stringify(entry.value);
+        const size = valueStr.length;
+        const ttl = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000)); // 3 days from now
+
+        await this.prisma.cache.upsert({
+          where: { cacheKey: this.getCacheKey(entry.key) },
+          update: {
+            value: valueStr,
+            size,
+            lastAccess: now,
+            ttl,
+            accessCount: { increment: 1 }
+          },
+          create: {
+            projectId: this.projectId,
+            cacheKey: this.getCacheKey(entry.key),
+            originalKey: entry.key,
+            value: valueStr,
+            category: entry.category,
+            size,
+            ttl
+          }
+        });
+      }
+
+      // Enforce FIFO limit: keep only most recent 1000 entries per project
+      const totalCount = await this.prisma.cache.count({ where: { projectId: this.projectId } });
+      if (totalCount > 1000) {
+        const toDelete = totalCount - 1000;
+        const oldestEntries = await this.prisma.cache.findMany({
+          where: { projectId: this.projectId },
+          orderBy: { createdAt: 'asc' },
+          take: toDelete,
+          select: { id: true }
+        });
+
+        if (oldestEntries.length > 0) {
+          await this.prisma.cache.deleteMany({
+            where: {
+              id: { in: oldestEntries.map(e => e.id) }
+            }
+          });
+          console.log(`🗑️ FIFO cleanup: removed ${oldestEntries.length} old cache entries`);
+        }
+      }
+
+      if (criticalEntries.length > 0) {
+        console.log(`💾 Persisted ${criticalEntries.length} cache entries to database`);
       }
     } catch (error) {
-      console.error('Failed to persist cache:', error);
+      console.error('Failed to persist cache to database:', error);
     }
   }
-  
+
   /**
-   * Load persisted cache from disk
+   * Load persisted cache from database
    */
   private async loadPersistedCache(): Promise<void> {
     try {
-      const data = await fs.readFile(this.persistPath, 'utf-8');
-      const entries = JSON.parse(data);
-      
-      for (const [key, value] of Object.entries(entries)) {
-        // Restore with reduced TTL
-        this.cache.set(key, value, {
-          ttl: 1000 * 60 * 60 * 24 // 1 day for restored entries
-        });
+      // First, set up project ID (could come from environment or be determined dynamically)
+      this.projectId = process.env.PROJECT_ID || await this.getDefaultProjectId();
+
+      const cacheEntries = await this.prisma.cache.findMany({
+        where: {
+          projectId: this.projectId,
+          ttl: { gt: new Date() } // Only load non-expired entries
+        },
+        orderBy: { lastAccess: 'desc' } // Most recently accessed first
+      });
+
+      let restoredCount = 0;
+      for (const entry of cacheEntries) {
+        try {
+          const value = JSON.parse(entry.value);
+          const hashedKey = this.getCacheKey(entry.originalKey);
+
+          // Restore to in-memory cache
+          this.cache.set(hashedKey, value, {
+            ttl: entry.ttl.getTime() - Date.now() // Remaining TTL
+          });
+
+          // Restore key mapping for embeddings
+          if (entry.originalKey.startsWith('embed_')) {
+            this.keyToOriginal.set(hashedKey, entry.originalKey);
+          }
+
+          // Update access time in database
+          await this.prisma.cache.update({
+            where: { id: entry.id },
+            data: {
+              lastAccess: new Date(),
+              accessCount: { increment: 1 }
+            }
+          });
+
+          restoredCount++;
+        } catch (parseError) {
+          console.warn(`Failed to restore cache entry ${entry.id}:`, parseError);
+        }
       }
-      
-      console.log(`Restored ${Object.keys(entries).length} cache entries`);
+
+      console.log(`📂 Restored ${restoredCount} cache entries from database`);
     } catch (error) {
-      // File doesn't exist or is corrupted, ignore
+      console.warn('Failed to load persisted cache from database:', error);
+      console.log('📂 Starting with fresh cache');
     }
   }
-  
+
+  /**
+   * Cleanup expired entries from database (age-based)
+   */
+  private async cleanupExpiredEntries(): Promise<void> {
+    try {
+      const deletedCount = await this.prisma.cache.deleteMany({
+        where: {
+          OR: [
+            { ttl: { lt: new Date() } }, // Expired entries
+            {
+              // Entries older than 7 days regardless of TTL
+              createdAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+            },
+            {
+              // Entries not accessed in 3 days (access-based cleanup)
+              lastAccess: { lt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) }
+            }
+          ]
+        }
+      });
+
+      if (deletedCount.count > 0) {
+        console.log(`🧹 Cleaned up ${deletedCount.count} expired/old cache entries`);
+      }
+    } catch (error) {
+      console.warn('Failed to cleanup expired cache entries:', error);
+    }
+  }
+
+  /**
+   * Get default project ID from database
+   */
+  private async getDefaultProjectId(): Promise<string> {
+    try {
+      const project = await this.prisma.project.findFirst();
+      return project?.id || 'default-project';
+    } catch (error) {
+      return 'default-project';
+    }
+  }
+
+  /**
+   * Set project ID for cache operations
+   */
+  setProjectId(projectId: string): void {
+    this.projectId = projectId;
+  }
+
+  /**
+   * Get cache statistics from database
+   */
+  async getDatabaseStats() {
+    try {
+      const stats = await this.prisma.cache.aggregate({
+        where: { projectId: this.projectId },
+        _count: { id: true },
+        _sum: { size: true, accessCount: true },
+        _avg: { accessCount: true, size: true }
+      });
+
+      const byCategory = await this.prisma.cache.groupBy({
+        by: ['category'],
+        where: { projectId: this.projectId },
+        _count: { id: true },
+        _sum: { size: true }
+      });
+
+      return {
+        totalEntries: stats._count.id || 0,
+        totalSize: stats._sum.size || 0,
+        avgAccessCount: stats._avg.accessCount || 0,
+        avgSize: stats._avg.size || 0,
+        byCategory
+      };
+    } catch (error) {
+      console.warn('Failed to get database cache stats:', error);
+      return null;
+    }
+  }
+
   /**
    * Cleanup on shutdown
    */
@@ -187,6 +353,8 @@ export class CacheManager {
       clearInterval(this.persistInterval);
     }
     await this.persistCache();
+    await this.cleanupExpiredEntries();
+    await this.prisma.$disconnect();
     this.cache.clear();
   }
 }
