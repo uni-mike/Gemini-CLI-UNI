@@ -134,7 +134,7 @@ export class ProjectManager {
         }
         
         // IMPORTANT: Use the existing project ID from database if available
-        if (this.metadata.projectId === 'unipath-project-1') {
+        if (this.metadata && this.metadata.projectId === 'unipath-project-1') {
           // Keep the existing ID for compatibility
           console.log('📦 Using existing project ID:', this.metadata.projectId);
         }

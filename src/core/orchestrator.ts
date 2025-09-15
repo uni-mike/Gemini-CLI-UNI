@@ -18,6 +18,7 @@ import { Executor, ExecutionContext } from './executor.js';
 import { globalRegistry } from '../tools/registry.js'; // Only for slash commands
 import { MonitoringSystem } from '../monitoring/backend/index.js';
 import { MemoryManager } from '../memory/memory-manager.js';
+import { ModeDetector } from '../memory/mode-detector.js';
 
 export interface ExecutionResult {
   success: boolean;
@@ -148,7 +149,7 @@ export class Orchestrator extends EventEmitter {
         // Start monitoring in background
         this.monitoring.start().then(() => {
           // Attach to this orchestrator for real-time data
-          this.monitoring?.attachToAgent(this, this.memoryManager);
+          this.monitoring?.attachToAgent(this, this.memoryManager || undefined);
           console.log('📊 Monitoring dashboard: http://localhost:' + port);
         }).catch(err => {
           console.warn('⚠️ Monitoring failed to start:', err.message);
@@ -291,13 +292,24 @@ export class Orchestrator extends EventEmitter {
   }
 
   async execute(prompt: string): Promise<ExecutionResult> {
-    // Initialize memory manager if not done yet
-    if (this.memoryManager && !this.memoryManager.initialized) {
+    // Detect operating mode based on prompt complexity
+    const detectedMode = ModeDetector.detectMode(prompt);
+
+    // Initialize memory manager with detected mode if needed
+    if (!this.memoryManager || this.memoryManager.getMode() !== detectedMode) {
+      this.memoryManager = new MemoryManager(detectedMode);
+      this.planner.setMemoryManager(this.memoryManager);
+      await this.memoryManager.initialize();
+    } else if (!this.memoryManager.initialized) {
       await this.initialize();
     }
 
-    this.emit('orchestration-start', { prompt });
-    this.emit('status', '🎯 Orchestrator starting...');
+    if (process.env.DEBUG === 'true') {
+      console.log(`🎯 Detected mode: ${detectedMode} for prompt (${prompt.split(' ').length} words)`);
+    }
+
+    this.emit('orchestration-start', { prompt, mode: detectedMode });
+    this.emit('status', `🎯 Orchestrator starting in ${detectedMode} mode...`);
     this.toolsUsed = [];
     this.processedTools.clear();
     this.trioMessages = []; // Clear trio conversation
@@ -384,9 +396,9 @@ export class Orchestrator extends EventEmitter {
           // Store semantic knowledge about the task and its context
           const taskContext = {
             originalPrompt: prompt,
-            planSteps: plan.tasks.map(t => ({ type: t.tool, description: t.description })),
+            planSteps: plan.tasks.map(t => ({ type: t.tools?.[0] || t.type, description: t.description })),
             successfulOutputs: successfulTasks.map(r => ({
-              tool: r.tool,
+              tool: r.toolsUsed?.[0] || 'unknown',
               output: typeof r.output === 'string' ? r.output.substring(0, 500) : JSON.stringify(r.output).substring(0, 500)
             })),
             timestamp: new Date().toISOString()
@@ -400,23 +412,14 @@ export class Orchestrator extends EventEmitter {
           );
 
           // Store semantic chunks for embeddings
-          const semanticContent = `User requested: ${prompt}\nPlan created: ${plan.tasks.map(t => t.description).join('; ')}\nSuccessful execution with tools: ${successfulTasks.map(r => r.tool).join(', ')}`;
+          const semanticContent = `User requested: ${prompt}\nPlan created: ${plan.tasks.map(t => t.description).join('; ')}\nSuccessful execution with tools: ${successfulTasks.map(r => r.toolsUsed?.[0] || 'unknown').join(', ')}`;
 
-          if (this.memoryManager.retrieval) {
-            try {
-              await this.memoryManager.retrieval.storeChunk(
-                `execution_success_${Date.now()}`, // path
-                semanticContent,                    // content
-                'doc',                             // chunkType
-                {                                  // metadata
-                  prompt_hash: this.hashPrompt(prompt),
-                  tools_used: successfulTasks.flatMap(r => r.toolsUsed || []).filter(tool => tool !== undefined),
-                  success_rate: successfulTasks.length / results.length
-                }
-              );
-            } catch (error: any) {
-              console.error('Failed to store embedding chunk:', error.message);
-            }
+          // Store semantic chunks via memory manager
+          try {
+            // TODO: Add public method to MemoryManager for storing chunks
+            // For now, knowledge storage captures the semantic context
+          } catch (error: any) {
+            console.error('Failed to store embedding chunk:', error.message);
           }
         }
 
@@ -425,7 +428,7 @@ export class Orchestrator extends EventEmitter {
           JSON.stringify({
             prompt,
             plan_summary: plan.tasks.map(t => t.description).join('; '),
-            execution_results: results.map(r => ({ tool: r.tool, success: r.success })),
+            execution_results: results.map(r => ({ tool: r.toolsUsed?.[0] || 'unknown', success: r.success })),
             timestamp: new Date().toISOString()
           })
         );

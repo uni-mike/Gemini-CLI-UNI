@@ -379,7 +379,7 @@ export class GitContextLayer implements MemoryLayer {
         embedding: embeddingBuffer
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 'P2002') {
         // Duplicate constraint - commit already exists, skip silently
         console.debug(`Commit ${commit.hash.substring(0, 7)} already exists, skipping`);

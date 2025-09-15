@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(DEBUG=false ENABLE_MONITORING=false APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Search for and use previous React TypeScript knowledge to create a simple todo app component. Reference any patterns from our previous projects like the e-commerce platform or plant watering scheduler.\" --non-interactive)"
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a simple test file called mode-test.txt with content ''''Mode detection test''''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a simple test file called mode-test.txt with content ''Mode detection test''\" --non-interactive)",
+      "Bash(npx prisma db pull:*)"
     ],
     "deny": [],
     "ask": []

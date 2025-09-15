@@ -194,7 +194,14 @@ Output Limit: ${modeLimit} (reasoning cap: ${this.getReasoningCap()})`;
   /**
    * Get current usage
    */
-  getUsage(): TokenUsage {
+  getUsage(category?: string): TokenUsage | number {
+    if (category) {
+      // Return specific category usage
+      if (category in this.currentUsage.input) {
+        return this.currentUsage.input[category as keyof TokenAllocation];
+      }
+      return 0;
+    }
     return { ...this.currentUsage };
   }
 

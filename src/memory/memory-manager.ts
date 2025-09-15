@@ -43,6 +43,7 @@ export class MemoryManager extends EventEmitter {
   private gitContext: GitContextLayer;
   private prisma: PrismaClient;
   private mode: OperatingMode;
+  private _initialized: boolean = false;
   
   constructor(mode: OperatingMode = 'concise') {
     super();
@@ -75,32 +76,49 @@ export class MemoryManager extends EventEmitter {
   async initialize(): Promise<void> {
     // Initialize project manager with database lookup
     await this.projectManager.initializeWithDatabase();
-    
+
     // Run database migrations if needed
     await this.ensureDatabase();
-    
+
     // Start or recover session
     const sessionState = await this.sessionManager.startSession(this.mode);
-    
+
     // Restore ephemeral state if recovered
     if (sessionState.ephemeralState.turns.length > 0) {
       this.ephemeral.restoreState(sessionState.ephemeralState);
     }
-    
+
     // Initialize git context in background - don't await to prevent blocking
     // Using setTimeout to ensure it runs after session recovery completes
     setTimeout(() => {
-      this.gitContext.initialize().catch(err => 
+      this.gitContext.initialize().catch(err =>
         console.warn('Failed to initialize git context:', err)
       );
     }, 100);
-    
+
     // Clean old data
     this.projectManager.cleanCache();
     this.projectManager.rotateLogs();
     await this.sessionManager.cleanOldSessions();
+
+    // Mark as initialized
+    this._initialized = true;
   }
   
+  /**
+   * Get the current operating mode
+   */
+  getMode(): OperatingMode {
+    return this.mode;
+  }
+
+  /**
+   * Check if memory manager is initialized
+   */
+  get initialized(): boolean {
+    return this._initialized;
+  }
+
   /**
    * Ensure database is initialized
    * RACE CONDITION PROTECTION: Handle concurrent database access gracefully
