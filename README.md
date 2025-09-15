@@ -1,239 +1,278 @@
-# ECOMMERCE_PLATFORM
+# FlexiCLI
 
-A comprehensive e-commerce platform built with React TypeScript frontend and Node.js Express backend.
+**Autonomous AI Agent with Advanced Memory Management**
 
-## Features
+A production-ready CLI tool that combines autonomous task execution with sophisticated memory persistence and intelligent conversation management.
 
-- User registration and login with JWT authentication
-- Product catalog with categories and search
-- Shopping cart functionality
-- Secure checkout process
-- Order history and tracking
-- Admin panel for product management
-- Responsive design with mobile support
-- RESTful API with proper error handling
+---
 
-## Tech Stack
+## 🚀 Features
 
-### Frontend
-- React 18 with TypeScript
-- Material-UI for components
-- Redux Toolkit for state management
-- React Router for navigation
-- Axios for API calls
+### Core Capabilities
+- **Autonomous Task Execution** - Multi-step planning and execution with real-time feedback
+- **Advanced Memory Management** - Persistent sessions with crash recovery and knowledge accumulation
+- **Token Budget Management** - Intelligent token allocation across memory layers
+- **Real-time Tool Execution** - Comprehensive tool registry with approval management
+- **Database Persistence** - Complete audit trails and session state preservation
 
-### Backend
-- Node.js with Express
-- SQLite database
-- JWT authentication
-- bcryptjs for password hashing
-- express-validator for input validation
-- Helmet for security headers
-- CORS for cross-origin requests
+### Memory System
+- **Session Management** - Automatic crash recovery and state restoration
+- **Knowledge Accumulation** - Semantic understanding capture and retrieval
+- **Execution Logging** - Complete audit trail of all tool executions
+- **Token Tracking** - Precise monitoring of LLM API usage
 
-## Setup Instructions
+---
+
+## 🏗️ Architecture
+
+### Core Components
+```
+FlexiCLI/
+├── src/
+│   ├── core/           # Orchestrator, Planner, Executor
+│   ├── memory/         # Memory management system
+│   ├── tools/          # Tool registry and execution
+│   ├── llm/            # LLM provider integration
+│   ├── config/         # Configuration management
+│   └── approval/       # User approval system
+├── .flexicli/          # Runtime data directory
+│   ├── flexicli.db     # SQLite database
+│   ├── logs/           # Application logs
+│   └── meta.json       # Project metadata
+```
+
+### Database Schema
+- **Sessions** - User session state and metadata
+- **SessionSnapshots** - Point-in-time session backups
+- **ExecutionLog** - Complete tool execution audit trail
+- **Knowledge** - Accumulated semantic understanding
+- **Chunks** - Vector embeddings for retrieval
+
+---
+
+## 📦 Installation
 
 ### Prerequisites
-- Node.js (v16 or higher)
+- Node.js (v18 or higher)
 - npm or yarn
 
-### Installation
-
-1. Clone the repository
+### Setup
 ```bash
+# Clone the repository
 git clone <repository-url>
-cd ecommerce-platform
-```
+cd flexicli
 
-2. Install frontend dependencies
-```bash
-cd ecommerce-platform
+# Install dependencies
 npm install
+
+# Initialize the system
+npx tsx src/cli.tsx --prompt "test installation"
 ```
 
-3. Install backend dependencies
+---
+
+## 🎯 Usage
+
+### Basic Execution
 ```bash
-cd backend
-npm install
+# Interactive mode
+npx tsx src/cli.tsx
+
+# Non-interactive with prompt
+npx tsx src/cli.tsx --prompt "Create a TypeScript function to calculate fibonacci"
+
+# Debug mode
+DEBUG=true npx tsx src/cli.tsx --prompt "your task"
+
+# Approval-free mode
+APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt "your task"
 ```
 
-4. Set up environment variables
+### Environment Variables
 ```bash
-# Backend .env file
-JWT_SECRET=your-super-secret-jwt-key
-PORT=5000
+# Core Configuration
+DEBUG=true                    # Enable debug logging
+APPROVAL_MODE=yolo           # Skip user approval prompts
+ENABLE_MONITORING=false      # Disable UI monitoring
+
+# LLM Configuration
+DEEPSEEK_API_KEY=your-key    # DeepSeek API key
+OPENAI_API_KEY=your-key      # OpenAI API key (alternative)
+
+# Database Configuration
+DATABASE_URL=file:./custom.db # Custom database location
 ```
 
-5. Initialize database
-```bash
-cd backend
-npm run dev
-# This will create the SQLite database and tables
-```
+---
 
-6. Start the development servers
+## 🧠 Memory Management
 
-Frontend (port 3000):
-```bash
-cd ecommerce-platform
-npm start
-```
+### Operating Modes
+- **Concise** - Optimized for quick responses (default)
+- **Detailed** - Extended context for complex tasks
+- **Comprehensive** - Maximum memory allocation
 
-Backend (port 5000):
-```bash
-cd backend
-npm run dev
-```
+### Memory Layers
+1. **Ephemeral** - Current conversation context
+2. **Retrieved** - Relevant historical information
+3. **Knowledge** - Accumulated project understanding
+4. **Git Context** - Repository state and changes
 
-## API Documentation
+### Session Recovery
+FlexiCLI automatically:
+- Detects crashed sessions
+- Restores conversation state
+- Preserves working context
+- Maintains knowledge continuity
 
-### Authentication Endpoints
+---
 
-#### POST /api/auth/register
-Register a new user
+## 🔧 Configuration
 
-Request body:
+### Project Configuration
 ```json
+// .flexicli/meta.json
 {
-  "email": "user@example.com",
-  "password": "password123",
-  "firstName": "John",
-  "lastName": "Doe"
+  "projectId": "unique-project-id",
+  "name": "project-name",
+  "rootPath": "/absolute/path/to/project",
+  "gitRepo": true,
+  "createdAt": "2025-01-15T10:30:00.000Z"
 }
 ```
 
-#### POST /api/auth/login
-Login user
-
-Request body:
+### Tool Permissions
 ```json
+// .claude/settings.local.json
 {
-  "email": "user@example.com",
-  "password": "password123"
+  "permissions": {
+    "allow": ["Bash(npm install:*)", "Read(**/*.ts)"],
+    "deny": ["Bash(rm -rf:*)"],
+    "ask": ["Bash(git push:*)"]
+  }
 }
 ```
 
-### Product Endpoints
+---
 
-#### GET /api/products
-Get all products (with optional query parameters)
+## 🛠️ Development
 
-#### GET /api/products/:id
-Get product by ID
-
-#### GET /api/products/category/:categoryId
-Get products by category
-
-### Order Endpoints
-
-#### POST /api/orders
-Create new order (requires authentication)
-
-#### GET /api/orders
-Get user's order history (requires authentication)
-
-#### GET /api/orders/:id
-Get order details (requires authentication)
-
-### Admin Endpoints
-
-#### POST /api/admin/products
-Create new product (requires admin authentication)
-
-#### PUT /api/admin/products/:id
-Update product (requires admin authentication)
-
-#### DELETE /api/admin/products/:id
-Delete product (requires admin authentication)
-
-## Database Schema
-
-### Users Table
-- id: INTEGER PRIMARY KEY
-- email: TEXT UNIQUE
-- password: TEXT
-- first_name: TEXT
-- last_name: TEXT
-- is_admin: BOOLEAN
-- created_at: DATETIME
-
-### Products Table
-- id: INTEGER PRIMARY KEY
-- name: TEXT
-- description: TEXT
-- price: DECIMAL(10,2)
-- category_id: INTEGER
-- image_url: TEXT
-- stock_quantity: INTEGER
-- is_active: BOOLEAN
-- created_at: DATETIME
-
-### Categories Table
-- id: INTEGER PRIMARY KEY
-- name: TEXT
-- description: TEXT
-- created_at: DATETIME
-
-### Orders Table
-- id: INTEGER PRIMARY KEY
-- user_id: INTEGER
-- total_amount: DECIMAL(10,2)
-- status: TEXT
-- shipping_address: TEXT
-- created_at: DATETIME
-
-### Order Items Table
-- id: INTEGER PRIMARY KEY
-- order_id: INTEGER
-- product_id: INTEGER
-- quantity: INTEGER
-- price: DECIMAL(10,2)
-
-## Testing
-
-Run unit tests:
-```bash
-# Frontend tests
-cd ecommerce-platform
-npm test
-
-# Backend tests
-cd backend
-npm test
+### Project Structure
+```
+src/
+├── core/
+│   ├── orchestrator.ts     # Main execution coordinator
+│   ├── planner.ts          # Task planning and decomposition
+│   └── executor.ts         # Tool execution engine
+├── memory/
+│   ├── memory-manager.ts   # Memory orchestration
+│   ├── session-manager.ts  # Session lifecycle
+│   ├── token-budget.ts     # Token allocation
+│   └── layers/             # Memory layer implementations
+├── tools/
+│   ├── registry.ts         # Tool registration system
+│   ├── auto-discovery.ts   # Dynamic tool loading
+│   └── implementations/    # Tool implementations
+└── llm/
+    ├── provider.ts         # LLM provider interface
+    └── deepseek-client.ts  # DeepSeek integration
 ```
 
-## Production Deployment
-
-1. Build frontend:
+### Building and Testing
 ```bash
-cd ecommerce-platform
-npm run build
+# Type checking
+npx tsc --noEmit
+
+# Run tests
+npm test
+
+# Real agent testing
+DEBUG=true npx tsx test-token-real-agent.ts
 ```
 
-2. Set production environment variables
-3. Use process manager like PM2 for backend
-4. Configure reverse proxy (nginx)
-5. Enable HTTPS
-6. Set up proper backups for database
+---
 
-## Security Features
+## 📊 Monitoring
 
-- JWT authentication with secure tokens
-- Password hashing with bcrypt
-- Input validation with express-validator
-- Security headers with Helmet
-- Rate limiting
-- CORS configuration
-- SQL injection prevention
+### Database Inspection
+```bash
+# Session overview
+sqlite3 .flexicli/flexicli.db "SELECT id, mode, tokensUsed, turnCount FROM Session ORDER BY startedAt DESC LIMIT 5;"
 
-## Performance Optimizations
+# Knowledge entries
+sqlite3 .flexicli/flexicli.db "SELECT key, LENGTH(value), createdAt FROM Knowledge ORDER BY createdAt DESC LIMIT 5;"
 
-- Database indexing
-- Query optimization
-- Response compression
-- Static file serving
-- Client-side caching
+# Execution logs
+sqlite3 .flexicli/flexicli.db "SELECT tool, duration, success, createdAt FROM ExecutionLog ORDER BY createdAt DESC LIMIT 10;"
+```
 
-## License
+### Performance Metrics
+- Token usage tracking
+- Execution time monitoring
+- Memory allocation optimization
+- Database query performance
 
-MIT License
+---
+
+## 🔒 Security
+
+### Best Practices
+- **Tool Permissions** - Granular control over tool execution
+- **Approval System** - User confirmation for sensitive operations
+- **Database Isolation** - Project-specific data separation
+- **Secret Management** - Environment variable configuration
+- **Audit Trails** - Complete execution logging
+
+### Safe Defaults
+- Approval required for destructive operations
+- Read-only access by default
+- Isolated project environments
+- Comprehensive logging enabled
+
+---
+
+## 📈 Production Deployment
+
+### System Requirements
+- Node.js 18+ runtime
+- SQLite 3.x
+- 1GB+ available memory
+- Persistent storage for database
+
+### Configuration
+```bash
+# Production environment
+export NODE_ENV=production
+export DATABASE_URL=file:/opt/flexicli/production.db
+export LOG_LEVEL=info
+
+# Start the service
+npx tsx src/cli.tsx --non-interactive
+```
+
+---
+
+## 🤝 Contributing
+
+### Development Setup
+1. Fork the repository
+2. Create feature branch
+3. Implement changes with tests
+4. Validate with real agent testing
+5. Submit pull request
+
+### Testing Requirements
+- Unit tests for core components
+- Integration tests for memory system
+- Real agent validation for critical paths
+- Performance benchmarks
+
+---
+
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+---
+
+*Built with bulletproof methodology and validated through comprehensive real agent testing.*
