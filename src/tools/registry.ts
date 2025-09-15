@@ -5,8 +5,7 @@
 
 import { Tool, ToolResult } from './base.js';
 import { EventEmitter } from 'events';
-import { ApprovalManager, ApprovalRequest } from '../approval/approval-manager.js';
-import { SensitivityLevel } from '../ui/ApprovalUI.js';
+import { ApprovalManager, ApprovalRequest, SensitivityLevel } from '../approval/approval-manager.js';
 import { Config } from '../config/Config.js';
 
 export class ToolRegistry extends EventEmitter {
@@ -64,7 +63,19 @@ export class ToolRegistry extends EventEmitter {
           risks: this.getRisksForTool(name, params)
         };
 
+        // Emit event that approval is starting
+        if (process.env.DEBUG === 'true') {
+          console.log('🔔 [ToolRegistry] Emitting approval-pending event for:', name);
+        }
+        this.emit('approval-pending', { toolName: name, request: approvalRequest });
+
         const approvalResult = await this.approvalManager.requestApproval(approvalRequest);
+
+        // Emit event that approval is complete
+        if (process.env.DEBUG === 'true') {
+          console.log('🔔 [ToolRegistry] Emitting approval-complete event for:', name, 'approved:', approvalResult.approved);
+        }
+        this.emit('approval-complete', { toolName: name, approved: approvalResult.approved });
 
         if (!approvalResult.approved) {
           return {

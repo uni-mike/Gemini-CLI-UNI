@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Text, useApp, Static, useStdin, useInput } from 'ink';
 import { Config } from '../config/Config.js';
 import { Orchestrator } from '../core/orchestrator.js';
@@ -6,11 +6,16 @@ import { Header } from './components/Header.js';
 import { OperationHistory, Operation } from './components/OperationHistory.js';
 import { SessionSummary } from './components/SessionSummary.js';
 import { StatusFooter } from './components/StatusFooter.js';
+import { ApprovalPrompt } from './components/ApprovalPrompt.js';
 import { Colors } from './Colors.js';
+import { ApprovalRequest, ApprovalResult } from '../approval/approval-manager.js';
+import { ApprovalManager } from '../approval/approval-manager.js';
+import { globalRegistry } from '../tools/registry.js';
 
 interface AppProps {
   config: Config;
   orchestrator: Orchestrator;
+  approvalManager?: ApprovalManager;
 }
 
 interface Message {
@@ -19,7 +24,7 @@ interface Message {
   timestamp: Date;
 }
 
-export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
+export const App: React.FC<AppProps> = ({ config, orchestrator, approvalManager }) => {
   const { exit } = useApp();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -30,25 +35,45 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
   const [showExitSummary, setShowExitSummary] = useState(false);
   const [sessionStartTime] = useState(new Date());
   const [currentStatus, setCurrentStatus] = useState<'idle' | 'processing' | 'thinking' | 'tool-execution' | 'orchestrating' | 'planning' | 'executing'>('idle');
+  const [isApprovalPending, setIsApprovalPending] = useState(false);
+  const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
+  const approvalManagerRef = useRef(approvalManager);
   
   // Check if raw mode is supported - disable in CI/non-TTY environments
   const [rawModeSupported] = useState(() => {
     try {
-      // Disable in CI, non-TTY, or when explicitly disabled
-      if (process.env.CI || !process.stdin.isTTY || process.env.DISABLE_RAW_MODE === 'true') {
+      // Disable only in CI or when explicitly disabled
+      if (process.env.CI || process.env.DISABLE_RAW_MODE === 'true') {
         return false;
       }
-      // Check if setRawMode function exists and works
-      return typeof process.stdin.setRawMode === 'function';
+      // More lenient check - if we have stdin and it's not explicitly non-interactive
+      // Allow raw mode even if isTTY is false (happens in some environments)
+      if (process.stdin && typeof process.stdin.setRawMode === 'function') {
+        // If we're in interactive mode config, assume we can use input
+        return config.isInteractive();
+      }
+      return false;
     } catch (e) {
       return false;
     }
   });
 
+  // Debug raw mode support
+  useEffect(() => {
+    if (process.env.DEBUG === 'true') {
+      console.log('🎭 [App] Raw mode supported:', rawModeSupported);
+      console.log('🎭 [App] Is interactive:', config.isInteractive());
+      console.log('🎭 [App] stdin.isTTY:', process.stdin.isTTY);
+      console.log('🎭 [App] stdin.setRawMode exists:', typeof process.stdin.setRawMode);
+    }
+  }, [rawModeSupported]);
+
   // Enable input handling only if raw mode is supported
   useInput((input, key) => {
-    if (!rawModeSupported || isProcessing) return;
-    
+    // Disable input completely when processing AND not approval pending to avoid interfering
+    // But allow input when approval is pending for the approval prompt
+    if (!rawModeSupported || (isProcessing && !isApprovalPending)) return;
+
     if (key.return) {
       handleSubmit();
     } else if (key.escape) {
@@ -56,14 +81,16 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     } else if (key.backspace || key.delete) {
       setInput(prev => prev.slice(0, -1));
     } else if (key.ctrl && input === 'c') {
-      handleExit();
+      // Force immediate exit on Ctrl+C
+      console.log('\n❌ Exiting...');
+      process.exit(0);
     } else if (key.ctrl && input === 'l') {
       setMessages([]);
       setOperations([]);
     } else {
       setInput(prev => prev + input);
     }
-  }, { isActive: rawModeSupported }); // Enable when raw mode is supported
+  }, { isActive: rawModeSupported && (!isProcessing || isApprovalPending) }); // Allow during approval
   
   // Keep app alive always
   useEffect(() => {
@@ -75,6 +102,40 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
   }, []);
   
   useEffect(() => {
+    // Subscribe to approval events from the tool registry
+    const handleApprovalPending = ({ toolName, request }: any) => {
+      if (process.env.DEBUG === 'true') {
+        console.log('🎭 [App] Received approval-pending event for:', toolName);
+        console.log('🎭 [App] Request provided:', !!request);
+        console.log('🎭 [App] ApprovalManager available:', !!approvalManagerRef.current);
+      }
+
+      // Use the request from the event if provided, otherwise get from approval manager
+      if (request) {
+        setApprovalRequest(request);
+        setIsApprovalPending(true);
+      } else if (approvalManagerRef.current) {
+        const pendingRequest = approvalManagerRef.current.getPendingApproval();
+        if (pendingRequest) {
+          setApprovalRequest(pendingRequest);
+          setIsApprovalPending(true);
+        }
+      }
+    };
+
+    const handleApprovalComplete = ({ toolName, approved }: any) => {
+      setApprovalRequest(null);
+      setIsApprovalPending(false);
+    };
+
+    // Listen to globalRegistry events (imported from tool registry)
+    if (process.env.DEBUG === 'true') {
+      console.log('🎭 [App] Subscribing to approval events from globalRegistry');
+      console.log('🎭 [App] ApprovalManager ref:', !!approvalManagerRef.current);
+    }
+    globalRegistry.on('approval-pending', handleApprovalPending);
+    globalRegistry.on('approval-complete', handleApprovalComplete);
+
     // Subscribe to orchestrator events for message updates and operations
     const handleStart = ({ prompt }: any) => {
       setCurrentStatus('thinking');
@@ -98,16 +159,33 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       if (process.env.DEBUG === 'true') {
         console.log('🎯 handleComplete called with response:', response?.substring(0, 100) + (response?.length > 100 ? '...' : ''));
       }
-      
+
       setCurrentStatus('idle');
-      
+
       // Mark thinking as completed
-      setOperations(prev => prev.map(op => 
-        op.type === 'thinking' && op.status === 'running' 
+      setOperations(prev => prev.map(op =>
+        op.type === 'thinking' && op.status === 'running'
           ? { ...op, status: 'completed' as const, details: 'Analysis complete' }
           : op
       ));
-      
+
+      // Check if the response indicates Ctrl+C cancellation (not just denial)
+      if (response && response.includes('Cancelled by user')) {
+        // Exit the app only if user pressed Ctrl+C
+        setMessages(prev => [...prev, {
+          type: 'system',
+          content: '❌ Operation cancelled - Exiting...',
+          timestamp: new Date()
+        }]);
+        setIsProcessing(false);
+        // Give time for message to display then exit
+        setTimeout(() => {
+          exit();
+          process.exit(0);
+        }, 100);
+        return;
+      }
+
       setMessages(prev => [...prev, {
         type: 'assistant',
         content: response,
@@ -186,7 +264,7 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       if (result.success) {
         if (result.output && typeof result.output === 'string') {
           // Check if it's a file creation/update output with git-diff style
-          if ((result.output.startsWith('Created ') || result.output.startsWith('Updated ')) && 
+          if ((result.output.startsWith('Created ') || result.output.startsWith('Updated ')) &&
               result.output.includes(' +  ')) {
             // Show the git-diff style output directly with special type
             setMessages(prev => [...prev, {
@@ -195,21 +273,54 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
               timestamp: new Date()
             }]);
           } else {
-            const lines = result.output.split('\n').length;
-            const completionText = `⎿ ${lines > 1 ? `Found ${lines} lines` : result.output.substring(0, 60)}${result.output.length > 60 ? '...' : ''} (ctrl+r to expand)`;
-            setMessages(prev => [...prev, {
-              type: 'assistant', 
-              content: ` ${completionText}`,
-              timestamp: new Date()
-            }]);
+            // For bash commands, show the output in a nicely formatted way
+            if (name === 'bash') {
+              // Show completion with output as a child object
+              let formattedOutput = ' ⎿ Completed successfully';
+
+              if (result.output && result.output.trim()) {
+                const outputLines = result.output.trim().split('\n');
+                // Add output as nicely indented child content
+                formattedOutput += '\n';
+                if (outputLines.length <= 20) {
+                  // Show all lines if 20 or fewer
+                  formattedOutput += outputLines.map(line => `   ${line}`).join('\n');
+                } else {
+                  // Show first 20 lines with indication of more
+                  formattedOutput += outputLines.slice(0, 20).map(line => `   ${line}`).join('\n');
+                  formattedOutput += `\n   ... (${outputLines.length - 20} more lines)`;
+                }
+              }
+
+              setMessages(prev => [...prev, {
+                type: 'assistant',
+                content: formattedOutput,
+                timestamp: new Date()
+              }]);
+            } else {
+              const lines = result.output.split('\n').length;
+              const completionText = `⎿ ${lines > 1 ? `Found ${lines} lines` : result.output.substring(0, 60)}${result.output.length > 60 ? '...' : ''}`;
+              setMessages(prev => [...prev, {
+                type: 'assistant',
+                content: ` ${completionText}`,
+                timestamp: new Date()
+              }]);
+            }
           }
         } else {
           setMessages(prev => [...prev, {
-            type: 'assistant', 
+            type: 'assistant',
             content: ' ⎿ Completed successfully',
             timestamp: new Date()
           }]);
         }
+      } else {
+        // Show error message for failed commands
+        setMessages(prev => [...prev, {
+          type: 'system',
+          content: `❌ Failed: ${result.error}`,
+          timestamp: new Date()
+        }]);
       }
     };
     
@@ -257,8 +368,10 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
       orchestrator.off('tool-execute', handleToolExecute);
       orchestrator.off('tool-result', handleToolResult);
       orchestrator.off('status', handleStatus);
+      globalRegistry.off('approval-pending', handleApprovalPending);
+      globalRegistry.off('approval-complete', handleApprovalComplete);
     };
-  }, [orchestrator]);
+  }, [orchestrator, approvalManagerRef]);
   
   const formatDuration = (startTime: Date): string => {
     const now = new Date();
@@ -275,14 +388,9 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
   
   const handleExit = () => {
     setShowExitSummary(true);
-    // Show summary for 2 seconds then force exit
-    setTimeout(() => {
-      exit();
-      // Force exit if ink's exit doesn't work
-      setTimeout(() => {
-        process.exit(0);
-      }, 100);
-    }, 2000);
+    // Force immediate exit without delay
+    exit();
+    process.exit(0);
   };
   
   const handleSubmit = async () => {
@@ -359,6 +467,30 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
     );
   }
 
+  // Handle approval response
+  const handleApprovalResponse = (result: ApprovalResult) => {
+    if (approvalManagerRef.current) {
+      approvalManagerRef.current.respondToApproval(result);
+      setApprovalRequest(null);
+      setIsApprovalPending(false);
+    }
+  };
+
+  // Show approval prompt if pending
+  if (isApprovalPending && approvalRequest) {
+    return (
+      <Box flexDirection="column" width="90%">
+        <ApprovalPrompt
+          request={approvalRequest}
+          onApprove={() => handleApprovalResponse({ approved: true, reason: 'User approved' })}
+          onDeny={() => handleApprovalResponse({ approved: false, reason: 'User denied' })}
+          onAlwaysAllow={() => handleApprovalResponse({ approved: true, reason: 'User approved and remembered', rememberChoice: true })}
+          onAlwaysDeny={() => handleApprovalResponse({ approved: false, reason: 'User denied and remembered', rememberChoice: true })}
+        />
+      </Box>
+    );
+  }
+
   return (
     <Box flexDirection="column" width="90%">
       {/* Static Header - professional layout like original UNIPATH */}
@@ -397,7 +529,11 @@ export const App: React.FC<AppProps> = ({ config, orchestrator }) => {
               <Text color={Colors.AccentGreen}>{msg.content.includes('[Request interrupted by user]') ? msg.content : msg.content}</Text>
             )}
             {msg.type === 'system' && (
-              <Text color={Colors.AccentYellow}>{'⚠ '}{msg.content}</Text>
+              <Box flexDirection="column" paddingLeft={1}>
+                {msg.content.split('\n').map((line, idx) => (
+                  <Text key={idx} color={Colors.Foreground}>{line}</Text>
+                ))}
+              </Box>
             )}
             {msg.type === 'diff' && (
               <Box flexDirection="column">

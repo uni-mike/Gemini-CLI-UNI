@@ -5,9 +5,14 @@
 
 import { Config, ApprovalMode } from '../config/Config.js';
 import * as readline from 'readline';
-import React from 'react';
-import { render } from 'ink';
-import { ApprovalUI, SensitivityLevel } from '../ui/ApprovalUI.js';
+
+export enum SensitivityLevel {
+  NONE = 'none',
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical'
+}
 
 export interface ApprovalRequest {
   toolName: string;
@@ -24,10 +29,14 @@ export interface ApprovalResult {
   rememberChoice?: boolean;
 }
 
+export type ApprovalCallback = (result: ApprovalResult) => void;
+
 export class ApprovalManager {
   private config: Config;
   private rl: readline.Interface;
   private approvalCache: Map<string, boolean> = new Map();
+  private pendingApproval: { request: ApprovalRequest; callback: ApprovalCallback } | null = null;
+  private uiMode: boolean = false;
 
   constructor(config: Config) {
     this.config = config;
@@ -38,10 +47,27 @@ export class ApprovalManager {
   }
 
   /**
+   * Enable UI mode for React Ink integration
+   */
+  setUIMode(enabled: boolean): void {
+    this.uiMode = enabled;
+  }
+
+  /**
    * Request approval for a sensitive operation
    */
   async requestApproval(request: ApprovalRequest): Promise<ApprovalResult> {
     const approvalMode = this.config.getApprovalMode();
+
+    if (process.env.DEBUG === 'true') {
+      console.log('🔍 [ApprovalManager] requestApproval called:', {
+        toolName: request.toolName,
+        sensitivityLevel: request.sensitivityLevel,
+        approvalMode,
+        uiMode: this.uiMode,
+        interactive: this.config.isInteractive()
+      });
+    }
 
     // YOLO mode - auto-approve everything (for testing/development)
     if (approvalMode === ApprovalMode.YOLO) {
@@ -64,52 +90,124 @@ export class ApprovalManager {
     }
 
     // DEFAULT mode or high-sensitivity operations - always ask
+    // In UI mode, we return a promise that resolves when UI responds
+    if (this.uiMode) {
+      if (process.env.DEBUG === 'true') {
+        console.log('🔍 [ApprovalManager] Using UI mode for approval');
+      }
+      return await this.promptUserUI(request);
+    }
+    if (process.env.DEBUG === 'true') {
+      console.log('🔍 [ApprovalManager] Using raw mode for approval');
+    }
     return await this.promptUser(request);
   }
 
   /**
-   * Prompt the user for approval with beautiful React Ink UI
+   * Prompt the user for approval using reliable readline interface
    */
   private async promptUser(request: ApprovalRequest): Promise<ApprovalResult> {
-    return new Promise((resolve) => {
-      let approvalApp: any;
+    // Check if we're in interactive mode
+    if (!this.config.isInteractive()) {
+      return { approved: false, reason: 'Non-interactive mode' };
+    }
 
-      const handleApprove = () => {
-        approvalApp?.unmount();
-        resolve({ approved: true, reason: 'User approved' });
+    const icon = this.getSensitivityIcon(request.sensitivityLevel);
+
+    console.log('\n' + '═'.repeat(70));
+    console.log(`${icon} APPROVAL REQUIRED - ${request.sensitivityLevel.toUpperCase()} RISK`);
+    console.log('═'.repeat(70));
+    console.log(`Tool: ${request.toolName}`);
+    console.log(`Operation: ${request.description}`);
+    if (request.risks && request.risks.length > 0) {
+      console.log('Risks:');
+      request.risks.forEach(risk => console.log(`  • ${risk}`));
+    }
+    console.log('');
+    console.log('Options:');
+    console.log('  [1] ✅ Approve - Execute this operation now');
+    console.log('  [2] 🔒 Approve & Remember - Allow similar operations');
+    console.log('  [3] ❌ Deny - Block this operation');
+    console.log('  [4] 📋 Show Details - View full parameters');
+    console.log('');
+    console.log('═'.repeat(70));
+
+    // Use raw input mode for immediate key response
+    return new Promise<ApprovalResult>((resolve) => {
+      // Enable raw mode to capture single keypress
+      if (process.stdin.setRawMode) {
+        process.stdin.setRawMode(true);
+      }
+      process.stdin.resume();
+
+      process.stdout.write('Your choice (1-4): ');
+
+      const handleKeypress = (chunk: Buffer) => {
+        const key = chunk.toString();
+
+        switch (key) {
+          case '1':
+            process.stdout.write('1\n✅ Operation approved\n');
+            cleanup();
+            resolve({ approved: true, reason: 'User approved' });
+            break;
+          case '2':
+            process.stdout.write('2\n🔒 Operation approved and remembered\n');
+            const cacheKey = `${request.toolName}:${request.sensitivityLevel}`;
+            this.approvalCache.set(cacheKey, true);
+            cleanup();
+            resolve({ approved: true, reason: 'Approved and remembered', rememberChoice: true });
+            break;
+          case '3':
+            process.stdout.write('3\n❌ Operation denied\n');
+            cleanup();
+            resolve({ approved: false, reason: 'User denied' });
+            break;
+          case '4':
+            process.stdout.write('4\n\n📋 Full Parameters:\n');
+            console.log(JSON.stringify(request.params, null, 2));
+            console.log('\n' + '═'.repeat(70));
+            process.stdout.write('Your choice (1-3): ');
+            // Stay in listening mode after showing details
+            break;
+          case '\u0003': // Ctrl+C
+            process.stdout.write('\n❌ Operation cancelled by user\n');
+            cleanup();
+            resolve({ approved: false, reason: 'Cancelled by user' });
+            // Force exit immediately on Ctrl+C
+            process.exit(1);
+            break;
+          case '\r':
+          case '\n':
+            // Ignore Enter key presses
+            break;
+          default:
+            process.stdout.write('\nInvalid choice. Please press 1, 2, 3, or 4: ');
+            break;
+        }
       };
 
-      const handleApproveAndRemember = () => {
-        approvalApp?.unmount();
-        const cacheKey = `${request.toolName}:${request.sensitivityLevel}`;
-        this.approvalCache.set(cacheKey, true);
-        resolve({ approved: true, reason: 'Approved and remembered', rememberChoice: true });
+      const cleanup = () => {
+        process.stdin.removeListener('data', handleKeypress);
+        if (process.stdin.setRawMode) {
+          process.stdin.setRawMode(false);
+        }
+        process.stdin.pause();
       };
 
-      const handleReject = () => {
-        approvalApp?.unmount();
-        resolve({ approved: false, reason: 'User denied' });
-      };
-
-      const handleShowDetails = () => {
-        // Details are shown within the React component
-      };
-
-      approvalApp = render(
-        React.createElement(ApprovalUI, {
-          toolName: request.toolName,
-          operation: request.operation,
-          args: request.params,
-          sensitivityLevel: request.sensitivityLevel,
-          description: request.description,
-          risks: request.risks,
-          onApprove: handleApprove,
-          onApproveAndRemember: handleApproveAndRemember,
-          onReject: handleReject,
-          onShowDetails: handleShowDetails,
-        })
-      );
+      process.stdin.on('data', handleKeypress);
     });
+  }
+
+  private getSensitivityIcon(level: SensitivityLevel): string {
+    const icons = {
+      [SensitivityLevel.NONE]: '🟢',
+      [SensitivityLevel.LOW]: '🟡',
+      [SensitivityLevel.MEDIUM]: '🟠',
+      [SensitivityLevel.HIGH]: '🔴',
+      [SensitivityLevel.CRITICAL]: '⚠️'
+    };
+    return icons[level];
   }
 
   /**
@@ -215,6 +313,46 @@ export class ApprovalManager {
     return SensitivityLevel.LOW;
   }
 
+
+  /**
+   * Prompt user in UI mode - returns a promise that resolves when UI responds
+   */
+  private async promptUserUI(request: ApprovalRequest): Promise<ApprovalResult> {
+    if (process.env.DEBUG === 'true') {
+      console.log('🔍 [ApprovalManager] Creating pending approval for UI');
+    }
+    return new Promise<ApprovalResult>((resolve) => {
+      this.pendingApproval = { request, callback: resolve };
+      if (process.env.DEBUG === 'true') {
+        console.log('🔍 [ApprovalManager] Pending approval set, waiting for UI response');
+      }
+    });
+  }
+
+  /**
+   * Get pending approval request for UI to display
+   */
+  getPendingApproval(): ApprovalRequest | null {
+    return this.pendingApproval?.request || null;
+  }
+
+  /**
+   * Respond to pending approval from UI
+   */
+  respondToApproval(result: ApprovalResult): void {
+    if (this.pendingApproval) {
+      const { callback, request } = this.pendingApproval;
+
+      // Handle remember choice
+      if (result.rememberChoice) {
+        const cacheKey = `${request.toolName}:${request.sensitivityLevel}`;
+        this.approvalCache.set(cacheKey, result.approved);
+      }
+
+      this.pendingApproval = null;
+      callback(result);
+    }
+  }
 
   /**
    * Cleanup resources

@@ -15,6 +15,18 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import axios from 'axios';
 
+// Global SIGINT handler to ensure Ctrl+C always works
+process.on('SIGINT', () => {
+  console.log('\n❌ Interrupted by user');
+  process.exit(130); // Standard exit code for SIGINT
+});
+
+// Prevent any unhandled promise rejections from blocking exit
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+  process.exit(1);
+});
+
 async function main() {
   // Parse command line arguments
   const argv = await yargs(hideBin(process.argv))
@@ -211,31 +223,43 @@ async function main() {
     }
   }
   
-  // Check if we have a prompt for non-interactive mode
-  if (argv.prompt && argv['non-interactive']) {
+  // Check if we have a prompt - execute it directly without UI
+  if (argv.prompt) {
     console.log(`\n📝 Executing: ${argv.prompt}\n`);
-    
-    // Set up event listeners for non-interactive output
+
+    // Set up event listeners for output
     orchestrator.on('tool-execute', ({ name, args }) => {
       console.log(`  🔧 Running tool: ${name}`);
       if (config.getDebugMode()) {
         console.log(`     Args: ${JSON.stringify(args, null, 2)}`);
       }
     });
-    
+
     orchestrator.on('tool-result', ({ name, result }) => {
       if (result.success) {
         console.log(`  ✅ ${name} completed`);
-        if (config.getDebugMode() && result.output) {
+        // Always show bash command output (not just in debug mode)
+        if (name === 'bash' && result.output && result.output.trim()) {
+          const outputLines = result.output.trim().split('\n');
+          if (outputLines.length <= 20) {
+            // Show all lines if 20 or fewer
+            outputLines.forEach(line => console.log(`     ${line}`));
+          } else {
+            // Show first 20 lines with indication of more
+            outputLines.slice(0, 20).forEach(line => console.log(`     ${line}`));
+            console.log(`     ... (${outputLines.length - 20} more lines)`);
+          }
+        } else if (config.getDebugMode() && result.output) {
+          // For other tools, show limited output in debug mode
           console.log(`     Output: ${result.output.substring(0, 200)}${result.output.length > 200 ? '...' : ''}`);
         }
       } else {
         console.log(`  ❌ ${name} failed: ${result.error}`);
       }
     });
-    
+
     const result = await orchestrator.execute(argv.prompt);
-    
+
     if (result.success) {
       if (result.response) {
         console.log(`\n✨ Response:\n${result.response}\n`);
@@ -248,64 +272,40 @@ async function main() {
     } else {
       console.error(`\n❌ Error: ${result.error || 'Task execution failed'}\n`);
     }
-    
+
     // Cleanup before exiting
     await memoryManager.cleanup();
     approvalManager.cleanup();
-    
+
     // Detach monitoring if it was attached
     if (monitoringBridge) {
       monitoringBridge.detach();
     }
-    
+
     process.exit(result.success ? 0 : 1);
   }
-  
-  // Check if we're in interactive mode
-  if (config.isInteractive()) {
-    // Render React Ink UI
-    const instance = render(<App config={config} orchestrator={orchestrator} />);
-    
-    // Prevent the process from exiting in interactive mode
-    await new Promise<void>((resolve) => {
-      process.on('SIGINT', async () => {
-        instance.unmount();
-        await memoryManager.cleanup();
-        approvalManager.cleanup();
-        if (monitoringBridge) {
-          monitoringBridge.detach();
-        }
-        resolve();
-      });
-      
-      process.on('SIGTERM', async () => {
-        instance.unmount();
-        await memoryManager.cleanup();
-        approvalManager.cleanup();
-        if (monitoringBridge) {
-          monitoringBridge.detach();
-        }
-        resolve();
-      });
-      
-      process.on('exit', async () => {
-        instance.unmount();
-        await memoryManager.cleanup();
-        approvalManager.cleanup();
-        if (monitoringBridge) {
-          monitoringBridge.detach();
-        }
-      });
-    });
-  } else {
+
+  // Check if we're in interactive mode without a prompt
+  if (config.isInteractive() && !argv.prompt) {
+    // Enable UI mode for approval manager
+    approvalManager.setUIMode(true);
+
+    // Render React Ink UI with approval manager
+    const instance = render(<App config={config} orchestrator={orchestrator} approvalManager={approvalManager} />);
+
+    // Keep the process alive - the global SIGINT handler will handle Ctrl+C
+    await instance.waitUntilExit();
+
+    // Cleanup on normal exit
+    await memoryManager.cleanup();
+    approvalManager.cleanup();
+    if (monitoringBridge) {
+      monitoringBridge.detach();
+    }
+  } else if (!config.isInteractive()) {
     // Non-interactive mode without prompt
     console.log('Running in non-interactive mode...');
-    if (argv.prompt) {
-      const result = await orchestrator.execute(argv.prompt);
-      console.log(result.success ? result.response : `Error: ${result.error}`);
-    } else {
-      console.log('No prompt provided. Use --prompt "your task" to execute a command.');
-    }
+    console.log('No prompt provided. Use --prompt "your task" to execute a command.');
   }
 }
 

@@ -49,6 +49,13 @@ CRITICAL TOOL USAGE RULES:
 - Always provide exact file paths including directories
 - Always specify exact content for files when known
 
+BASH COMMAND RULES (CRITICAL):
+- For local scripts, use "./script.sh" NOT "which script.sh" or "command -v script.sh"
+- Never use "which" or "command -v" to find local files - these are for system commands only
+- To check if a local file exists, use "ls -la filename" or "test -f filename"
+- To run a local script: "./scriptname.sh" or "bash scriptname.sh"
+- Always use relative paths (./) or absolute paths for local files
+
 ATOMIC TASK RULES (CRITICAL):
 - Maximum 5-8 steps total
 - Each step = ONE tool + ONE action

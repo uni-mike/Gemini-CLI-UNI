@@ -26,6 +26,17 @@ export class BashTool extends Tool {
     const background = params.background as boolean || false;
     const detached = params.detached as boolean || false;
 
+    // Debug logging to track timeout behavior
+    if (process.env.DEBUG === 'true') {
+      console.log(`🔍 Bash tool execute called with params:`, {
+        command: command?.substring(0, 100),
+        timeout: params.timeout,
+        timeoutMs: timeout,
+        background,
+        detached
+      });
+    }
+
     if (!command) {
       return {
         success: false,
@@ -39,6 +50,9 @@ export class BashTool extends Tool {
         return this.runInBackground(command, detached);
       } else {
         // Use Node.js built-in timeout - smart default of 30s
+        if (process.env.DEBUG === 'true') {
+          console.log(`⏱️ Executing command with timeout: ${timeout}ms (${timeout/1000}s)`);
+        }
         const { stdout, stderr } = await execAsync(command, {
           encoding: 'utf8',
           maxBuffer: 10 * 1024 * 1024, // 10MB

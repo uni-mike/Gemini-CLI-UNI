@@ -245,6 +245,19 @@ export class Executor extends EventEmitter {
           args.command = this.extractCommand(args.description || task.description);
         }
 
+        // Smart timeout for bash script execution
+        if (toolName === 'bash' && args.command) {
+          if (this.isScriptExecution(args.command)) {
+            // Add a reasonable timeout for scripts (10 seconds default)
+            if (!args.timeout) {
+              args.timeout = 10;
+              if (process.env.DEBUG === 'true') {
+                console.log(`🔍 Added timeout for script execution: ${args.timeout}s`);
+              }
+            }
+          }
+        }
+
         // Only generate content if explicitly null or empty AND not already provided
         if (toolName === 'write_file' || toolName === 'file') {
           if (args.content === null || (typeof args.content === 'undefined')) {
