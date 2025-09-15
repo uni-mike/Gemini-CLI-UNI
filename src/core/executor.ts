@@ -245,14 +245,25 @@ export class Executor extends EventEmitter {
           args.command = this.extractCommand(args.description || task.description);
         }
 
-        // Smart timeout for bash script execution
+        // Smart timeout for bash script execution and long-running commands
         if (toolName === 'bash' && args.command) {
+          // Check for known long-running commands
+          const isLongRunning = this.isLongRunningCommand(args.command);
+
           if (this.isScriptExecution(args.command)) {
             // Add a reasonable timeout for scripts (10 seconds default)
             if (!args.timeout) {
               args.timeout = 10;
               if (process.env.DEBUG === 'true') {
                 console.log(`🔍 Added timeout for script execution: ${args.timeout}s`);
+              }
+            }
+          } else if (isLongRunning) {
+            // Add longer timeout for known long-running commands
+            if (!args.timeout) {
+              args.timeout = 180; // 3 minutes for create-react-app, npm install, etc.
+              if (process.env.DEBUG === 'true') {
+                console.log(`🔍 Added extended timeout for long-running command: ${args.timeout}s`);
               }
             }
           }
@@ -658,6 +669,60 @@ File content only:`;
     // Check if script is being run without any arguments
     const scriptPattern = /^(\.\/[^\s]+\.(sh|py|js|rb|pl|php)|(?:bash|sh|python|node|ruby|perl|php)\s+[^\s]+\.(sh|py|js|rb|pl|php))$/;
     return scriptPattern.test(command);
+  }
+
+  private isLongRunningCommand(command: string): boolean {
+    // Check for commands that typically take longer than 30 seconds
+    const longRunningPatterns = [
+      // React/Node.js development tools
+      /create-react-app/,
+      /npx create-next-app/,
+      /npx create-vue/,
+      /vue create/,
+
+      // Package management
+      /npm install(?:\s|$)/,
+      /yarn install(?:\s|$)/,
+      /yarn(?:\s|$)/,
+      /pnpm install(?:\s|$)/,
+      /npm ci(?:\s|$)/,
+      /yarn add/,
+      /npm update/,
+
+      // Build processes
+      /npm run build/,
+      /yarn build/,
+      /pnpm build/,
+      /webpack/,
+      /vite build/,
+
+      // Testing
+      /npm test/,
+      /yarn test/,
+      /jest/,
+      /cypress run/,
+
+      // Docker operations
+      /docker build/,
+      /docker-compose up/,
+      /docker run/,
+
+      // Database operations
+      /migration/,
+      /migrate/,
+
+      // Git operations that might be slow
+      /git clone/,
+      /git pull/,
+      /git push/,
+
+      // Bundling and compilation
+      /rollup/,
+      /parcel/,
+      /esbuild/
+    ];
+
+    return longRunningPatterns.some(pattern => pattern.test(command.toLowerCase()));
   }
 
   private extractOldText(description: string): string {
