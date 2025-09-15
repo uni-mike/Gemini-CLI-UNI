@@ -371,6 +371,22 @@ export class Executor extends EventEmitter {
         
       case 'bash':
         args.command = this.extractCommand(description);
+
+        // Smart detection: if running a script, suggest parameters
+        if (this.isScriptExecution(args.command)) {
+          // Add a reasonable timeout for scripts (10 seconds default)
+          if (!args.timeout) {
+            args.timeout = 10;
+          }
+
+          // If it looks like a script without arguments, suggest reading it first
+          if (this.isScriptWithoutArgs(args.command)) {
+            if (process.env.DEBUG === 'true') {
+              console.log(`🔍 Detected script execution without args: ${args.command}`);
+              console.log(`   Consider reading the script first to understand available commands`);
+            }
+          }
+        }
         break;
         
       case 'edit':
@@ -617,6 +633,18 @@ File content only:`;
     // Extract command from description
     const match = description.match(/(?:run|execute)\s+['"`]?([^'"`]+)['"`]?/i);
     return match ? match[1] : 'ls';
+  }
+
+  private isScriptExecution(command: string): boolean {
+    // Check if command is executing a script file
+    return /^\.\/[^\s]+\.(sh|py|js|rb|pl|php)/.test(command) ||
+           /^(bash|sh|python|node|ruby|perl|php)\s+[^\s]+\.(sh|py|js|rb|pl|php)/.test(command);
+  }
+
+  private isScriptWithoutArgs(command: string): boolean {
+    // Check if script is being run without any arguments
+    const scriptPattern = /^(\.\/[^\s]+\.(sh|py|js|rb|pl|php)|(?:bash|sh|python|node|ruby|perl|php)\s+[^\s]+\.(sh|py|js|rb|pl|php))$/;
+    return scriptPattern.test(command);
   }
 
   private extractOldText(description: string): string {
