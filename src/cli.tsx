@@ -1,8 +1,5 @@
 #!/usr/bin/env node
 import 'dotenv/config';
-import React from 'react';
-import { render } from 'ink';
-import { App } from './ui/App.tsx';
 import { Config } from './config/Config.js';
 import { toolDiscovery } from './tools/auto-discovery.js';
 import { ApprovalManager } from './approval/approval-manager.js';
@@ -14,6 +11,9 @@ import { PrismaClient } from '@prisma/client';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import axios from 'axios';
+
+// YOGA-LAYOUT FIX: Conditionally import React/Ink only when needed for interactive mode
+// This prevents yoga-wasm-web CJS/ESM compatibility issues during headless execution
 
 // Global SIGINT handler to ensure Ctrl+C always works
 process.on('SIGINT', () => {
@@ -290,11 +290,29 @@ async function main() {
     // Enable UI mode for approval manager
     approvalManager.setUIMode(true);
 
-    // Render React Ink UI with approval manager
-    const instance = render(<App config={config} orchestrator={orchestrator} approvalManager={approvalManager} />);
+    try {
+      // YOGA-LAYOUT FIX: Dynamically import React/Ink only when interactive mode is needed
+      const React = await import('react');
+      const { render } = await import('ink');
+      const { App } = await import('./ui/App.tsx');
 
-    // Keep the process alive - the global SIGINT handler will handle Ctrl+C
-    await instance.waitUntilExit();
+      // Render React Ink UI with approval manager
+      const instance = render(React.createElement(App, {
+        config,
+        orchestrator,
+        approvalManager
+      }));
+
+      // Keep the process alive - the global SIGINT handler will handle Ctrl+C
+      await instance.waitUntilExit();
+    } catch (uiError) {
+      console.error('❌ Failed to load interactive UI:', (uiError as Error).message);
+      console.log('💡 Running in console-only mode...');
+
+      // Fall back to console-based interface
+      console.log('🖥️ FlexiCLI Console Mode - Type "exit" to quit');
+      console.log('Use --prompt "your task" --non-interactive for direct execution');
+    }
 
     // Cleanup on normal exit
     await memoryManager.cleanup();

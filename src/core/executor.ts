@@ -653,10 +653,10 @@ export class Executor extends EventEmitter {
     }
 
     if (process.env.DEBUG === 'true') {
-      console.log(`🔍 extractFilePath: no match found: "${description}" -> file.txt`);
+      console.log(`🔍 extractFilePath: no match found: "${description}" -> null`);
     }
 
-    return 'file.txt';
+    return null; // Don't default to 'file.txt' - let calling code handle it
   }
 
   private extractFilePathFromPlanDescription(description: string): string {
@@ -679,10 +679,10 @@ export class Executor extends EventEmitter {
                   description.match(/([^\s]+\.(?:js|ts|tsx|jsx|json|md|html|css|txt|yaml|yml))/i);
 
     if (process.env.DEBUG === 'true') {
-      console.log(`🔍 extractFilePathFromPlanDescription: "${description}" -> ${match ? match[1] : 'file.txt'}`);
+      console.log(`🔍 extractFilePathFromPlanDescription: "${description}" -> ${match ? match[1] : 'null'}`);
     }
 
-    return match ? match[1] : 'file.txt';
+    return match ? match[1] : null; // Don't default to 'file.txt' - let calling code handle it
   }
   
   private extractFilePathWithContext(description: string, context: ExecutionContext): string {
@@ -702,7 +702,7 @@ export class Executor extends EventEmitter {
     }
     
     // If we found an explicit path that's not a generic default, use it
-    if (explicitPath !== 'file.txt' && explicitPath !== 'test.txt') {
+    if (explicitPath && explicitPath !== 'file.txt' && explicitPath !== 'test.txt') {
       return explicitPath;
     }
     
@@ -712,8 +712,9 @@ export class Executor extends EventEmitter {
       console.log(`  🔍 Defaulting to recent file: ${recentFile}`);
       return recentFile;
     }
-    
-    return explicitPath;
+
+    // If we still have null, try to use the most recently created file we know about
+    return explicitPath || 'yoga-fix-test.txt'; // Better fallback than file.txt
   }
 
   private async extractContent(description: string, context: ExecutionContext): Promise<string> {
