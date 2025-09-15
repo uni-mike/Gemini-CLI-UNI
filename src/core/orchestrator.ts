@@ -259,14 +259,38 @@ export class Orchestrator extends EventEmitter {
     });
     
     // Forward token-usage events from Planner and Executor
-    this.planner.on('token-usage', (usage) => {
-      console.log('📊 [ORCHESTRATOR] Forwarding token usage from Planner');
+    this.planner.on('token-usage', async (usage) => {
+      console.log('📊 [ORCHESTRATOR] Token usage from Planner:', usage);
       this.emit('token-usage', usage);
+
+      // Update session with token count
+      console.log('📊 [ORCHESTRATOR] Checking token update conditions:', {
+        hasMemoryManager: !!this.memoryManager,
+        totalTokens: usage.total_tokens,
+        shouldUpdate: !!(this.memoryManager && usage.total_tokens)
+      });
+
+      if (this.memoryManager && usage.total_tokens) {
+        console.log('📊 [ORCHESTRATOR] Tracking API tokens with memory manager:', usage.total_tokens);
+        await this.memoryManager?.trackApiTokens(usage.total_tokens);
+      }
     });
-    
-    this.executor.on('token-usage', (usage) => {
-      console.log('📊 [ORCHESTRATOR] Forwarding token usage from Executor');
+
+    this.executor.on('token-usage', async (usage) => {
+      console.log('📊 [ORCHESTRATOR] Token usage from Executor:', usage);
       this.emit('token-usage', usage);
+
+      // Update session with token count
+      console.log('📊 [ORCHESTRATOR] Checking token update conditions:', {
+        hasMemoryManager: !!this.memoryManager,
+        totalTokens: usage.total_tokens,
+        shouldUpdate: !!(this.memoryManager && usage.total_tokens)
+      });
+
+      if (this.memoryManager && usage.total_tokens) {
+        console.log('📊 [ORCHESTRATOR] Tracking API tokens with memory manager:', usage.total_tokens);
+        await this.memoryManager?.trackApiTokens(usage.total_tokens);
+      }
     });
   }
   
@@ -504,6 +528,10 @@ export class Orchestrator extends EventEmitter {
     }
   }
   
+  /**
+   * Update session with token usage
+   */
+
   private async generateFinalResponse(prompt: string, plan: any, results: any[]): Promise<string> {
     // CRITICAL: NO GENERIC AI FALLBACKS ALLOWED!
     // This method must NEVER generate generic responses or "helpful explanations"

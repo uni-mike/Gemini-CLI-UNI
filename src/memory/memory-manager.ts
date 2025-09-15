@@ -472,6 +472,35 @@ Output must be valid JSON only.`;
   }
   
   /**
+   * Track tokens from API response (for session persistence)
+   */
+  async trackApiTokens(tokens: number): Promise<void> {
+    console.log('📊 [MEMORY] Tracking API tokens:', tokens);
+
+    try {
+      const sessionId = this.sessionManager.getSessionId();
+      if (!sessionId) {
+        console.warn('📊 [MEMORY] No session ID available');
+        return;
+      }
+
+      // Directly update the session in database - bypass token budget complexity
+      await this.prisma.session.update({
+        where: { id: sessionId },
+        data: {
+          tokensUsed: {
+            increment: tokens
+          }
+        }
+      });
+
+      console.log(`📊 [MEMORY] ✅ Updated session ${sessionId} with ${tokens} tokens directly`);
+    } catch (error) {
+      console.error('📊 [MEMORY] ❌ Failed to update session tokens:', error);
+    }
+  }
+
+  /**
    * Clean up resources
    */
   async cleanup(): Promise<void> {
