@@ -308,6 +308,14 @@ export class Orchestrator extends EventEmitter {
       console.log(`🎯 Detected mode: ${detectedMode} for prompt (${prompt.split(' ').length} words)`);
     }
 
+    // Pass sessionId to executor for ExecutionLog tracking
+    if (this.memoryManager) {
+      const sessionId = this.memoryManager.getSessionId();
+      if (sessionId) {
+        this.executor.setSession(sessionId);
+      }
+    }
+
     this.emit('orchestration-start', { prompt, mode: detectedMode });
     this.emit('status', `🎯 Orchestrator starting in ${detectedMode} mode...`);
     this.toolsUsed = [];

@@ -6,7 +6,9 @@
       "Bash(npx prisma db pull:*)",
       "Bash(while read table)",
       "Bash(do echo \"=== $table ===\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(DEBUG=true npx tsx src/cli.tsx --prompt \"create a file called execution-test.txt with content ''''testing execution logging''''\" --non-interactive)",
+      "Bash(DEBUG=true npx tsx src/cli.tsx --prompt \"create a file called execution-test.txt with content ''testing execution logging''\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

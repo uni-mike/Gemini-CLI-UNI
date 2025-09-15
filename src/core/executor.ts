@@ -7,6 +7,8 @@ import { EventEmitter } from 'events';
 import { Task, TaskPlan } from './planner.js';
 import { globalRegistry } from '../tools/registry.js';
 import { DeepSeekClient } from '../llm/deepseek-client.js';
+import { PrismaClient } from '@prisma/client';
+import { join } from 'path';
 
 export interface ExecutionContext {
   workingDirectory: string;
@@ -43,10 +45,14 @@ export interface ExecutionResult {
 export class Executor extends EventEmitter {
   private activeExecutions: Map<string, AbortController>;
   private client: DeepSeekClient;
-  
+  private prisma: PrismaClient | null = null;
+  private projectId: string | null = null;
+  private sessionId: string | null = null;
+
   constructor() {
     super();
     this.activeExecutions = new Map();
+    this.initializePrisma();
     this.client = new DeepSeekClient({
       timeout: 120000 // 120 seconds for complex prompts - matches orchestrator/planner
     });
@@ -73,6 +79,64 @@ export class Executor extends EventEmitter {
         this.emit('status', `❌ Execution error: ${error.message}`);
       }
     });
+  }
+
+  private async initializePrisma() {
+    try {
+      const dbPath = join(process.cwd(), '.flexicli', 'flexicli.db');
+      this.prisma = new PrismaClient({
+        datasources: {
+          db: {
+            url: `file:${dbPath}`
+          }
+        }
+      });
+
+      // Get project ID
+      const project = await this.prisma.project.findFirst();
+      if (project) {
+        this.projectId = project.id;
+      }
+    } catch (error) {
+      console.warn('Failed to initialize Prisma in Executor:', error);
+    }
+  }
+
+  setSession(sessionId: string) {
+    this.sessionId = sessionId;
+  }
+
+  private async logExecution(tool: string, input: any, result: any, duration: number) {
+    if (!this.prisma || !this.projectId) return;
+
+    try {
+      // Prepare input/output as JSON strings
+      const inputStr = JSON.stringify(input).substring(0, 5000); // Limit size
+      const outputStr = result.output ?
+        JSON.stringify(result.output).substring(0, 10000) : // Limit size
+        JSON.stringify(result).substring(0, 10000);
+
+      await this.prisma.executionLog.create({
+        data: {
+          projectId: this.projectId,
+          sessionId: this.sessionId,
+          type: 'TOOL_EXECUTION',
+          tool: tool,
+          input: inputStr,
+          output: outputStr,
+          success: result.success || false,
+          duration: Math.round(duration),
+          errorMessage: result.error || null
+        }
+      });
+
+      if (process.env.DEBUG === 'true') {
+        console.log(`📝 Logged execution: ${tool} (${duration}ms)`);
+      }
+    } catch (error) {
+      // Don't fail execution if logging fails
+      console.warn('Failed to log execution:', error);
+    }
   }
 
   async executeTask(task: Task, context: ExecutionContext): Promise<ExecutionResult> {
@@ -339,8 +403,13 @@ export class Executor extends EventEmitter {
       this.emit('status', `🔧 Using tool: ${displayName}`);
       
       // Execute tool using registry directly (toolManager may not be initialized)
+      const execStartTime = Date.now();
       let result = await globalRegistry.execute(toolName, args);
-      
+      const execDuration = Date.now() - execStartTime;
+
+      // Log execution to database
+      await this.logExecution(toolName, args, result, execDuration);
+
       this.emit('tool-result', { taskId: task.id, tool: toolName, name: toolName, result });
       
       if (!result.success) {

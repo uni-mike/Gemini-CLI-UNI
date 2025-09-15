@@ -113,6 +113,13 @@ export class MemoryManager extends EventEmitter {
   }
 
   /**
+   * Get current session ID
+   */
+  getSessionId(): string | null {
+    return this.sessionManager.getSessionId();
+  }
+
+  /**
    * Check if memory manager is initialized
    */
   get initialized(): boolean {
