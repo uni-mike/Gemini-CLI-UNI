@@ -383,6 +383,11 @@ Output must be valid JSON only.`;
     this.sessionManager.updateState({
       ephemeralState: this.ephemeral.getState()
     });
+
+    // Track conversation turn and update session metadata
+    this.trackConversationTurn().catch(err => {
+      console.warn('Failed to track conversation turn:', err);
+    });
   }
   
   /**
@@ -497,6 +502,45 @@ Output must be valid JSON only.`;
       console.log(`📊 [MEMORY] ✅ Updated session ${sessionId} with ${tokens} tokens directly`);
     } catch (error) {
       console.error('📊 [MEMORY] ❌ Failed to update session tokens:', error);
+    }
+  }
+
+  /**
+   * Track conversation turn and update session metadata directly
+   */
+  async trackConversationTurn(): Promise<void> {
+    console.log('📊 [MEMORY] Tracking conversation turn');
+
+    try {
+      const sessionId = this.sessionManager.getSessionId();
+      if (!sessionId) {
+        console.warn('📊 [MEMORY] No session ID available for turn tracking');
+        return;
+      }
+
+      // Get current ephemeral state for turn count
+      const sessionState = this.sessionManager.getState();
+      const turnCount = sessionState?.ephemeralState.turns.length || 0;
+
+      // Create snapshot metadata
+      const snapshotMetadata = {
+        sequenceNumber: turnCount,
+        timestamp: new Date().toISOString(),
+        reason: 'conversation_turn'
+      };
+
+      // Directly update session with turn count and snapshot metadata
+      await this.prisma.session.update({
+        where: { id: sessionId },
+        data: {
+          turnCount: turnCount,
+          lastSnapshot: JSON.stringify(snapshotMetadata)
+        }
+      });
+
+      console.log(`📊 [MEMORY] ✅ Updated session ${sessionId} with turnCount: ${turnCount} and snapshot metadata`);
+    } catch (error) {
+      console.error('📊 [MEMORY] ❌ Failed to update conversation turn:', error);
     }
   }
 

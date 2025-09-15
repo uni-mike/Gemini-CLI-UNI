@@ -691,14 +691,14 @@ export class MetricsCollector extends EventEmitter {
   }
   
   /**
-   * Get pipeline metrics
+   * Get pipeline stage metrics (detailed stage information)
    */
-  getPipelineMetrics(): any {
+  getPipelineStageMetrics(): any {
     const stages = Array.from(this.pipelineStages.values());
     const running = stages.filter(s => s.status === 'running');
     const completed = stages.filter(s => s.status === 'completed');
     const failed = stages.filter(s => s.status === 'failed');
-    
+
     return {
       totalStages: stages.length,
       running: running.length,
