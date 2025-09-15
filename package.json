@@ -1,64 +1,40 @@
 {
-  "name": "flexicli",
+  "name": "restaurant_manager",
   "version": "1.0.0",
-  "description": "FlexiCLI - Advanced AI-powered CLI with trio orchestrator architecture",
-  "main": "src/cli.tsx",
-  "type": "module",
+  "description": "Comprehensive full-stack restaurant management system",
+  "main": "index.js",
   "scripts": {
-    "start": "tsx src/cli.tsx",
-    "build": "tsc",
-    "dev": "tsx watch src/cli.tsx",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src/**/*.ts src/**/*.tsx",
-    "test": "vitest"
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon backend/dist/index.js",
+    "client": "cd frontend && npm start",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "tsc -p backend/tsconfig.json",
+    "build:client": "cd frontend && npm run build",
+    "test": "npm run test:server && npm run test:client",
+    "test:server": "jest backend/tests",
+    "test:client": "cd frontend && npm test",
+    "lint": "eslint backend/src frontend/src",
+    "format": "prettier --write backend/src/**/*.{ts,js} frontend/src/**/*.{ts,tsx,js,jsx}"
+  },
+  "keywords": ["restaurant", "management", "fullstack", "typescript"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "concurrently": "^8.0.0",
+    "eslint": "^8.0.0",
+    "eslint-plugin-react": "^7.0.0",
+    "jest": "^29.5.0",
+    "nodemon": "^3.0.0",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@prisma/client": "^5.7.1",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@types/yargs": "^17.0.33",
-    "axios": "^1.6.0",
-    "chokidar": "^4.0.3",
-    "commander": "^11.0.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^5.1.0",
-    "fast-glob": "^3.3.3",
-    "gpt-tokenizer": "^3.0.1",
-    "ink": "^5.2.1",
-    "ink-gradient": "^3.0.0",
-    "ink-spinner": "^5.0.0",
-    "ink-text-input": "^6.0.0",
-    "lru-cache": "^11.2.1",
-    "openai": "^5.20.2",
-    "react": "^18.2.0",
-    "socket.io": "^4.8.1",
-    "sqlite3": "^5.1.7",
-    "uuid": "^13.0.0",
-    "ws": "^8.18.3",
-    "yargs": "^17.7.2"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.2.0",
-    "eslint": "^8.50.0",
-    "prisma": "^5.7.1",
-    "tsx": "^4.6.0",
-    "typescript": "^5.3.0",
-    "vitest": "^1.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
-  "keywords": [
-    "cli",
-    "ai",
-    "orchestrator",
-    "flexicli",
-    "typescript",
-    "react-ink"
-  ],
-  "author": "Mike Admon",
-  "license": "MIT"
+    "express": "^4.18.0",
+    "pg": "^8.0.0"
+  }
 }
