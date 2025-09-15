@@ -26,8 +26,8 @@ export class CacheManager {
   private projectId: string = 'default'; // Will be set dynamically
 
   private constructor() {
-    // Use shared database instead of creating own PrismaClient
-    // this.prisma will be set via setPrisma() method
+    // Database will be initialized via setPrisma() method when SharedDatabase is ready
+    this.prisma = null as any; // Will be set by SharedDatabase via setPrisma()
 
     // Initialize LRU cache with sensible defaults
     this.cache = new LRUCache<string, any>({
@@ -51,8 +51,7 @@ export class CacheManager {
       }
     });
 
-    // Load persisted cache on startup
-    this.loadPersistedCache().catch(console.error);
+    // Note: loadPersistedCache() will be called in setPrisma() once database is ready
 
     // Persist cache periodically (every 5 minutes) and cleanup old entries
     this.persistInterval = setInterval(() => {
@@ -66,6 +65,17 @@ export class CacheManager {
       CacheManager.instance = new CacheManager();
     }
     return CacheManager.instance;
+  }
+
+  /**
+   * Initialize database connection via shared database manager
+   */
+  setPrisma(prismaClient: PrismaClient): void {
+    this.prisma = prismaClient;
+    console.log('📦 CacheManager connected to shared database');
+
+    // Load persisted cache now that database is ready
+    this.loadPersistedCache().catch(console.error);
   }
 
   /**
@@ -141,6 +151,12 @@ export class CacheManager {
    * Persist critical cache entries to database with FIFO and aging
    */
   private async persistCache(): Promise<void> {
+    // Skip if database not initialized yet
+    if (!this.prisma) {
+      console.debug('💾 Database not ready, skipping cache persistence');
+      return;
+    }
+
     try {
       const now = new Date();
       const criticalEntries: Array<{key: string, value: any, category: string}> = [];
@@ -217,6 +233,12 @@ export class CacheManager {
    * Load persisted cache from database
    */
   private async loadPersistedCache(): Promise<void> {
+    // Skip if database not initialized yet
+    if (!this.prisma) {
+      console.debug('📂 Database not ready, skipping cache restoration');
+      return;
+    }
+
     try {
       // First, set up project ID (could come from environment or be determined dynamically)
       this.projectId = process.env.PROJECT_ID || await this.getDefaultProjectId();
@@ -319,6 +341,12 @@ export class CacheManager {
    * Get cache statistics from database
    */
   async getDatabaseStats() {
+    // Return null if database not initialized yet
+    if (!this.prisma) {
+      console.debug('📊 Database not ready, returning null stats');
+      return null;
+    }
+
     try {
       const stats = await this.prisma.cache.aggregate({
         where: { projectId: this.projectId },

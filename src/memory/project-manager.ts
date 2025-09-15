@@ -229,12 +229,16 @@ export class ProjectManager {
     return join(this.flexicliDir, DB_CONFIG.META_FILE);
   }
   
+  /** @deprecated Cache is now database-only. Use CacheManager instead. */
   getCachePath(filename?: string): string {
+    console.warn('getCachePath is deprecated - cache is now database-only');
     const cachePath = join(this.flexicliDir, 'cache');
     return filename ? join(cachePath, filename) : cachePath;
   }
   
+  /** @deprecated Sessions are now database-only. Use database queries instead. */
   getSessionPath(sessionId?: string): string {
+    console.warn('getSessionPath is deprecated - sessions are now database-only');
     const sessionPath = join(this.flexicliDir, 'sessions');
     return sessionId ? join(sessionPath, `${sessionId}.json`) : sessionPath;
   }
@@ -244,7 +248,9 @@ export class ProjectManager {
     return filename ? join(logPath, filename) : logPath;
   }
   
+  /** @deprecated Checkpoints are now database-only. Use database queries instead. */
   getCheckpointPath(name?: string): string {
+    console.warn('getCheckpointPath is deprecated - checkpoints are now database-only');
     const checkpointPath = join(this.flexicliDir, 'checkpoints');
     return name ? join(checkpointPath, name) : checkpointPath;
   }
@@ -281,28 +287,14 @@ export class ProjectManager {
   }
   
   /**
-   * Clean old cache files
+   * Clean old cache files - DEPRECATED: Cache is now database-only
+   * This method is kept for backward compatibility but does nothing.
+   * Cache cleanup is now handled by CacheManager automatically.
    */
   cleanCache(maxAgeDays: number = 7): void {
-    const cachePath = this.getCachePath();
-    const now = Date.now();
-    const maxAge = maxAgeDays * 24 * 60 * 60 * 1000;
-    
-    try {
-      
-      const files: string[] = readdirSync(cachePath);
-      
-      for (const file of files) {
-        const filePath = join(cachePath, file);
-        const stats = statSync(filePath);
-        
-        if (now - stats.mtimeMs > maxAge) {
-          unlinkSync(filePath);
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to clean cache:', error);
-    }
+    // DEPRECATED: Cache is now stored in database via CacheManager
+    // Filesystem cache directory no longer exists
+    console.debug('Cache cleanup skipped - using database-only caching');
   }
   
   /**

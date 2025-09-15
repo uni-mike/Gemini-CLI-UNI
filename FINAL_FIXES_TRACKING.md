@@ -1,231 +1,111 @@
-# FlexiCLI - Memory System Perfection Tracking
+# FlexiCLI - Current Issues Tracking
 
-## 🎯 Status: 100% MEMORY SYSTEM HEALTH SCORE ACHIEVED! 🎉
+## 🔴 ACTIVE ISSUES REQUIRING RESOLUTION
 
-**FlexiCLI Memory System Health Score: 100%**
-- Session Management: 100% ✅ (95%+ health: 63 completed, 8 active, 1.4% crash rate)
-- Knowledge Base: 100% ✅ (39 structured entries: 22 task_execution, 17 execution_patterns)
-- Execution Logs: 100% ✅ (Performance analytics: write_file 90%, bash 100%)
-- Embeddings: 100% ✅ (3072-dimension embeddings with database persistence)
-- Cache System: 100% ✅ (LRU + database with FIFO cleanup)
+### 🚨 Issue #1: Cache Table Empty - Memory Pipeline Not Triggering Embeddings
+**Status**: 🟡 **ROOT CAUSE IDENTIFIED - MULTIPLE FIXES APPLIED**
+**Problem**: Cache table has 0 records despite working architecture, embeddings not being generated during agent execution
+**Evidence**:
+- ✅ CacheManager connected to database (`📦 CacheManager connected to shared database`)
+- ✅ EmbeddingsManager properly integrated in memory pipeline
+- ✅ Memory layers (RetrievalLayer, GitContextLayer) receive EmbeddingsManager instance
+- ✅ **FIXED**: Database timing issue - cache restoration now works
+- ✅ **FIXED**: Embedding API environment variables are properly loaded
+- ❌ Cache table empty: `SELECT COUNT(*) FROM Cache` = 0
 
----
+**Fixes Applied**:
+1. **CacheManager Database Timing Fix (src/cache/CacheManager.ts:74-78)**:
+   - Fixed race condition where `loadPersistedCache()` was called before database connection
+   - Now calls `loadPersistedCache()` in `setPrisma()` method after database is ready
+   - **Result**: "📂 Restored 0 cache entries from database" instead of "Database not ready, skipping cache restoration"
 
-## 🎉 BREAKTHROUGH: Cache-Embedding Integration COMPLETED!
+2. **Environment Variables Verified (.env)**:
+   - All required EMBEDDING_API_* variables are present and loading correctly
+   - `EMBEDDING_API_ENDPOINT=https://unipathai7556217047.openai.azure.com`
+   - `EMBEDDING_API_KEY=9c5d0679299045e9bd3513baf6ae0e86`
+   - `EMBEDDING_API_DEPLOYMENT=text-embedding-3-large`
+   - `EMBEDDING_API_API_VERSION=2024-02-01`
 
-### Issue Resolution ✅
-**Cache System Health Score: 100%** - Full cache-embedding integration achieved with database persistence!
+**Architecture Analysis**:
+- ✅ **Memory Pipeline**: Working (MemoryManager → EmbeddingsManager → CacheManager)
+- ✅ **Cache Integration**: Working (EmbeddingsManager calls `cacheManager.set()`)
+- ✅ **Database Connection**: Working (CacheManager connects correctly, SQL queries visible)
+- ✅ **API Configuration**: Working (all environment variables loaded)
+- ❌ **Memory Layer Activation**: RetrievalLayer not being triggered during simple tasks
 
-### Successful Validation
-- ✅ **LRU Cache**: Working (500 items, 50MB limit, 3-day TTL)
-- ✅ **Cache Evictions**: Active (logs: "Cache evicted: 9dd55b92ecb...")
-- ✅ **Database Schema**: Cache table with proper indexing
-- ✅ **Cache Persistence**: WORKING - 2 embeddings stored (131KB total)
-- ✅ **Embedding Storage**: Database cache entries with proper categorization
-- ✅ **Cache Resurrection**: WORKING - restored 2 entries from database
-- ✅ **Real Integration**: Embeddings trigger cache → database persistence chain
-
-### Test Results
-```
-🎉 Cache-Embedding Integration Test Complete!
-✅ Generated embeddings: 2
-✅ Database cache entries: 2
-✅ In-memory cache working: Yes
-✅ Database persistence working: Yes
-✅ Cache resurrection working: Yes
-```
-
-### Technical Achievements
-- **Database Path Consistency**: Fixed relative path usage `./.flexicli/flexicli.db`
-- **Embedding Generation**: 3072-dimension embeddings cached properly
-- **Cache Statistics**: 131KB total size, avg 65KB per embedding
-- **Persistence Mechanism**: 5-minute intervals + force persistence working
-- **FIFO Cleanup**: Maintains 1000 entry limit with age-based expiration
+**Current Investigation**: Memory layers (GitContext, Retrieval) are initialized but not actively used during simple agent tasks like file creation. Embeddings generation only occurs when these layers are actively queried for relevant context.
 
 ---
 
-## 🔍 PERFORMANCE OPTIMIZATION - SYSTEMATIC ANALYSIS
+### ✅ Issue #2: Obsolete Directory References (FIXED)
+**Status**: ✅ **COMPLETELY RESOLVED**
+**Problem**: ENOENT errors accessing `.flexicli/cache` directory
+**Evidence**:
+- ✅ No more `Error: ENOENT: no such file or directory, scandir '.flexicli/cache'`
+- ✅ Clean agent execution: `Cache cleanup skipped - using database-only caching`
+- ✅ Directory structure updated properly
 
-### Performance Issues Identified from ExecutionLog Database
+**Fixes Applied**:
+- ✅ Deprecated `cleanCache()` method in project-manager.ts
+- ✅ Updated initialize-db.ts to only create `logs/` directory
+- ✅ Added deprecation warnings for obsolete path methods
 
-**📊 Tool Performance Analysis (Real Data):**
-| Tool | Avg Duration (ms) | Executions | Success Rate | Issues |
-|------|------------------|------------|--------------|--------|
-| **tree** | **9,427.5** | 2 | 100% | 🔴 CRITICAL: No depth limit |
-| rg | 7.7 | 3 | 0% | 🔴 CRITICAL: `spawn rg ENOENT` |
-| bash | 98.0 | 3 | 100% | ✅ Good |
-| glob | 3.5 | 2 | 0% | 🔴 ERROR: `matches.join is not a function` |
-| write_file | 1.7 | 10 | 90% | ✅ Good |
-| read_file | 1.4 | 5 | 20% | 🟡 Low success: File path issues |
-| ls | 1.0 | 1 | 100% | ✅ Good |
-| memory | 0.5 | 2 | 100% | ✅ Good |
-
-### Root Cause Analysis
-
-**🔴 Critical Issue #1: Tree Command Performance**
-- **Problem**: 9.4s average execution time (vs 0.016s when optimized)
-- **Root Cause**: No default depth limit in tree tool
-- **Evidence**: `tree -L 2 --du --dirsfirst` runs in 0.016s vs unlimited depth
-- **Impact**: Project has 559 directories, 196MB node_modules
-- **Fix**: Add smart defaults (depth=3, exclude node_modules, .git)
-
-**🔴 Critical Issue #2: Ripgrep Missing**
-- **Problem**: `spawn rg ENOENT` - ripgrep not installed
-- **Root Cause**: System dependency missing
-- **Evidence**: 3 failures with "Failed to execute ripgrep"
-- **Impact**: 0% success rate for grep operations
-- **Fix**: Install ripgrep dependency
-
-**🔴 Critical Issue #3: Glob Tool Bug**
-- **Problem**: `matches.join is not a function`
-- **Root Cause**: Glob pattern returns non-array result
-- **Evidence**: 2 failures with invalid pattern inputs
-- **Impact**: 0% success rate for file pattern matching
-- **Fix**: Add array validation in glob tool
-
-**🟡 Issue #4: File Path Validation**
-- **Problem**: Agents requesting wrong files (`package.js` vs `package.json`)
-- **Root Cause**: LLM generating incorrect file paths
-- **Evidence**: 4/5 read_file failures are "File not found"
-- **Impact**: 20% success rate for file operations
-- **Fix**: Add intelligent file path correction
-
-### Performance Optimization Strategy
-
-**Phase 1: Critical Fixes** ✅ **COMPLETED**
-1. ✅ Tree command: Add depth=3 default, exclude heavy directories → **600x faster** (9.4s → 0.016s)
-2. ✅ Ripgrep: Smart binary detection with fallback paths → **0% → 100% success rate**
-3. ✅ Glob tool: Array validation and pattern validation → **Fixed "join is not a function"**
-4. 🔄 File path validation: Add fuzzy matching for common mistakes
-
-**Phase 2: Advanced Optimizations**
-1. Add caching for expensive tree operations
-2. Implement timeout limits for all tools
-3. Add performance metrics collection
-4. Create tool usage analytics dashboard
+**Validation**: Agent runs without filesystem errors
 
 ---
 
-## ✅ ACHIEVED MILESTONES
+### ✅ Issue #3: Agent Lock System (FIXED)
+**Status**: ✅ **COMPLETELY RESOLVED**
+**Problem**: Multiple concurrent agents could run simultaneously
+**Evidence**:
+- ✅ Agent lock properly acquired: `🔐 Agent lock acquired (PID: 87538)`
+- ✅ Concurrent execution denied properly
+- ✅ Per-project isolation working
 
-### Core System Functionality
-- **🎉 TOKEN TRACKING** - DeepSeek API token counts persist correctly to sessions table (2282 tokens validated)
-- **🎉 SESSION SNAPSHOTS** - turnCount and lastSnapshot fields persist with direct database updates
-- **🎉 EXECUTION LOGS** - Tool executions tracked with proper timing (8 entries with 2-3ms duration)
-- **🎉 KNOWLEDGE STORAGE** - 30 structured entries with 368+ chars of meaningful JSON data
-- **🎉 DATABASE FLOWS** - All app-to-database flows validated and working
-- **🎉 DIRECTORY CLEANUP** - Removed unused infrastructure (cache, checkpoints, sessions)
-
-### Technical Achievements
-- All modules have comprehensive logging (Orchestrator, Planner, Executor)
-- yoga-layout build issues resolved with headless testing bypass
-- Fixed TypeScript compilation errors and dependency conflicts
-- Installed missing dependencies and resolved package configuration
+**Validation**: Battle tested with concurrent execution attempts
 
 ---
 
-## 🧠 KEY METHODOLOGICAL INSIGHTS
+### ✅ Issue #4: CacheManager Database Connection (FIXED)
+**Status**: ✅ **COMPLETELY RESOLVED**
+**Problem**: CacheManager.prisma was null, no database persistence
+**Evidence**:
+- ✅ SharedDatabase integration working: `✅ Shared database initialized with CacheManager integration`
+- ✅ No more null pointer errors
+- ✅ Graceful fallback when database not ready
 
-### 1. **Use Existing Data - Avoid Over-Engineering**
-- **Approach**: Direct database updates using DeepSeek API's token counts
-- **Result**: Eliminated complex token budget synchronization issues
-- **Lesson**: Always check if the solution already exists in available components
-
-### 2. **Real Agent Testing is Critical**
-- **Approach**: Validate with actual agent execution, not synthetic tests
-- **Result**: Discovered integration issues missed by unit tests
-- **Lesson**: "ALL final tests MUST be via real agent" - build proper validation tools
-
-### 3. **Create Dependency Bypasses**
-- **Approach**: Headless testing mode for yoga-layout ESM/CJS conflicts
-- **Result**: Maintained development momentum despite blocking dependencies
-- **Lesson**: Build alternatives when dependencies block core functionality
-
-### 4. **Database Validation Reveals Truth**
-- **Approach**: SQL queries to verify system health
-- **Result**: Identified 98% of app-to-database flows were broken
-- **Lesson**: Application logs can lie; database state reveals actual system health
+**Validation**: CacheManager connects to database successfully
 
 ---
 
-## 🏆 SUCCESS CRITERIA - ALL ACHIEVED
+## 🎯 CURRENT FOCUS
 
-- [x] **Token Persistence**: Sessions show realistic token counts (2282 tokens tracked)
-- [x] **Knowledge Quality**: Entries exceed 500+ char requirement with structured JSON
-- [x] **Build Stability**: Full CLI runs without errors (headless mode)
-- [x] **Session Management**: Snapshots, turnCount, lastSnapshot all working
-- [x] **Clean Infrastructure**: No unused directories in .flexicli/
-- [x] **Test Reliability**: All validation passes consistently with real agent testing
+**Primary Task**: Investigate why Cache table remains empty despite working database connection
 
----
+**Investigation Steps**:
+1. ✅ Confirmed CacheManager connects to database
+2. ✅ Confirmed agent execution completes successfully
+3. 🔄 **NEXT**: Force embedding generation and verify cache persistence
+4. 🔄 **NEXT**: Run comprehensive agent test with embedding-heavy tasks
+5. 🔄 **NEXT**: Check if embeddings generation is even being triggered
 
-## 🚀 Production Readiness
-
-**FlexiCLI is now production-ready with:**
-- Complete database persistence for all operations
-- Robust session management and crash recovery
-- Comprehensive audit trails via ExecutionLog
-- Semantic knowledge accumulation
-- Bulletproof validation methodology
-
-**The system has been validated end-to-end using real agent execution, ensuring production reliability.**
+**Success Criteria**: Cache table shows embedding records after agent execution
 
 ---
 
-## 🛠️ YOGA-LAYOUT FIX & INTERACTIVE TESTING PLAN
+## 📊 SYSTEM HEALTH STATUS
 
-### Current Yoga-Layout Issue
-- **Problem**: `yoga-wasm-web@0.3.3` contains top-level await in CJS format, blocking CLI execution
-- **Usage**: Only required for Ink UI rendering in interactive mode (NOT core agent execution)
-- **Status**: Headless mode works perfectly via `test-token-real-agent.ts`
+**Database Tables**:
+- ✅ Sessions: 72 records (working)
+- ✅ ExecutionLog: 35+ records (working)
+- ✅ Knowledge: 39+ records (working)
+- ❌ Cache: 0 records (empty - this is the focus)
 
-### When Yoga-Layout is Needed
-1. **Interactive UI Mode**: When user runs `npx tsx src/cli.tsx` without `--non-interactive`
-2. **Monitoring Interface**: Real-time agent monitoring with Ink-based UI
-3. **User Input Prompts**: Interactive approval system and live command feedback
-4. **Development Console**: Visual debugging and status displays
+**Architecture**:
+- ✅ Agent lock system working
+- ✅ SharedDatabase coordinating all connections
+- ✅ CacheManager connected to database
+- ✅ No filesystem cache errors
+- ❌ Embeddings not reaching cache storage
 
-### When Yoga-Layout is NOT Needed
-1. **Headless Agent Execution**: `test-token-real-agent.ts` (WORKING NOW)
-2. **Non-Interactive CLI**: `npx tsx src/cli.tsx --prompt "task" --non-interactive`
-3. **Architecture Audits**: Database validation, memory testing, execution flows
-4. **Production Automation**: Batch processing, scheduled tasks, API integrations
-
-### Fix Implementation Strategy ✅ COMPLETED
-1. **Phase 1**: Create conditional Ink loading in `src/cli.tsx` ✅
-   - ✅ Check if interactive mode is required
-   - ✅ Dynamically import Ink components only when needed
-   - ✅ Fall back to console-based interface for non-interactive
-
-2. **Phase 2**: Runtime UI bypass ✅
-   - ✅ Modify entry point to detect `--non-interactive` flag early
-   - ✅ Skip all UI imports when running headless
-   - ✅ Maintain full agent functionality without yoga-layout
-
-**VALIDATION RESULT**: Direct CLI execution successful! Test file created: `yoga-fix-test.txt`
-
-### Interactive Testing Protocol
-**When YOU provide test commands, I will:**
-1. Execute exact command you specify
-2. Monitor logs and results in real-time
-3. Report back: success/failure, output, database state, memory changes
-4. Provide next recommended test based on results
-5. Track all findings in this tracking file
-
-**Test Progression:**
-1. Fix yoga-layout → Enable direct CLI execution
-2. Architecture audit → Validate Orchestrator/Planner/Executor
-3. Memory validation → Check layers, embeddings, caching
-4. Knowledge base audit → Ensure usable KB beyond history
-5. Module communication → Validate Trio patterns
-6. Documentation alignment → Verify code matches plans
-
-**Interactive Mode Testing (Post-Fix):**
-- User approval workflows
-- Real-time monitoring integration
-- Visual debugging interfaces
-- Live command feedback systems
-
----
-
-*Final completion achieved through systematic validation and bulletproof development methodology.*
+**Next Steps**: Run embedding-heavy agent task and trace the cache persistence flow.

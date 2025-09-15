@@ -120,8 +120,8 @@ async function initializeDatabase() {
       console.log(`⚠️  Marked ${activeSessions.count} active sessions as crashed for recovery`);
     }
     
-    // Create subdirectories
-    const subdirs = ['cache', 'sessions', 'logs', 'checkpoints'];
+    // Create subdirectories - Only logs are needed now (cache/sessions/checkpoints moved to database)
+    const subdirs = ['logs'];
     for (const dir of subdirs) {
       const path = join(flexicliDir, dir);
       if (!existsSync(path)) {

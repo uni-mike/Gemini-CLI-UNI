@@ -41,11 +41,86 @@ FlexiCLI/
 │   └── meta.json       # Project metadata
 ```
 
+### Memory-Agent Flow Architecture
+
+```mermaid
+flowchart TB
+    %% User Input Layer
+    User[👤 User Input] --> CLI[🚀 CLI Entry Point]
+    CLI --> Lock{🔐 Agent Lock<br/>Acquired?}
+    Lock -->|❌ Denied| Reject[❌ Exit: Another<br/>Agent Running]
+    Lock -->|✅ Acquired| SharedDB[🗄️ SharedDatabase<br/>Manager]
+
+    %% Core Agent Orchestration
+    SharedDB --> Memory[🧠 MemoryManager<br/>Initialize]
+    Memory --> Orchestrator[🎭 Orchestrator<br/>Execute Task]
+    Orchestrator --> Planner[📋 Planner<br/>Decompose Task]
+    Planner --> Executor[⚙️ Executor<br/>Run Tools]
+
+    %% Memory System Components
+    Memory --> GitContext[📂 GitContextLayer]
+    Memory --> Retrieval[🔍 RetrievalLayer]
+    Memory --> Embeddings[🔤 EmbeddingsManager]
+    Memory --> TokenBudget[💰 TokenBudgetManager]
+
+    %% Database Integration
+    SharedDB --> CacheDB[(💾 Cache Table)]
+    SharedDB --> SessionDB[(📊 Sessions Table)]
+    SharedDB --> KnowledgeDB[(🧩 Knowledge Table)]
+    SharedDB --> ExecutionDB[(📝 ExecutionLog Table)]
+
+    %% Memory Pipeline Flow
+    GitContext --> Embeddings
+    Retrieval --> Embeddings
+    Embeddings -->|embed()| AzureAPI[☁️ Azure OpenAI<br/>Embeddings API]
+    AzureAPI --> CacheManager[📦 CacheManager]
+    CacheManager -->|set()| CacheDB
+    CacheManager -->|get()| LRUCache[⚡ LRU Cache<br/>In-Memory]
+
+    %% Tool Execution Flow
+    Executor --> ToolRegistry[🛠️ Tool Registry]
+    ToolRegistry --> ApprovalMgr[✋ Approval Manager]
+    ApprovalMgr -->|Approved| Tools[🔧 Tool Execution]
+    Tools --> Results[📄 Tool Results]
+    Results --> ExecutionDB
+
+    %% Session Management
+    Orchestrator --> SessionMgr[📱 Session Manager]
+    SessionMgr --> SessionDB
+    SessionMgr --> Snapshots[📸 Session Snapshots]
+    Snapshots --> SessionDB
+
+    %% Knowledge Accumulation
+    Results --> KnowledgeExtract[🔍 Knowledge<br/>Extraction]
+    KnowledgeExtract --> KnowledgeDB
+    TokenBudget --> TokenTracking[📊 Token Tracking]
+    TokenTracking --> SessionDB
+
+    %% Agent Completion & Cleanup
+    Results --> Response[✨ User Response]
+    Response --> Cleanup[🧹 Cleanup & Release]
+    Cleanup --> ReleaseLock[🔓 Release Agent Lock]
+
+    %% Styling
+    classDef userLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef coreLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef memoryLayer fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef dbLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef toolLayer fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class User,CLI userLayer
+    class Orchestrator,Planner,Executor,Lock,SharedDB coreLayer
+    class Memory,GitContext,Retrieval,Embeddings,TokenBudget,CacheManager memoryLayer
+    class CacheDB,SessionDB,KnowledgeDB,ExecutionDB dbLayer
+    class ToolRegistry,ApprovalMgr,Tools toolLayer
+```
+
 ### Database Schema
 - **Sessions** - User session state and metadata
 - **SessionSnapshots** - Point-in-time session backups
 - **ExecutionLog** - Complete tool execution audit trail
 - **Knowledge** - Accumulated semantic understanding
+- **Cache** - Embeddings cache with TTL and persistence
 - **Chunks** - Vector embeddings for retrieval
 
 ---

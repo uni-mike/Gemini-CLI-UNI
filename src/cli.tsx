@@ -8,6 +8,8 @@ import { Orchestrator } from './core/orchestrator.js';
 import { MemoryManager } from './memory/memory-manager.js';
 import { MonitoringBridge } from './monitoring/backend/monitoring-bridge.js';
 import { PrismaClient } from '@prisma/client';
+import { AgentLockManager } from './memory/agent-lock.js';
+import { SharedDatabaseManager } from './memory/shared-database.js';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import axios from 'axios';
@@ -46,6 +48,32 @@ async function main() {
   // Load configuration
   const config = new Config();
   await config.initialize();
+
+  // AGENT LOCK SYSTEM - Ensure single agent instance per project
+  console.log('🔐 Acquiring agent lock...');
+  const agentLock = AgentLockManager.getInstance(process.cwd());
+  const sessionId = `cli-${Date.now()}-${process.pid}`;
+  const lock = await agentLock.acquireLock(sessionId);
+
+  if (!lock) {
+    console.error('❌ Another agent instance is already running in this project.');
+    console.error('   Please wait for it to complete or use --force to override.');
+    process.exit(1);
+  }
+
+  console.log(`🔒 Agent lock acquired (PID: ${lock.pid})`);
+
+  // SHARED DATABASE INTEGRATION - Use SharedDatabaseManager for coordinated access
+  console.log('🗄️ Initializing shared database...');
+  const sharedDatabase = SharedDatabaseManager.getInstance();
+  const dbInitialized = await sharedDatabase.initialize(sessionId);
+
+  if (!dbInitialized) {
+    console.error('❌ Failed to initialize shared database');
+    process.exit(1);
+  }
+
+  console.log('✅ Shared database initialized with CacheManager integration');
 
   // CRITICAL DB VALIDATION WITH CONCURRENT PROTECTION - DO NOT REMOVE OR MODIFY!
   // Always validate database schema exists before proceeding to prevent Prisma errors
