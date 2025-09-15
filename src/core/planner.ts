@@ -18,6 +18,8 @@ export interface Task {
   arguments?: Record<string, any>; // AI-provided arguments for each tool
   dependencies?: string[];
   priority: number;
+  command?: string; // Optional direct command for bash tasks
+  file_path?: string; // Optional direct file path for file operations
 }
 
 export interface TaskPlan {

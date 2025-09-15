@@ -110,7 +110,7 @@ export class GitContextLayer implements MemoryLayer {
     }));
   }
   
-  async getContext(limit: number): Promise<string> {
+  async getContext(query: string): Promise<string> {
     if (!this.isGitRepo) {
       return '';
     }
@@ -119,7 +119,7 @@ export class GitContextLayer implements MemoryLayer {
     const commits = await this.prisma.gitCommit.findMany({
       where: { projectId: this.projectId },
       orderBy: { date: 'desc' },
-      take: Math.min(limit, 10)
+      take: 10
     });
     
     if (commits.length === 0) {

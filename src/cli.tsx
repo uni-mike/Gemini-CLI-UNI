@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import React from 'react';
 import { render } from 'ink';
-import { App } from './ui/App.js';
+import { App } from './ui/App.tsx';
 import { Config } from './config/Config.js';
 import { toolDiscovery } from './tools/auto-discovery.js';
 import { ApprovalManager } from './approval/approval-manager.js';
@@ -243,10 +243,10 @@ async function main() {
           const outputLines = result.output.trim().split('\n');
           if (outputLines.length <= 20) {
             // Show all lines if 20 or fewer
-            outputLines.forEach(line => console.log(`     ${line}`));
+            outputLines.forEach((line: string) => console.log(`     ${line}`));
           } else {
             // Show first 20 lines with indication of more
-            outputLines.slice(0, 20).forEach(line => console.log(`     ${line}`));
+            outputLines.slice(0, 20).forEach((line: string) => console.log(`     ${line}`));
             console.log(`     ... (${outputLines.length - 20} more lines)`);
           }
         } else if (config.getDebugMode() && result.output) {

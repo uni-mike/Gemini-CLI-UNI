@@ -16,10 +16,16 @@
     "lint": "eslint backend/src frontend/src",
     "format": "prettier --write backend/src/**/*.{ts,js} frontend/src/**/*.{ts,tsx,js,jsx}"
   },
-  "keywords": ["restaurant", "management", "fullstack", "typescript"],
+  "keywords": [
+    "restaurant",
+    "management",
+    "fullstack",
+    "typescript"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@types/glob": "^8.1.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
@@ -34,7 +40,11 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@prisma/client": "^6.16.1",
+    "dotenv": "^17.2.2",
     "express": "^4.18.0",
-    "pg": "^8.0.0"
+    "ink": "^3.2.0",
+    "pg": "^8.0.0",
+    "tsx": "^3.14.0"
   }
 }

@@ -8,7 +8,19 @@
       "Bash(do echo \"=== $table ===\")",
       "Bash(done)",
       "Bash(DEBUG=true npx tsx src/cli.tsx --prompt \"create a file called execution-test.txt with content ''''testing execution logging''''\" --non-interactive)",
-      "Bash(DEBUG=true npx tsx src/cli.tsx --prompt \"create a file called execution-test.txt with content ''testing execution logging''\" --non-interactive)"
+      "Bash(DEBUG=true npx tsx src/cli.tsx --prompt \"create a file called execution-test.txt with content ''testing execution logging''\" --non-interactive)",
+      "Bash(npm install:*)",
+      "Bash(DEBUG=true npx tsx src/cli.tsx --prompt \"echo hello\" --non-interactive)",
+      "Bash(export DEBUG=true)",
+      "Read(//Users/mike.admon/node_modules/**)",
+      "Bash(DEBUG=true npx tsx src/cli.tsx --prompt \"create file test-execution.txt with content ''testing ExecutionLog''\" --non-interactive)",
+      "Read(//Users/mike.admon/**)",
+      "Bash(DEBUG=true npx tsx src/cli.tsx --prompt \"create file test-execution.txt with content ''''testing ExecutionLog''''\" --non-interactive)",
+      "Bash(export NODE_OPTIONS=\"--experimental-loader tsx\")",
+      "Bash(npm uninstall:*)",
+      "Bash(DEBUG=true node_modules/.bin/tsx src/cli.tsx --prompt \"create file test-execution.txt with content ''testing ExecutionLog''\" --non-interactive)",
+      "Bash(DEBUG=true node_modules/.bin/tsx src/cli.tsx --prompt \"create test-exec.txt with ''Testing ExecutionLog functionality''\" --non-interactive)",
+      "Bash(npx prisma generate:*)"
     ],
     "deny": [],
     "ask": []
