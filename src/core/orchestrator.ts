@@ -378,19 +378,56 @@ export class Orchestrator extends EventEmitter {
       
       // Step 4: Store execution context in memory for learning
       if (this.memoryManager) {
-        // Store successful task patterns for future reference
+        // Store intelligent knowledge about successful task patterns and outcomes
         const successfulTasks = results.filter(r => r.success);
         if (successfulTasks.length > 0) {
+          // Store semantic knowledge about the task and its context
+          const taskContext = {
+            originalPrompt: prompt,
+            planSteps: plan.tasks.map(t => ({ type: t.tool, description: t.description })),
+            successfulOutputs: successfulTasks.map(r => ({
+              tool: r.tool,
+              output: typeof r.output === 'string' ? r.output.substring(0, 500) : JSON.stringify(r.output).substring(0, 500)
+            })),
+            timestamp: new Date().toISOString()
+          };
+
+          // Store comprehensive knowledge for RAG retrieval
           await this.memoryManager.storeKnowledge(
-            `successful_pattern_${Date.now()}`,
-            `Successfully executed ${successfulTasks.length} tasks: ${successfulTasks.map(r => r.taskId).join(', ')}`,
-            'execution_pattern'
+            `task_knowledge_${Date.now()}`,
+            JSON.stringify(taskContext),
+            'task_execution'
           );
+
+          // Store semantic chunks for embeddings
+          const semanticContent = `User requested: ${prompt}\nPlan created: ${plan.tasks.map(t => t.description).join('; ')}\nSuccessful execution with tools: ${successfulTasks.map(r => r.tool).join(', ')}`;
+
+          if (this.memoryManager.retrieval) {
+            try {
+              await this.memoryManager.retrieval.storeChunk(
+                `execution_success_${Date.now()}`, // path
+                semanticContent,                    // content
+                'doc',                             // chunkType
+                {                                  // metadata
+                  prompt_hash: this.hashPrompt(prompt),
+                  tools_used: successfulTasks.flatMap(r => r.toolsUsed || []).filter(tool => tool !== undefined),
+                  success_rate: successfulTasks.length / results.length
+                }
+              );
+            } catch (error: any) {
+              console.error('Failed to store embedding chunk:', error.message);
+            }
+          }
         }
 
-        // Add the interaction to memory for context
+        // Add the interaction to memory for context with rich details
         this.memoryManager.addAssistantResponse(
-          `Executed ${results.length} tasks with ${results.filter(r => r.success).length} successes`
+          JSON.stringify({
+            prompt,
+            plan_summary: plan.tasks.map(t => t.description).join('; '),
+            execution_results: results.map(r => ({ tool: r.tool, success: r.success })),
+            timestamp: new Date().toISOString()
+          })
         );
       }
 
@@ -713,4 +750,14 @@ ${toolObjects.map(tool => {
     }
   }
 
+  private hashPrompt(prompt: string): string {
+    // Create a simple hash of the prompt for deduplication and caching
+    let hash = 0;
+    for (let i = 0; i < prompt.length; i++) {
+      const char = prompt.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
+  }
 }

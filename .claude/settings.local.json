@@ -50,7 +50,15 @@
       "Bash(npm install)",
       "Bash(timeout:*)",
       "Bash(npx tsc:*)",
-      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create directory TEST_FIX with file TEST_FIX/sample.txt containing ''Hello World''\" --non-interactive)"
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create directory TEST_FIX with file TEST_FIX/sample.txt containing ''Hello World''\" --non-interactive)",
+      "Bash(npm run init-db:*)",
+      "Bash(curl:*)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a simple directory called MEMORY_TEST and create a file MEMORY_TEST/test.txt with content ''Testing memory improvements''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create another test file MEMORY_TEST/debug.txt with content ''Debug embedding test''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create test file MEMORY_TEST/fixed.txt with content ''Fixed embedding storage''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create final test file MEMORY_TEST/success.txt with content ''Embedding storage working''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a test file for session tracking MEMORY_TEST/session-test.txt\" --non-interactive)",
+      "Bash(DEBUG=false ENABLE_MONITORING=false APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Build a comprehensive e-commerce platform called ECOMMERCE_PLATFORM with these requirements: 1) React frontend with TypeScript, Material-UI, React Router, Redux for state management 2) Node.js backend with Express, SQLite, JWT authentication 3) Features: user registration/login, product catalog with categories, shopping cart, checkout process, order history, admin panel for product management 4) Database schema for users, products, categories, orders, order_items 5) RESTful API with proper error handling 6) Responsive design with mobile support 7) Unit tests for critical functions 8) Comprehensive documentation with API specs and setup instructions. Make it production-ready with proper validation, security measures, and performance optimizations.\" --non-interactive)"
     ],
     "deny": [],
     "ask": []
