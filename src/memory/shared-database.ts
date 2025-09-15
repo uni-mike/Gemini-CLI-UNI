@@ -55,8 +55,8 @@ export class SharedDatabaseManager {
         return false;
       }
 
-      // Initialize project manager with database lookup
-      await this.projectManager.initializeWithDatabase();
+      // Initialize project manager WITHOUT database lookup (to avoid circular dependency)
+      // We'll handle project lookup after PrismaClient is ready
 
       // Create single PrismaClient instance
       const dbPath = this.projectManager.getDbPath();

@@ -77,23 +77,53 @@ export class ProjectManager {
   }
   
   /**
-   * Try to load project from database
+   * Try to load project from database (using shared database if available)
    */
   private async loadFromDatabase(): Promise<boolean> {
     try {
-      const prisma = new PrismaClient({
-        datasources: {
-          db: {
-            url: `file:${this.getDbPath()}`
-          }
-        }
-      });
+      // Import here to avoid circular dependency
+      const { sharedDatabase } = await import('./shared-database.js');
 
+      // Check if shared database is available
+      if (!sharedDatabase.isReady()) {
+        console.log('📋 Shared database not ready, using direct connection for project lookup');
+        // Fall back to direct connection for initial project lookup
+        const { PrismaClient } = await import('@prisma/client');
+        const prisma = new PrismaClient({
+          datasources: {
+            db: {
+              url: `file:${this.getDbPath()}`
+            }
+          }
+        });
+
+        const project = await prisma.project.findUnique({
+          where: { rootPath: this.projectRoot }
+        });
+
+        await prisma.$disconnect();
+
+        if (project) {
+          this.metadata = {
+            projectId: project.id,
+            rootPath: project.rootPath,
+            name: project.name,
+            schemaVersion: 1, // Will be updated from constants
+            embeddingsModel: process.env.EMBEDDING_API_MODEL_NAME || 'text-embedding-3-large',
+            createdAt: project.createdAt.toISOString(),
+            updatedAt: project.updatedAt.toISOString()
+          };
+          console.log(`🔗 Using existing database project: ${project.name} (${project.id.substring(0, 8)}...)`);
+          return true;
+        }
+        return false;
+      }
+
+      // Use shared database if available
+      const prisma = sharedDatabase.getPrisma();
       const project = await prisma.project.findUnique({
         where: { rootPath: this.projectRoot }
       });
-
-      await prisma.$disconnect();
 
       if (project) {
         this.metadata = {
