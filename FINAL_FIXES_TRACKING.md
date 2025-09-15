@@ -2,6 +2,45 @@
 
 ## 🔴 ACTIVE ISSUES REQUIRING RESOLUTION
 
+### 🚨 Issue #0: Duplicate README Files and Mermaid Syntax Error
+**Status**: 🔴 **NEW ISSUE - NEEDS FIX**
+**Problem**: Two README.md files exist (root and docs/), root README has Mermaid syntax error
+**Evidence**:
+- Root README.md: 10042 bytes (contains main documentation)
+- docs/README.md: 1334 bytes (duplicate that should be removed)
+- Mermaid chart in root README.md has syntax error preventing proper rendering
+
+**Required Actions**:
+1. Remove duplicate `docs/README.md` file
+2. Fix Mermaid syntax error in root `README.md`
+3. Ensure all documentation references point to root README.md
+
+---
+
+### ✅ Issue #-1: TOKEN TRACKING - FALSE ALARM, IT'S ACTUALLY WORKING!
+**Status**: ✅ **WORKING - FALSE ALARM, TOKENS ARE BEING COUNTED PROPERLY**
+**Problem**: Thought token tracking was broken, but it's actually working fine
+**Evidence**:
+- Recent sessions show tokens ARE being tracked properly (2788, 2679, 2457, etc.)
+- Database query confirms: `SELECT id, tokensUsed FROM Session` shows proper counts
+- The flow DeepSeek → Orchestrator → Memory → Database is working correctly
+- STILL: STOP TOUCHING CODE THAT WORKS!
+
+**Required Actions**:
+1. ADD PROTECTIVE COMMENTS: `// DO NOT TOUCH - TOKEN TRACKING WORKING`
+2. ADD MORE COMMENTS: `// IF YOU BREAK THIS, YOU'RE FIRED`
+3. TEST before making ANY changes to working code
+4. VERIFY the entire token flow from DeepSeek → Orchestrator → Memory → Database
+
+**Working Code That MUST NOT BE TOUCHED**:
+- `src/core/orchestrator.ts:275` - trackApiTokens call
+- `src/memory/memory-manager.ts:482` - trackApiTokens implementation
+- Token event forwarding in planner.ts, executor.ts
+
+---
+
+## 🔴 ACTIVE ISSUES REQUIRING RESOLUTION
+
 ### 🚨 Issue #1: Cache Table Empty - Memory Pipeline Not Triggering Embeddings
 **Status**: 🟡 **ROOT CAUSE IDENTIFIED - MULTIPLE FIXES APPLIED**
 **Problem**: Cache table has 0 records despite working architecture, embeddings not being generated during agent execution
