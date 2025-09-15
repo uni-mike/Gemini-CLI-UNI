@@ -4,6 +4,7 @@
 
 import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { spawn } from 'child_process';
+import { processCleanup } from '../utils/process-cleanup.js';
 
 export class TreeTool extends Tool {
   name = 'tree';
@@ -70,6 +71,9 @@ export class TreeTool extends Tool {
         shell: true,
         stdio: ['pipe', 'pipe', 'pipe']
       });
+
+      // Register with process cleanup manager
+      processCleanup.register(process);
 
       let output = '';
       let error = '';

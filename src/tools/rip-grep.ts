@@ -6,6 +6,7 @@ import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { execSync } from 'child_process';
+import { processCleanup } from '../utils/process-cleanup.js';
 
 export class RipGrepTool extends Tool {
   name = 'rg';
@@ -82,6 +83,10 @@ export class RipGrepTool extends Tool {
         // Try to find ripgrep in common locations
         const rgBinary = this.findRipgrep();
         const child = spawn(rgBinary, rgArgs);
+
+        // Register with process cleanup manager
+        processCleanup.register(child);
+
         let stdout = '';
         let stderr = '';
         

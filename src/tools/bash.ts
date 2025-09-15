@@ -6,6 +6,7 @@
 import { Tool, ToolParams, ToolResult, ParameterSchema } from './base.js';
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
+import { processCleanup } from '../utils/process-cleanup.js';
 
 const execAsync = promisify(exec);
 
@@ -94,6 +95,9 @@ export class BashTool extends Tool {
         detached: true,
         stdio: ['ignore', 'pipe', 'pipe']
       });
+
+      // Register with process cleanup manager for automatic cleanup
+      processCleanup.register(child);
 
       // Capture initial output for confirmation
       let initialOutput = '';

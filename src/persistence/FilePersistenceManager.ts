@@ -8,6 +8,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { createWriteStream, WriteStream } from 'fs';
 import * as crypto from 'crypto';
+import { logRotation } from '../utils/log-rotation.js';
 
 export interface LogEntry {
   timestamp: string;
@@ -100,10 +101,18 @@ export class FilePersistenceManager {
   async initialize(): Promise<void> {
     // Ensure all directories exist
     await this.ensureDirectories();
-    
+
     // Initialize log stream
     await this.initializeLogStream();
-    
+
+    // Initialize log rotation
+    await logRotation.initialize({
+      maxFileSize: 5 * 1024 * 1024, // 5MB
+      maxFiles: 10,
+      maxAge: 30,
+      compress: true
+    });
+
     console.log('📁 File persistence manager initialized');
   }
   
