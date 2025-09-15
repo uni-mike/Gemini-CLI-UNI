@@ -3,7 +3,10 @@
     "allow": [
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a simple test file called mode-test.txt with content ''''Mode detection test''''\" --non-interactive)",
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a simple test file called mode-test.txt with content ''Mode detection test''\" --non-interactive)",
-      "Bash(npx prisma db pull:*)"
+      "Bash(npx prisma db pull:*)",
+      "Bash(while read table)",
+      "Bash(do echo \"=== $table ===\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

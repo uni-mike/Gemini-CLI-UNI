@@ -2,35 +2,42 @@
 
 ## 🚨 **STATUS**: Core functionality COMPLETE - Memory & Session Management BROKEN
 
-## 🔴 **REMAINING CRITICAL ISSUES TO FIX**
+## 🔴 **REMAINING ISSUES**
 
 ### **PRIORITY 1: MEMORY MANAGEMENT SYSTEM** 🧠
-- **Status**: EXISTS but NOT FUNCTIONING PROPERLY
-- **Root Cause**: Orchestrator storing meaningless data instead of semantic content
+- **Status**: FUNCTIONAL - Core features working
+- **Latest Fix**: Added ModeDetector for intelligent mode selection
 
-#### **Issue M1: Chunk Table Empty (RAG Broken)** ✅ **FIXED**
-- **Problem**: 0 records in Chunk table - no embeddings/semantic search
-- **Impact**: No RAG capabilities, no intelligent context retrieval
-- **Status**: ✅ **COMPLETED** - Embedding storage now working perfectly
-- **Fix Applied**: Fixed orchestrator function signature and data structure
-- **Evidence**: Chunk table now has 1 record with proper embeddings and metadata
+#### **Issue M1: Chunk Table (RAG)** ✅ **WORKING**
+- **Status**: 5 records with embeddings
+- **Impact**: RAG capabilities functional
 
-#### **Issue M2: Knowledge System Suboptimal**
-- **Problem**: Only 17 records of useless execution patterns
-- **Impact**: No intelligent task knowledge accumulation
-- **Status**: ✅ **FIXED** - Replaced with comprehensive task context storage
+#### **Issue M2: Knowledge System** ✅ **WORKING**
+- **Status**: 25 records with semantic task context
+- **Impact**: Proper knowledge accumulation working
 
 #### **Issue M3: Cache Directories Empty**
 - **Problem**: All .flexicli cache folders empty (0 bytes)
 - **Impact**: No LRU caching benefits, repeated processing
 - **Status**: ✅ **RESOLVED** - Database persistence is primary storage, not file cache
 
-### **PRIORITY 2: SESSION MANAGEMENT BROKEN** 👥
+### **PRIORITY 2: UNUSED DATABASE TABLES** 📊
 
-#### **Issue S1: All Sessions Show 'Concise' Mode**
-- **Problem**: 52 sessions all marked as 'concise'
-- **Impact**: No proper mode tracking, breaks user preferences
-- **Status**: ⚠️ **DOCUMENTED** - Hardcoded in CLI, not critical for memory system
+#### **ExecutionLog Table** ❌ **NOT POPULATED**
+- **Status**: 0 records - Tool executions not being logged
+- **Impact**: No audit trail for debugging
+- **Decision**: Keep for future monitoring integration
+
+#### **SessionSnapshot Table** ❌ **NOT POPULATED**
+- **Status**: 0 records - Conversation snapshots not saved
+- **Impact**: No crash recovery or session persistence
+- **Decision**: Keep for future implementation
+
+### **PRIORITY 3: SESSION MANAGEMENT** 👥
+
+#### **Issue S1: Mode Tracking** ✅ **FIXED**
+- **Status**: ModeDetector implemented
+- **Impact**: New sessions will track correct mode (concise/direct/deep)
 
 #### **Issue S2: Too Many 'Active' Sessions**
 - **Problem**: Multiple sessions marked 'active' instead of 'completed'
