@@ -72,10 +72,10 @@ flowchart TB
     %% Memory Pipeline Flow
     GitContext --> Embeddings
     Retrieval --> Embeddings
-    Embeddings -->|embed()| AzureAPI[☁️ Azure OpenAI<br/>Embeddings API]
+    Embeddings -->|embed| AzureAPI[☁️ Azure OpenAI<br/>Embeddings API]
     AzureAPI --> CacheManager[📦 CacheManager]
-    CacheManager -->|set()| CacheDB
-    CacheManager -->|get()| LRUCache[⚡ LRU Cache<br/>In-Memory]
+    CacheManager -->|set| CacheDB
+    CacheManager -->|get| LRUCache[⚡ LRU Cache<br/>In-Memory]
 
     %% Tool Execution Flow
     Executor --> ToolRegistry[🛠️ Tool Registry]
@@ -101,12 +101,12 @@ flowchart TB
     Response --> Cleanup[🧹 Cleanup & Release]
     Cleanup --> ReleaseLock[🔓 Release Agent Lock]
 
-    %% Styling
-    classDef userLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef coreLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef memoryLayer fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef dbLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef toolLayer fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    %% Styling - Dark Professional Theme
+    classDef userLayer fill:#2c3e50,stroke:#34495e,stroke-width:2px,color:#fff
+    classDef coreLayer fill:#34495e,stroke:#2c3e50,stroke-width:2px,color:#fff
+    classDef memoryLayer fill:#16a085,stroke:#1abc9c,stroke-width:2px,color:#fff
+    classDef dbLayer fill:#e67e22,stroke:#d35400,stroke-width:2px,color:#fff
+    classDef toolLayer fill:#e74c3c,stroke:#c0392b,stroke-width:2px,color:#fff
 
     class User,CLI userLayer
     class Orchestrator,Planner,Executor,Lock,SharedDB coreLayer
@@ -327,26 +327,10 @@ npx tsx src/cli.tsx --non-interactive
 
 ---
 
-## 🤝 Contributing
+## ⚠️ Private Software
 
-### Development Setup
-1. Fork the repository
-2. Create feature branch
-3. Implement changes with tests
-4. Validate with real agent testing
-5. Submit pull request
-
-### Testing Requirements
-- Unit tests for core components
-- Integration tests for memory system
-- Real agent validation for critical paths
-- Performance benchmarks
-
----
-
-## 📄 License
-
-MIT License - see LICENSE file for details
+This is **PROPRIETARY SOFTWARE** - All rights reserved.
+**NOT** open source. **NOT** MIT/Apache licensed.
 
 ---
 

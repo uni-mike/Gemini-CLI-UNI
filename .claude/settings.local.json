@@ -70,7 +70,10 @@
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a file called cache-timing-test.txt with content ''Testing cache database timing fix''\" --non-interactive)",
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"analyze the existing code in this repository to understand the memory system architecture and explain how embeddings should work\" --non-interactive)",
       "Bash(for table in Session SessionSnapshot ExecutionLog Knowledge Cache Chunks GitCommit)",
-      "Bash(npx prisma db push:*)"
+      "Bash(npx prisma db push:*)",
+      "Bash(npx markdownlint-cli:*)",
+      "Bash(sed:*)",
+      "Bash(npx:*)"
     ],
     "deny": [],
     "ask": []
