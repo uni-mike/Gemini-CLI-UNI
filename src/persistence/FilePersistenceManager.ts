@@ -66,11 +66,28 @@ export class FilePersistenceManager {
   private logsDir: string;
   
   private constructor() {
-    this.baseDir = path.join(process.cwd(), '.flexicli');
+    // Use PROJECT_ROOT from environment if available, otherwise use git root
+    const projectRoot = process.env.PROJECT_ROOT || this.findProjectRoot();
+    this.baseDir = path.join(projectRoot, '.flexicli');
     this.cacheDir = path.join(this.baseDir, 'cache');
     this.sessionsDir = path.join(this.baseDir, 'sessions');
     this.checkpointsDir = path.join(this.baseDir, 'checkpoints');
     this.logsDir = path.join(this.baseDir, 'logs');
+  }
+
+  private findProjectRoot(): string {
+    // Try to find git root
+    let currentDir = process.cwd();
+    while (currentDir !== '/') {
+      if (fs.existsSync(path.join(currentDir, '.git'))) {
+        return currentDir;
+      }
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) break;
+      currentDir = parentDir;
+    }
+    // Fallback to current directory
+    return process.cwd();
   }
   
   static getInstance(): FilePersistenceManager {

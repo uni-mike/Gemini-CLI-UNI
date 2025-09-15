@@ -73,7 +73,8 @@
       "Bash(npx prisma db push:*)",
       "Bash(npx markdownlint-cli:*)",
       "Bash(sed:*)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Search the entire codebase and analyze the memory management architecture, focusing on how embeddings are generated, cached, and retrieved. Explain the flow from GitContextLayer through EmbeddingsManager to CacheManager, including all database interactions.\" --non-interactive)"
     ],
     "deny": [],
     "ask": []
