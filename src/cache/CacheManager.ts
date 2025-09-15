@@ -6,6 +6,7 @@
 import { LRUCache } from 'lru-cache';
 import { createHash } from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import { sharedDatabase } from '../memory/shared-database.js';
 
 export interface CacheOptions {
   max?: number; // Maximum number of items
@@ -25,7 +26,8 @@ export class CacheManager {
   private projectId: string = 'default'; // Will be set dynamically
 
   private constructor() {
-    this.prisma = new PrismaClient();
+    // Use shared database instead of creating own PrismaClient
+    // this.prisma will be set via setPrisma() method
 
     // Initialize LRU cache with sensible defaults
     this.cache = new LRUCache<string, any>({

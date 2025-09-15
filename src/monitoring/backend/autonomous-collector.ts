@@ -325,9 +325,8 @@ export class AutonomousCollector extends EventEmitter {
    */
   private watchFileSystem() {
     const paths = [
-      '.flexicli/cache',
-      '.flexicli/sessions',
-      '.flexicli/flexicli.db'
+      '.flexicli/flexicli.db', // Only watch database - all persistence moved to DB
+      '.flexicli/logs'         // Keep logs for debugging
     ].map(p => join(this.config.projectRoot, p));
     
     paths.forEach(path => {
@@ -358,9 +357,9 @@ export class AutonomousCollector extends EventEmitter {
     };
     
     const metrics = {
-      cacheSize: getDirectorySize(join(this.config.projectRoot, '.flexicli/cache')),
       dbSize: getDirectorySize(join(this.config.projectRoot, '.flexicli/flexicli.db')),
       logsSize: getDirectorySize(join(this.config.projectRoot, '.flexicli/logs')),
+      // Removed cacheSize - cache now managed in database
       timestamp: new Date()
     };
     

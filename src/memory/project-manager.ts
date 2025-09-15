@@ -63,8 +63,8 @@ export class ProjectManager {
       mkdirSync(this.flexicliDir, { recursive: true });
     }
     
-    // Create subdirectories
-    const subdirs = ['cache', 'sessions', 'logs', 'checkpoints'];
+    // Create only needed subdirectories - everything else moved to database
+    const subdirs = ['logs']; // Only logs needed for debugging
     for (const dir of subdirs) {
       const path = join(this.flexicliDir, dir);
       if (!existsSync(path)) {
