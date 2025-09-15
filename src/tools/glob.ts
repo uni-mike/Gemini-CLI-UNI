@@ -29,6 +29,19 @@ export class GlobTool extends Tool {
           error: 'pattern parameter is required'
         };
       }
+
+      // Validate pattern format
+      if (typeof pattern !== 'string' || pattern.trim().length === 0) {
+        return {
+          success: false,
+          error: 'pattern must be a non-empty string'
+        };
+      }
+
+      // Basic pattern validation - warn about suspicious patterns
+      if (pattern.length < 3 && !pattern.includes('*') && !pattern.includes('?')) {
+        console.warn(`⚠️  Suspicious glob pattern: "${pattern}". Did you mean "${pattern}*" or "*${pattern}*"?`);
+      }
       
       const options = {
         cwd: args.cwd || process.cwd(),
@@ -38,11 +51,14 @@ export class GlobTool extends Tool {
       };
       
       const matches = await glob(pattern, options);
-      
+
+      // Ensure matches is always an array
+      const matchArray = Array.isArray(matches) ? matches : [];
+
       // Add file details if requested
       if (args.with_details) {
         const details = await Promise.all(
-          matches.map(async (file) => {
+          matchArray.map(async (file) => {
             try {
               const stats = await stat(file);
               return {
@@ -70,7 +86,7 @@ export class GlobTool extends Tool {
       
       return {
         success: true,
-        output: matches.join('\n')
+        output: matchArray.join('\n')
       };
     } catch (error: any) {
       return {

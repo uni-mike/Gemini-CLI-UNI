@@ -4,6 +4,8 @@
 
 import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { spawn } from 'child_process';
+import { existsSync } from 'fs';
+import { execSync } from 'child_process';
 
 export class RipGrepTool extends Tool {
   name = 'rg';
@@ -19,7 +21,36 @@ export class RipGrepTool extends Tool {
     { name: 'glob', type: 'string', required: false, description: 'Include files matching glob' },
     { name: 'max_count', type: 'number', required: false, description: 'Max matches per file' }
   ];
-  
+
+  private findRipgrep(): string {
+    // Try common locations for ripgrep
+    const locations = [
+      'rg', // Try PATH first
+      '/usr/local/bin/rg',
+      '/opt/homebrew/bin/rg',
+      '/usr/bin/rg',
+      // Claude Code vendor location
+      '/Users/mike.admon/.nvm/versions/node/v20.18.3/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg'
+    ];
+
+    for (const location of locations) {
+      try {
+        if (location === 'rg') {
+          // Test if rg is in PATH
+          execSync('which rg', { stdio: 'ignore' });
+          return 'rg';
+        } else if (existsSync(location)) {
+          return location;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    // If nothing found, return 'rg' and let spawn handle the error
+    return 'rg';
+  }
+
   async execute(args: any): Promise<ToolResult> {
     try {
       const pattern = args.pattern || args.query;
@@ -48,7 +79,9 @@ export class RipGrepTool extends Tool {
       if (args.type) rgArgs.push(`--type=${args.type}`);
       
       return new Promise((resolve) => {
-        const child = spawn('rg', rgArgs);
+        // Try to find ripgrep in common locations
+        const rgBinary = this.findRipgrep();
+        const child = spawn(rgBinary, rgArgs);
         let stdout = '';
         let stderr = '';
         
