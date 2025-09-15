@@ -1,0 +1,2 @@
+EMBEDDING_API Environment Variables:
+$(env | grep EMBEDDING_API || echo "No EMBEDDING_API environment variables found")
