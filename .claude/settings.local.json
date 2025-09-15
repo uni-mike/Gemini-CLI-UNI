@@ -44,7 +44,12 @@
       "Bash(DEBUG=true ENABLE_MONITORING=false npx tsx src/cli.tsx --prompt \"Create a simple TypeScript file with a function that adds two numbers\" --non-interactive)",
       "Bash(DEBUG=true ENABLE_MONITORING=false npx tsx src/cli.tsx --prompt \"Create a simple directory called TEST_DIR and create a TypeScript file called TEST_DIR/math.ts with functions to add and multiply two numbers\" --non-interactive)",
       "Bash(DEBUG=true ENABLE_MONITORING=false npx tsx src/cli.tsx --prompt \"Create a directory called TEST_DIR and create a TypeScript file called TEST_DIR/math.ts with functions to add and multiply two numbers\" --non-interactive)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(DEBUG=false ENABLE_MONITORING=false APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Build a complete animal feeding schedule app in ANIMAL_FEEDING_APP folder. Create React frontend with TypeScript and Material-UI for tracking pet feeding schedules, Node.js backend with SQLite database, and comprehensive documentation. Include CRUD operations for pets, feeding schedules, reminders, and a dashboard. Make it fully functional.\" --non-interactive)",
+      "Bash(DEBUG=false ENABLE_MONITORING=false APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Build a complete task management app in TASK_APP folder. Create React frontend with TypeScript, Node.js backend with Express and SQLite, and comprehensive documentation. Include task CRUD operations, priority levels, due dates, categories, and a responsive dashboard. Make it fully functional with proper error handling.\" --non-interactive)",
+      "Bash(npm install)",
+      "Bash(timeout:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
