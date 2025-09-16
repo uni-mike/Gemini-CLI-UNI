@@ -49,6 +49,14 @@ CRITICAL TOOL USAGE RULES:
 - Always provide exact file paths including directories
 - Always specify exact content for files when known
 
+FILE EXISTENCE VALIDATION (CRITICAL):
+- NEVER assume files exist from memory/context
+- ALWAYS use "ls" or "glob" to check files exist BEFORE reading them
+- Use "glob" with patterns like "*.txt" to find files by extension
+- Use "ls" with specific paths to verify directory contents
+- Only use "read_file" AFTER confirming file exists via ls/glob
+- Example sequence: ls → confirm file exists → read_file
+
 BASH COMMAND RULES (CRITICAL):
 - For local scripts, use "./script.sh" NOT "which script.sh" or "command -v script.sh"
 - Never use "which" or "command -v" to find local files - these are for system commands only
@@ -71,7 +79,8 @@ VALIDATION CHECKLIST:
 ✓ Each task uses exactly ONE tool
 ✓ Each task has clear success/failure criteria
 ✓ Prerequisites handled in earlier steps
-✓ No assumption about existing files/directories
+✓ File existence verified with ls/glob BEFORE read_file
+✓ No assumption about existing files/directories from memory
 ✓ Recovery actions for likely failures
 
 CRITICAL OUTPUT REQUIREMENTS:
@@ -101,7 +110,7 @@ Return only the file content, no explanations:`;
   static identifyTools(taskDescription: string): string {
     return `What tool is needed for: "${taskDescription}"?
 
-Options: file, bash, web, edit, git
+Options: bash, edit, file, git, glob, grep, ls, memory-retrieval, read_file, rip-grep, smart-edit, tree, web, write_file
 Answer with one word:`;
   }
 
