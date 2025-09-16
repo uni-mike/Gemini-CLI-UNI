@@ -42,7 +42,7 @@ export class AutonomousCollector extends EventEmitter {
 
     // Always use the main FlexiCLI database (not relative to projectRoot)
     const mainDbPath = process.env.DATABASE_URL ||
-      'file:/Users/mike.admon/UNIPATH_PROJECT/gemini-cli/.flexicli/flexicli.db';
+      'file:../.flexicli/flexicli.db';
 
     // Initialize Prisma with optimized SQLite settings
     this.prisma = new PrismaClient({

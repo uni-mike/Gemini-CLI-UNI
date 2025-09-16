@@ -24,7 +24,7 @@ class ComprehensiveBattleTest {
     this.prisma = new PrismaClient({
       datasources: {
         db: {
-          url: `file:.flexicli/flexicli.db`
+          url: `file:../.flexicli/flexicli.db`
         }
       }
     });

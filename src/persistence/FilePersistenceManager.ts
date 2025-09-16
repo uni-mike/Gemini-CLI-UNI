@@ -61,18 +61,14 @@ export class FilePersistenceManager {
   private static instance: FilePersistenceManager;
   private baseDir: string;
   private logStream: WriteStream | null = null;
-  private cacheDir: string;
-  private sessionsDir: string;
-  private checkpointsDir: string;
+  // Removed: cacheDir, sessionsDir, checkpointsDir - using database instead
   private logsDir: string;
   
   private constructor() {
     // Use PROJECT_ROOT from environment if available, otherwise use git root
     const projectRoot = process.env.PROJECT_ROOT || this.findProjectRoot();
     this.baseDir = path.join(projectRoot, '.flexicli');
-    this.cacheDir = path.join(this.baseDir, 'cache');
-    this.sessionsDir = path.join(this.baseDir, 'sessions');
-    this.checkpointsDir = path.join(this.baseDir, 'checkpoints');
+    // Cache, sessions, and checkpoints now use database instead of files
     this.logsDir = path.join(this.baseDir, 'logs');
   }
 
@@ -117,14 +113,11 @@ export class FilePersistenceManager {
   }
   
   private async ensureDirectories(): Promise<void> {
-    const dirs = [this.cacheDir, this.sessionsDir, this.checkpointsDir, this.logsDir];
-    
-    for (const dir of dirs) {
-      try {
-        await fs.mkdir(dir, { recursive: true });
-      } catch (error) {
-        console.warn(`Failed to create directory ${dir}:`, error);
-      }
+    // Only create logs directory - cache/sessions/checkpoints use database now
+    try {
+      await fs.mkdir(this.logsDir, { recursive: true });
+    } catch (error) {
+      console.warn(`Failed to create logs directory ${this.logsDir}:`, error);
     }
   }
   

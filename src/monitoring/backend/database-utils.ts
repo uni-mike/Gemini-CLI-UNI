@@ -5,6 +5,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import * as path from 'path';
+import { ProjectManager } from '../../memory/project-manager.js';
 
 export interface DatabaseConfig {
   maxRetries?: number;
@@ -27,7 +28,9 @@ export class DatabaseConnection {
       ...config
     };
     
-    const dbPath = path.join(process.cwd(), '.flexicli', 'flexicli.db');
+    // Use ProjectManager for consistent database path resolution
+    const projectManager = new ProjectManager();
+    const dbPath = projectManager.getDbPath();
     const dbUrl = `file:${dbPath}`;
     
     this.prisma = new PrismaClient({
@@ -182,7 +185,8 @@ export class DatabaseConnection {
       
       // Get database file sizes
       const fs = await import('fs/promises');
-      const dbPath = path.join(process.cwd(), '.flexicli', 'flexicli.db');
+      const projectManager = new ProjectManager();
+      const dbPath = projectManager.getDbPath();
       const walPath = `${dbPath}-wal`;
       
       try {

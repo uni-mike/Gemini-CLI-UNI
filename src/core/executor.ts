@@ -9,6 +9,7 @@ import { globalRegistry } from '../tools/registry.js';
 import { DeepSeekClient } from '../llm/deepseek-client.js';
 import { PrismaClient } from '@prisma/client';
 import { join } from 'path';
+import { ProjectManager } from '../memory/project-manager.js';
 
 export interface ExecutionContext {
   workingDirectory: string;
@@ -83,7 +84,9 @@ export class Executor extends EventEmitter {
 
   private async initializePrisma() {
     try {
-      const dbPath = join(process.cwd(), '.flexicli', 'flexicli.db');
+      // Use ProjectManager for consistent database path resolution
+      const projectManager = new ProjectManager();
+      const dbPath = projectManager.getDbPath();
       this.prisma = new PrismaClient({
         datasources: {
           db: {

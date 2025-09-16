@@ -73,9 +73,13 @@ export class SharedDatabaseManager {
       await this.prisma.$connect();
       console.log(`🗄️ Shared database connected: ${dbPath}`);
 
-      // Initialize CacheManager with shared database connection
+      // Initialize CacheManager with shared database connection and projectId
       const { cacheManager } = await import('../cache/CacheManager.js');
       cacheManager.setPrisma(this.prisma);
+
+      // CRITICAL FIX: Set projectId so CacheManager can write to database
+      const projectId = this.projectManager.getProjectId();
+      cacheManager.setProjectId(projectId);
 
       this.isInitialized = true;
       return true;

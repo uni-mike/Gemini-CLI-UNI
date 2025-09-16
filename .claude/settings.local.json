@@ -12,7 +12,18 @@
       "Bash(gtimeout:*)",
       "Bash(while read test)",
       "Bash(python tests/unit/api/test-azure-deepseek.py:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(DEBUG=true npx tsx validate-fixes.ts)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a test file called cache-test-real.txt with content ''''Testing real cache writes''''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo EMBEDDING_API=true npx tsx src/cli.tsx --prompt \"analyze the cache system and explain how embeddings are stored\" --non-interactive)",
+      "Bash(export DEBUG=true APPROVAL_MODE=yolo EMBEDDING_API=true)",
+      "Bash(node:*)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Analyze the memory system architecture in this codebase. Look at the SharedDatabaseManager, CacheManager, and EmbeddingsManager classes. Explain how they work together and create a summary of the memory pipeline architecture.\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a simple test file called cache-demo.txt with content ''''Cache system working!''''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"echo hello\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"search the codebase for any mention of authentication or security patterns and summarize what you find\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a simple test file called path-test.txt with content ''''Database path fixed!''''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a test file called all-paths-fixed.txt with content ''''All database paths now consistent!''''\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

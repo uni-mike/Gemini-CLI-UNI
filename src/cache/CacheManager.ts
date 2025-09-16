@@ -94,6 +94,13 @@ export class CacheManager {
     // Track original key for embeddings persistence
     if (key.startsWith('embed_')) {
       this.keyToOriginal.set(cacheKey, key);
+
+      // Immediately persist embeddings to database
+      if (this.prisma && this.projectId) {
+        this.persistSingleEmbedding(key, value).catch(error => {
+          console.warn('Failed to persist embedding:', error);
+        });
+      }
     }
 
     this.cache.set(cacheKey, value, {
@@ -145,6 +152,47 @@ export class CacheManager {
       hitRate: this.cache.size > 0 ?
         (this.cache as any).hits / ((this.cache as any).hits + (this.cache as any).misses) : 0
     };
+  }
+
+  /**
+   * Persist a single embedding immediately to database
+   */
+  private async persistSingleEmbedding(key: string, value: any): Promise<void> {
+    if (!this.prisma || !this.projectId) return;
+
+    try {
+      const now = new Date();
+      const valueStr = JSON.stringify(value);
+      const size = valueStr.length;
+      const ttl = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days
+
+      await this.prisma.cache.upsert({
+        where: { cacheKey: this.getCacheKey(key) },
+        update: {
+          value: valueStr,
+          size,
+          lastAccess: now,
+          ttl,
+          accessCount: { increment: 1 }
+        },
+        create: {
+          projectId: this.projectId,
+          cacheKey: this.getCacheKey(key),
+          originalKey: key,
+          value: valueStr,
+          category: 'embedding',
+          size,
+          ttl
+        }
+      });
+
+      // Force commit to database
+      await this.prisma.$queryRaw`PRAGMA wal_checkpoint(TRUNCATE)`;
+
+      console.debug(`💾 Persisted embedding to database: ${key.substring(0, 20)}...`);
+    } catch (error) {
+      console.error(`Failed to persist embedding ${key}:`, error);
+    }
   }
 
   /**
@@ -373,6 +421,13 @@ export class CacheManager {
       console.warn('Failed to get database cache stats:', error);
       return null;
     }
+  }
+
+  /**
+   * Force immediate persistence (useful for testing and ensuring data is saved)
+   */
+  async forcePersist(): Promise<void> {
+    await this.persistCache();
   }
 
   /**
