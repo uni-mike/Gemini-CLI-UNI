@@ -157,10 +157,10 @@ export class RecoveryManager {
     };
   }
   
-  private extractFileName(description: string): string {
-    if (!description) return 'unknown.txt';
+  private extractFileName(description: string): string | null {
+    if (!description) return null;
     const match = description.match(/(\S+\.\w+)/);
-    return match ? match[1] : 'unknown.txt';
+    return match ? match[1] : null;
   }
   
   private extractCommand(error: string): string {

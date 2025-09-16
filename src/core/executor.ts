@@ -702,20 +702,20 @@ export class Executor extends EventEmitter {
       return recentFile;
     }
     
-    // If we found an explicit path that's not a generic default, use it
-    if (explicitPath && explicitPath !== 'file.txt' && explicitPath !== 'test.txt') {
+    // If we found a valid explicit path, use it
+    if (explicitPath) {
       return explicitPath;
     }
-    
+
     // Otherwise, check if we have any created files in context
     if (context.createdFiles && context.createdFiles.length > 0) {
       const recentFile = context.createdFiles[context.createdFiles.length - 1];
-      console.log(`  🔍 Defaulting to recent file: ${recentFile}`);
+      console.log(`  🔍 Using most recent created file: ${recentFile}`);
       return recentFile;
     }
 
-    // If we still have null, try to use the most recently created file we know about
-    return explicitPath || 'yoga-fix-test.txt'; // Better fallback than file.txt
+    // NO FILE FOUND - return null and let the tool handle the error
+    return null;
   }
 
   private async extractContent(description: string, context: ExecutionContext): Promise<string> {
