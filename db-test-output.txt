@@ -1,4 +1,0 @@
-EMBEDDING_API environment variables test output
-===============================================
-
-Environment variables found:
