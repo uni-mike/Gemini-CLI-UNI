@@ -90,25 +90,41 @@ export class EmbeddingsManager {
     }
     
     try {
-      // Batch API call for uncached texts
-      const response = await this.client.embeddings.create({
-        input: uncached.map(u => u.text),
-        model: this.deployment
-      });
-      
-      // Process and cache results
-      for (let i = 0; i < uncached.length; i++) {
-        const embedding = new Float32Array(response.data[i].embedding);
-        const normalized = this.normalize(embedding);
-        
-        const { text, index } = uncached[i];
-        const cacheKey = `embed_${this.hashText(text)}`;
-        cacheManager.set(cacheKey, Array.from(normalized), {
-          ttl: 7 * 24 * 60 * 60 * 1000 // 7 days TTL
-        });
-        results[index] = normalized;
+      // Split into smaller batches if needed (max ~7000 tokens per batch to be safe)
+      const MAX_BATCH_SIZE = 5; // Process max 5 texts at a time to avoid token limit
+
+      for (let batchStart = 0; batchStart < uncached.length; batchStart += MAX_BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + MAX_BATCH_SIZE, uncached.length);
+        const batch = uncached.slice(batchStart, batchEnd);
+
+        try {
+          // Batch API call for this subset
+          const response = await this.client.embeddings.create({
+            input: batch.map(u => u.text),
+            model: this.deployment
+          });
+
+          // Process and cache results
+          for (let i = 0; i < batch.length; i++) {
+            const embedding = new Float32Array(response.data[i].embedding);
+            const normalized = this.normalize(embedding);
+
+            const { text, index } = batch[i];
+            const cacheKey = `embed_${this.hashText(text)}`;
+            cacheManager.set(cacheKey, Array.from(normalized), {
+              ttl: 7 * 24 * 60 * 60 * 1000 // 7 days TTL
+            });
+            results[index] = normalized;
+          }
+        } catch (batchError) {
+          console.warn(`Batch ${batchStart}-${batchEnd} failed, using fallback:`, batchError);
+          // Fallback for failed batch items
+          for (const { text, index } of batch) {
+            results[index] = this.fallbackEmbedding(text);
+          }
+        }
       }
-      
+
       return results;
     } catch (error) {
       console.warn('Batch embedding failed, using fallback:', error);
