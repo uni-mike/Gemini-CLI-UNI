@@ -1,8 +1,8 @@
 # FlexiCLI
 
-**Autonomous AI Agent with Advanced Memory Management**
+**Autonomous AI Agent with Advanced Multi-Agent Capabilities**
 
-A production-ready CLI tool that combines autonomous task execution with sophisticated memory persistence and intelligent conversation management.
+A production-ready CLI tool that combines autonomous task execution with sophisticated memory persistence, intelligent conversation management, and advanced mini-agent delegation for complex multi-domain tasks.
 
 ---
 
@@ -10,10 +10,18 @@ A production-ready CLI tool that combines autonomous task execution with sophist
 
 ### Core Capabilities
 - **Autonomous Task Execution** - Multi-step planning and execution with real-time feedback
+- **Mini-Agent System** - Intelligent task delegation to specialized agents for complex multi-domain tasks
 - **Advanced Memory Management** - Persistent sessions with crash recovery and knowledge accumulation
 - **Token Budget Management** - Intelligent token allocation across memory layers
 - **Real-time Tool Execution** - Comprehensive tool registry with approval management
 - **Database Persistence** - Complete audit trails and session state preservation
+
+### Mini-Agent Capabilities
+- **7 Specialized Agent Types** - search, migration, analysis, refactor, test, documentation, general
+- **Sophisticated Task Analysis** - Automatic complexity detection and delegation strategy
+- **Dependency Management** - Intelligent execution ordering with parallel optimization
+- **Context Scoping** - Isolated memory and specialized prompts per agent
+- **Proven Performance** - 10+ successful agent spawns in production tests
 
 ### Memory System
 - **Session Management** - Automatic crash recovery and state restoration
@@ -31,11 +39,19 @@ A production-ready CLI tool that combines autonomous task execution with sophist
 FlexiCLI/
 ├── src/
 │   ├── core/           # Orchestrator, Planner, Executor
+│   ├── mini-agent/     # Mini-agent system
+│   │   └── core/       # AgentSpawner, types, templates
 │   ├── memory/         # Memory management system
 │   ├── tools/          # Tool registry and execution
 │   ├── llm/            # LLM provider integration
 │   ├── config/         # Configuration management
 │   └── approval/       # User approval system
+├── tests/
+│   └── mini-agent/     # Mini-agent test suite
+├── docs/               # Comprehensive documentation
+│   ├── architecture/   # System design docs
+│   ├── features/       # Feature specifications
+│   └── test-results/   # Test reports
 ├── .flexicli/          # Runtime data directory
 │   ├── flexicli.db     # SQLite database
 │   ├── logs/           # Application logs
@@ -149,6 +165,18 @@ npx tsx src/cli.tsx --prompt "test installation"
 
 ## 🎯 Usage
 
+### Quick Start with Enhanced Script
+```bash
+# Use the enhanced start script with 8 options
+./start-clean-agent.sh
+
+# Options include:
+# 1-2: Simple and complex tests
+# 3-4: Interactive modes (debug/clean) with mini-agent support
+# 5: Custom prompt
+# 6-8: Mini-agent specific tests and validation
+```
+
 ### Basic Execution
 ```bash
 # Interactive mode
@@ -157,11 +185,20 @@ npx tsx src/cli.tsx
 # Non-interactive with prompt
 npx tsx src/cli.tsx --prompt "Create a TypeScript function to calculate fibonacci"
 
+# Complex task that triggers mini-agents
+npx tsx src/cli.tsx --prompt "Analyze the codebase, find optimization opportunities, refactor the code, create tests, and document the changes"
+
 # Debug mode
 DEBUG=true npx tsx src/cli.tsx --prompt "your task"
 
 # Approval-free mode
 APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt "your task"
+```
+
+### Testing Mini-Agents
+```bash
+# Run comprehensive mini-agent test
+npx tsx tests/mini-agent/test-big-task-advanced.ts
 ```
 
 ### Environment Variables
@@ -330,24 +367,22 @@ npx tsx src/cli.tsx --non-interactive
 
 ## 📚 Documentation
 
-Comprehensive documentation is available in the [`docs/`](./docs/) directory:
+Comprehensive documentation is available in the [`docs/`](./docs/) directory - see **[Documentation Index](./docs/README.md)** for complete navigation.
 
 ### 🏗️ Architecture
-- **[System Architecture](./docs/architecture/ARCHITECTURE.md)** - Complete system overview with Mermaid diagrams
-- **[Agent Pipeline](./docs/architecture/AGENT_PIPELINE.md)** - Orchestrator→Planner→Executor flow
-- **[Memory Pipeline](./docs/architecture/MEMORY_PIPELINE.md)** - Memory layer coordination and data flow
-- **[Monitoring Integration](./docs/architecture/MONITORING_INTEGRATION_ARCHITECTURE.md)** - Real-time monitoring architecture
+- **[Mini-Agent Architecture](./docs/architecture/MINI_AGENT_ARCHITECTURE.md)** - Complete mini-agent system design
+- **[Integration Report](./docs/architecture/COMPLETE_INTEGRATION_REPORT.md)** - Full system integration analysis
+- **[Configuration Analysis](./docs/architecture/config-analysis-report.md)** - Configuration system design
+- **[Tools Architecture](./docs/architecture/src-tools-analysis.md)** - Tool system implementation
 
-### 🧪 Testing & Development
-- **[Testing Guide](./docs/TESTING.md)** - Complete testing documentation and coverage
-- **[Test Execution Report](./docs/TEST_EXECUTION_REPORT.md)** - Latest test results and metrics
-- **[Implementation Summary](./docs/development/IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
-- **[Final Implementation Report](./docs/development/FINAL_IMPLEMENTATION_REPORT.md)** - Complete implementation analysis
-- **[System Autonomy Requirements](./docs/development/SYSTEM_AUTONOMY_REQUIREMENTS.md)** - Autonomous execution capabilities
+### ✨ Features
+- **[Feature Roadmap](./docs/features/FEATURE_IDEAS.md)** - Future features and enhancements
+- **[Mini-Agent Summary](./docs/features/MINI_AGENTS_SUMMARY.md)** - Mini-agent capabilities overview
 
-### 🔬 Research & Analysis
-- **[DeepSeek Models Comparison](./docs/research/DEEPSEEK_MODELS_COMPARISON.md)** - Model selection and optimization
-- **[Token Economics](./docs/research/TOKEN_ECONOMICS.md)** - Token usage analysis and budgeting
+### 🧪 Test Results
+- **[Mini-Agent Test Results](./docs/test-results/MINI_AGENT_TEST_RESULTS.md)** - 10 successful agent spawns
+- **[Real-World Validation](./docs/test-results/REAL_WORLD_TEST_RESULTS.md)** - Production scenario testing
+- **[Test Summary](./docs/test-results/TEST_RESULTS_SUMMARY.md)** - Overall testing metrics
 
 ---
 

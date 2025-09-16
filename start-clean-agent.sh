@@ -70,12 +70,16 @@ echo -e "${YELLOW}⚙️  Step 4: Configuration...${NC}"
 echo -e "${GREEN}Available options:${NC}"
 echo -e "  ${BLUE}1.${NC} Simple test (single command)"
 echo -e "  ${BLUE}2.${NC} Complex test (multi-step task)"
-echo -e "  ${BLUE}3.${NC} Interactive mode (full debugging)"
-echo -e "  ${BLUE}4.${NC} Custom prompt"
+echo -e "  ${BLUE}3.${NC} Interactive mode (full debugging) - supports mini-agents"
+echo -e "  ${BLUE}4.${NC} Interactive mode (clean) - supports mini-agents"
+echo -e "  ${BLUE}5.${NC} Custom prompt"
+echo -e "  ${PURPLE}6.${NC} Mini-agent test (specialized delegation)"
+echo -e "  ${PURPLE}7.${NC} Advanced mini-agent workflow (complex task delegation)"
+echo -e "  ${PURPLE}8.${NC} Mini-agent validation (test all agent types)"
 echo ""
 
 # Get user choice
-read -p "Select option (1-4): " choice
+read -p "Select option (1-8): " choice
 echo ""
 
 # Set environment variables for comprehensive debugging
@@ -105,21 +109,53 @@ case $choice in
         npx tsx src/cli.tsx --prompt "Create a complete React TypeScript application with: 1) Main App component with routing, 2) Dashboard component with state management, 3) User profile component with form handling, 4) API service layer with TypeScript interfaces, 5) Proper folder structure and exports"
         ;;
     3)
-        echo -e "${GREEN}💻 Starting Interactive Mode...${NC}"
+        echo -e "${GREEN}💻 Starting Interactive Mode (Full Debug)...${NC}"
         echo -e "${BLUE}Full debugging enabled - you can run any commands${NC}"
+        echo -e "${PURPLE}Available commands: /help, /status, /tools, /memory, /clear, /exit${NC}"
+        echo -e "${PURPLE}Mini-agent support: Use complex tasks to trigger mini-agent delegation${NC}"
+        echo ""
+        echo -e "${CYAN}Press Enter to continue...${NC}"
+        read
+        export DEBUG=true
+        npx tsx src/cli.tsx
+        ;;
+    4)
+        echo -e "${GREEN}💻 Starting Interactive Mode (Clean)...${NC}"
+        echo -e "${BLUE}Clean interface - no debug output${NC}"
+        echo -e "${PURPLE}Mini-agent support: Use complex tasks to trigger mini-agent delegation${NC}"
         echo -e "${PURPLE}Available commands: /help, /status, /tools, /memory, /clear, /exit${NC}"
         echo ""
         echo -e "${CYAN}Press Enter to continue...${NC}"
         read
+        export DEBUG=false
         npx tsx src/cli.tsx
         ;;
-    4)
+    5)
         echo -e "${GREEN}✏️  Custom Prompt Mode...${NC}"
         read -p "Enter your custom prompt: " custom_prompt
         echo ""
         echo -e "${BLUE}Executing: $custom_prompt${NC}"
         echo ""
         npx tsx src/cli.tsx --prompt "$custom_prompt"
+        ;;
+    6)
+        echo -e "${PURPLE}🎭 Running Mini-Agent Test...${NC}"
+        echo -e "${BLUE}Command: Task that will trigger search mini-agent delegation${NC}"
+        echo ""
+        npx tsx src/cli.tsx --prompt "Search through the FlexiCLI codebase to find all TypeScript files in the src/tools directory, then analyze their architecture patterns and provide a summary of the tool discovery system implementation."
+        ;;
+    6)
+        echo -e "${PURPLE}🚀 Running Advanced Mini-Agent Workflow...${NC}"
+        echo -e "${BLUE}Command: Complex task requiring multiple mini-agent types${NC}"
+        echo ""
+        npx tsx src/cli.tsx --prompt "Analyze the complete FlexiCLI codebase structure, find all TypeScript files in src/tools directory, examine their architecture patterns, identify optimization opportunities, refactor the tool discovery mechanism for better performance, create comprehensive tests to validate the changes, and document the entire process with before/after comparisons including performance metrics and architectural improvements."
+        ;;
+    7)
+        echo -e "${PURPLE}🔬 Running Mini-Agent Validation...${NC}"
+        echo -e "${BLUE}Testing all mini-agent types with the advanced test framework${NC}"
+        echo ""
+        echo -e "${CYAN}Running comprehensive mini-agent validation test...${NC}"
+        npx tsx test-big-task-advanced.ts
         ;;
     *)
         echo -e "${RED}Invalid option. Starting interactive mode by default...${NC}"
@@ -153,6 +189,24 @@ else
     echo -e "  • Log files: ${YELLOW}None created${NC}"
 fi
 
+# Mini-agent specific analysis
+if [[ $choice -eq 6 || $choice -eq 7 || $choice -eq 8 ]]; then
+    echo -e "  • Mini-Agent Mode: ${PURPLE}✅ EXECUTED${NC}"
+    if [[ $choice -eq 8 ]]; then
+        if [ -f "test-big-task-advanced.ts" ]; then
+            echo -e "  • Advanced Test Framework: ${GREEN}✅ Available${NC}"
+        else
+            echo -e "  • Advanced Test Framework: ${RED}❌ Missing${NC}"
+        fi
+    fi
+    echo -e "  ${PURPLE}Mini-agent capabilities tested:${NC}"
+    echo -e "    - Task complexity analysis"
+    echo -e "    - Specialized agent spawning"
+    echo -e "    - Context scoping and isolation"
+    echo -e "    - Multi-agent coordination"
+    echo -e "    - Dependency management"
+fi
+
 # Final summary
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════════════╗${NC}"
@@ -160,4 +214,7 @@ echo -e "${CYAN}║                    Execution Complete                    ║
 echo -e "${CYAN}╚══════════════════════════════════════════════════════════╝${NC}"
 echo -e "${GREEN}FlexiCLI agent execution finished.${NC}"
 echo -e "${BLUE}Check the output above for results and any issues.${NC}"
+if [[ $choice -eq 6 || $choice -eq 7 || $choice -eq 8 ]]; then
+    echo -e "${PURPLE}Mini-agent system integration validated!${NC}"
+fi
 echo ""

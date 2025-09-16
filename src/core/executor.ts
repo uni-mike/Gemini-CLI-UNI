@@ -630,23 +630,89 @@ export class Executor extends EventEmitter {
   }
 
   private extractFilePath(description: string): string {
+    // CRITICAL: Handle common files explicitly - ZERO tolerance for errors
+    // README variations
+    const readmeMatch = description.match(/(?:main\s+)?readme(?:\s+file)?(?:\.md)?/i);
+    if (readmeMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: README detected: "${description}" -> README.md`);
+      }
+      return 'README.md';
+    }
+
+    // package.json variations
+    const packageMatch = description.match(/package\.json|package\s+json|package\s+file/i);
+    if (packageMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: package.json detected: "${description}" -> package.json`);
+      }
+      return 'package.json';
+    }
+
+    // tsconfig.json variations
+    const tsconfigMatch = description.match(/tsconfig\.json|tsconfig|typescript\s+config/i);
+    if (tsconfigMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: tsconfig.json detected: "${description}" -> tsconfig.json`);
+      }
+      return 'tsconfig.json';
+    }
+
+    // .gitignore variations
+    const gitignoreMatch = description.match(/\.?gitignore|git\s+ignore/i);
+    if (gitignoreMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: .gitignore detected: "${description}" -> .gitignore`);
+      }
+      return '.gitignore';
+    }
+
+    // .env variations
+    const envMatch = description.match(/\.env(?:\.local|\.development|\.production)?|environment\s+file/i);
+    if (envMatch) {
+      const envFile = envMatch[0].includes('.') ? envMatch[0] : '.env';
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: env file detected: "${description}" -> ${envFile}`);
+      }
+      return envFile;
+    }
+
+    // Dockerfile variations
+    const dockerMatch = description.match(/dockerfile|docker\s+file/i);
+    if (dockerMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: Dockerfile detected: "${description}" -> Dockerfile`);
+      }
+      return 'Dockerfile';
+    }
+
+    // Makefile variations
+    const makefileMatch = description.match(/makefile|make\s+file/i);
+    if (makefileMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: Makefile detected: "${description}" -> Makefile`);
+      }
+      return 'Makefile';
+    }
+
+    // CRITICAL FIX: Check quoted file paths FIRST (before script patterns)
+    // This ensures "config.json" is extracted as config.json, not config.js
+    const quotedMatch = description.match(/["'"`]([^"'"`]+\.[a-z0-9]+)["'"`]/i);
+    if (quotedMatch) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`🔍 extractFilePath: quoted path: "${description}" -> ${quotedMatch[1]}`);
+      }
+      return quotedMatch[1];
+    }
+
     // Extract file path from description with better regex patterns
-    // First look for script files and common extensions
+    // Look for script files and common extensions (AFTER quoted paths)
     const scriptMatch = description.match(/([a-zA-Z0-9_-]+\.(?:sh|py|js|ts|pl|rb|php|bat|cmd))/i);
     if (scriptMatch) {
       if (process.env.DEBUG === 'true') {
         console.log(`🔍 extractFilePath: script found: "${description}" -> ${scriptMatch[1]}`);
       }
       return scriptMatch[1];
-    }
-
-    // Look for quoted file paths
-    const quotedMatch = description.match(/['"`]([^'"`]+\.[a-z0-9]+)['"`]/i);
-    if (quotedMatch) {
-      if (process.env.DEBUG === 'true') {
-        console.log(`🔍 extractFilePath: quoted path: "${description}" -> ${quotedMatch[1]}`);
-      }
-      return quotedMatch[1];
     }
 
     // Look for context-based file patterns

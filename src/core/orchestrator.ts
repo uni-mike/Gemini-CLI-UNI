@@ -437,7 +437,19 @@ Execute the task:`;
     }
     
     try {
-      
+      // CRITICAL FIX: Check if this is an information query BEFORE planning (ZERO TOLERANCE)
+      const isInfoQuery = prompt.toLowerCase().includes('what') ||
+                         prompt.toLowerCase().includes('how') ||
+                         prompt.toLowerCase().includes('why') ||
+                         prompt.toLowerCase().includes('when') ||
+                         prompt.toLowerCase().includes('where') ||
+                         prompt.toLowerCase().includes('who') ||
+                         prompt.toLowerCase().includes('explain') ||
+                         prompt.toLowerCase().includes('describe') ||
+                         prompt.toLowerCase().includes('tell me') ||
+                         prompt.toLowerCase().includes('show me') ||
+                         prompt.match(/\?$/);
+
       // Step 1: Orchestrator asks Planner to create plan
       this.sendTrioMessage({
         from: 'orchestrator',
@@ -445,8 +457,13 @@ Execute the task:`;
         type: 'question',
         content: `📝 Please create a plan for: ${prompt}`
       });
-      
-      const plan = await this.planner.createPlan(prompt);
+
+      // CRITICAL: For info queries, explicitly ask for conversation response
+      const planPrompt = isInfoQuery
+        ? `SIMPLE QUESTION: ${prompt}\n\nThis is an information query that needs a direct answer, not tasks.`
+        : prompt;
+
+      const plan = await this.planner.createPlan(planPrompt);
       
       // Handle conversation plans
       if (plan.isConversation && plan.conversationResponse) {
@@ -638,6 +655,111 @@ Execute the task:`;
     // If all tasks succeeded, provide a brief success message
     if (failedResults.length === 0) {
       const outputs = results.filter(r => r.output).map(r => r.output);
+
+      // CRITICAL FIX: Check if this is an information query that needs synthesis
+      const isInformationQuery = prompt.toLowerCase().includes('what') ||
+                                 prompt.toLowerCase().includes('how') ||
+                                 prompt.toLowerCase().includes('why') ||
+                                 prompt.toLowerCase().includes('when') ||
+                                 prompt.toLowerCase().includes('where') ||
+                                 prompt.toLowerCase().includes('who') ||
+                                 prompt.toLowerCase().includes('tell me') ||
+                                 prompt.toLowerCase().includes('explain') ||
+                                 prompt.toLowerCase().includes('describe') ||
+                                 prompt.toLowerCase().includes('show me');
+
+      // Check if we have retrieved information to synthesize
+      const hasRetrievedInfo = results.some(r =>
+        r.toolsUsed?.includes('memory_retrieval') ||
+        r.toolsUsed?.includes('git') ||
+        r.toolsUsed?.includes('read_file') ||
+        r.toolsUsed?.includes('rg') ||
+        r.toolsUsed?.includes('grep')
+      );
+
+      if (isInformationQuery && hasRetrievedInfo) {
+        // This is a query - we need to synthesize the information!
+        // CRITICAL FIX: Format prompt to trigger conversation response (ZERO TOLERANCE FOR ERRORS)
+        const synthesisPrompt = `SIMPLE QUESTION (no tasks needed): Based on the retrieved information below, what is the answer to: "${prompt}"?
+
+Retrieved Information:
+${outputs.map((o, i) => `${JSON.stringify(o).substring(0, 1000)}`).join('\n\n')}
+
+This is a simple question that requires a conversational answer, not tasks. Provide a direct answer.`;
+
+        try {
+          const response = await this.planner.createPlan(synthesisPrompt);
+
+          // Debug log to see what we're getting
+          if (process.env.DEBUG === 'true') {
+            console.log('🔍 Synthesis response structure:', JSON.stringify(response).substring(0, 200));
+          }
+
+          // Extract the actual answer from the plan (which will be the synthesis)
+          if (typeof response === 'string') {
+            return response;
+          }
+
+          // CRITICAL FIX: Handle the actual response structure from planner
+          if (response && response.response) {
+            return response.response;  // This is where the actual answer is!
+          }
+
+          // CRITICAL: Log exact structure for debugging (ZERO TOLERANCE FOR ERRORS)
+          if (process.env.DEBUG === 'true') {
+            console.log('📋 Full planner response structure:', JSON.stringify(response, null, 2).substring(0, 500));
+          }
+
+          // If response is an object with type and other fields, look deeper
+          if (response && typeof response === 'object') {
+            // CRITICAL FIX: Check for conversation plan structure (ZERO TOLERANCE FOR ERRORS)
+            if (response.isConversation && response.conversationResponse) {
+              console.log('✅ Successfully extracted conversation response from plan');
+              return response.conversationResponse; // This is the FULL synthesized answer!
+            }
+
+            // Also check for direct conversation type response
+            if (response.type === 'conversation' && response.response) {
+              console.log('✅ Successfully extracted synthesized conversation response');
+              return response.response; // This is the FULL synthesized answer!
+            }
+
+            // Check if this is actually a task plan
+            if (response.type === 'task' && response.tasks && Array.isArray(response.tasks)) {
+              // This means the planner created tasks instead of synthesizing
+              console.error('⚠️ Planner returned tasks instead of synthesis');
+            } else {
+              // Try to find the actual text response in various places
+              // CRITICAL: 'response' field should be FIRST priority
+              const possibleFields = ['response', 'answer', 'result', 'summary', 'content', 'text', 'message'];
+              for (const field of possibleFields) {
+                if (response[field] && typeof response[field] === 'string') {
+                  console.log(`✅ Found response in field: ${field}`);
+                  return response[field];
+                }
+              }
+            }
+          }
+
+          // CRITICAL: Make failures EXPLICIT - ZERO TOLERANCE FOR HIDDEN ERRORS
+          console.error('❌ CRITICAL ERROR: Could not extract synthesized response!');
+          console.error('Response object was:', JSON.stringify(response).substring(0, 1000));
+
+          // THROW ERROR instead of hiding with fallback
+          throw new Error('Failed to extract synthesized response from planner - check logs above');
+        } catch (error) {
+          // CRITICAL: Make failures EXPLICIT - don't hide with generic responses
+          console.error('❌ SYNTHESIS FAILED:', error);
+          console.error('Stack trace:', error.stack);
+
+          // Re-throw to make failure visible
+          throw new Error(`Synthesis failed: ${error.message}`);
+        }
+
+        // CRITICAL: This should NEVER be reached if synthesis was attempted
+        console.error('❌ CRITICAL: Reached unexpected code path in synthesis block');
+        throw new Error('Unexpected code path - synthesis block failed to return');
+      }
 
       // Check if we created/modified files
       const fileCreated = outputs.some(o =>
