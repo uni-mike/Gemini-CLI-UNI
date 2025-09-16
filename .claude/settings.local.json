@@ -11,7 +11,9 @@
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-trio-integration.ts)",
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-simple-integration.ts)",
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-validation.ts)",
-      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-refactored-mini-agents.ts)"
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-refactored-mini-agents.ts)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-complete-integration.ts)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-actual-execution.ts)"
     ],
     "deny": [],
     "ask": []
