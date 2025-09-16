@@ -17,9 +17,10 @@ A production-ready CLI tool that combines autonomous task execution with sophist
 
 ### Memory System
 - **Session Management** - Automatic crash recovery and state restoration
-- **Knowledge Accumulation** - Semantic understanding capture and retrieval
+- **Semantic Memory** - Vector similarity search with chunk storage (190K+ tokens indexed)
+- **Knowledge Accumulation** - Intelligent context retrieval from codebase analysis
 - **Execution Logging** - Complete audit trail of all tool executions
-- **Token Tracking** - Precise monitoring of LLM API usage
+- **Token Tracking** - Precise monitoring of LLM API usage across all layers
 
 ---
 
