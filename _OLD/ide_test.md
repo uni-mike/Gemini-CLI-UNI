@@ -1,0 +1,1 @@
+Testing IDE diff integration

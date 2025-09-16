@@ -2,11 +2,36 @@
 .env
 .env~
 
-# gemini-cli settings
-.gemini/
-!gemini/config.yaml
+# FlexiCLI runtime and data directories
+.flexicli/
+prisma/.flexicli/
+!.flexicli/meta.json.example
 
-# Note: .gemini-clipboard/ is NOT in gitignore so Gemini can access pasted images
+# FlexiCLI temporary and test files
+*.txt
+!README.txt
+*-test.ts
+*-test.js
+test-*.ts
+test-*.js
+validate-*.ts
+comprehensive-*.ts
+check-*.ts
+*-test*.txt
+*-demo*.txt
+*-output*.txt
+*-validation*.txt
+yoga-*.txt
+cache-*.txt
+token-*.txt
+agent-*.txt
+file-*.txt
+execution-*.txt
+mode-*.txt
+
+# Agent lock files
+.agent-lock
+*.pid
 
 # Dependency directory
 node_modules
@@ -26,92 +51,23 @@ Thumbs.db
 # Ignore built ts files
 dist
 
-# Docker folder to help skip auth refreshes
-.docker
-
-bundle
-
-# Test report files
-junit.xml
-packages/*/coverage/
-
-# Generated files
-packages/cli/src/generated/
-packages/core/src/generated/
-.integration-tests/
-packages/vscode-ide-companion/*.vsix
-
-# GHA credentials
-gha-creds-*.json
-
-# Test files and temporary files
-test.txt
-test_*.txt
-test-project/
-api-project/
-todo-app-test/
-TESTING_AI/
+# Logs
 *.log
+logs/
+
+# Temporary files
 *.tmp
 *.temp
 
-# Environment files for different models
+# Environment files
 .env.*
 !.env.example
 
-# Startup scripts are included (they're useful)
-# But ignore any output from them
-start-*.sh.out
-/.claude/
+# Claude settings (keep in version control but ignore local overrides)
+/.claude/settings.local.json
 
-# Test outputs and demo files
-*_test_output.txt
-*_demo.json
-*_demo.md
-crypto_trends_*.md
-crypto-test-output.log
-test-serpapi.js
-test-web-search.js
-approval_test.txt
-ide_test.md
-space_news_demo.json
-web_result_demo.json
-web_search_demo.md
-
-# IDE extension builds and temp files
-UNIPATH-CLI-Extensions-*.tar.gz
-extensions/
-META-INF/
-
-# Test input files
-test-*-input.txt
-test-search-input.txt
-
-# Session and report files
-SESSION_SUMMARY_*.md
-*_TEST_REPORT*.md
-*_TEST_RESULTS*.md
-*_INTEGRATION_*.md
-
-# IDE helper scripts (keep main ones, ignore test/temp ones)
-enable-*-ide.sh
-fix-*-ide*.sh
-test-ide-connection.sh
-test-*.sh
-!test-all.sh
-
-# Temporary web search implementations (keeping only the main one)
-packages/core/src/tools/web-search-*.ts
-!packages/core/src/tools/web-search.ts
-!packages/core/src/tools/web-search.js
-!packages/core/src/tools/web-search.d.ts
-
-# Extensions README and install scripts
-UNIPATH_EXTENSIONS_README.md
-install-unipath-extensions.sh
-
-# Start scripts for specific models (keep the main ones)
-start-pycharm.sh
-/_OLD/
-_OLD/
-react-ts-component-library/
+# Database files (runtime generated)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3

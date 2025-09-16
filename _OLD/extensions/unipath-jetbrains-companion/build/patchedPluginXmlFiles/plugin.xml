@@ -1,0 +1,24 @@
+<idea-plugin>
+  <version>1.0.0</version>
+  <idea-version since-build="243" until-build="253.*" />
+  <id>com.unipath.cli-companion</id>
+  <name>UNIPATH CLI Companion</name>
+  <vendor>UNIPATH AI</vendor>
+  <description><![CDATA[Enable UNIPATH CLI with direct access to your IDE workspace.
+        
+        Features:
+        - Native diff viewing and editing
+        - File context awareness
+        - Selection and cursor position tracking
+        - Seamless CLI integration]]></description>
+  <depends>com.intellij.modules.platform</depends>
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationService serviceImplementation="com.unipath.cli.server.UnipathServer" />
+    <postStartupActivity implementation="com.unipath.cli.startup.UnipathStartupActivity" />
+  </extensions>
+  <actions>
+    <action id="unipath.runCLI" class="com.unipath.cli.actions.RunUnipathAction" text="Run UNIPATH CLI">
+      <add-to-group group-id="ToolsMenu" anchor="last" />
+    </action>
+  </actions>
+</idea-plugin>

@@ -1,0 +1,41 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '1.9.25'
+    id 'org.jetbrains.intellij' version '1.17.4'
+}
+
+group 'com.unipath'
+version '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.json:json:20231013'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+intellij {
+    version = '2024.3'
+    plugins = []
+}
+
+patchPluginXml {
+    sinceBuild = '243'
+    untilBuild = '253.*'
+}
+
+signPlugin {
+    certificateChain = System.getenv("CERTIFICATE_CHAIN")
+    privateKey = System.getenv("PRIVATE_KEY")
+    password = System.getenv("PRIVATE_KEY_PASSWORD")
+}
+
+publishPlugin {
+    token = System.getenv("PUBLISH_TOKEN")
+}

@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "reactflow/dist/style.css";
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-50 min-h-screen;
+  }
+  
+  /* UNIPATH ReactFlow Custom Theme */
+  .react-flow {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  }
+  
+  /* Enhanced Edge Styling */
+  .react-flow__edge-path {
+    stroke-width: 3px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+  
+  .react-flow__edge-text {
+    font-size: 11px;
+    font-weight: 700;
+    fill: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  .react-flow__edge-textbg {
+    fill: #1e293b;
+    fill-opacity: 0.95;
+    rx: 8px;
+    ry: 4px;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+  }
+  
+  /* Node Selection Styling */
+  .react-flow__node.selected .react-flow__node-default,
+  .react-flow__node.selected .react-flow__node-input,
+  .react-flow__node.selected .react-flow__node-output {
+    box-shadow: 0 0 0 3px #8b5cf6, 0 4px 20px rgba(139, 92, 246, 0.3);
+  }
+  
+  /* Enhanced Connection Line */
+  .react-flow__connection-line {
+    stroke: #8b5cf6;
+    stroke-width: 3;
+    stroke-dasharray: 5,5;
+    animation: dash 1s linear infinite;
+  }
+  
+  @keyframes dash {
+    to {
+      stroke-dashoffset: -10;
+    }
+  }
+  
+  /* Background Pattern */
+  .react-flow__background {
+    background-color: transparent;
+  }
+  
+  /* Custom dot pattern */
+  .react-flow .react-flow__background-pattern {
+    fill: #334155;
+    opacity: 0.4;
+  }
+}
+
+/* Dark scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #374151 #1f2937;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  background: #1f2937;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}

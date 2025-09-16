@@ -1,0 +1,15 @@
+{
+  "total_operations": 147,
+  "successful_operations": 142,
+  "failed_operations": 5,
+  "success_rate_percentage": 96.6,
+  "average_duration_seconds": 1.8,
+  "operations_by_type": {
+    "read": 67,
+    "write": 45,
+    "update": 22,
+    "delete": 13
+  },
+  "last_operation_timestamp": "2023-10-05T14:30:22Z",
+  "most_active_hour": "14:00-15:00"
+}

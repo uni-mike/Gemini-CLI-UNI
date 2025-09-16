@@ -1,0 +1,18 @@
+{
+  "project": "gemini-cli",
+  "runDate": "2023-11-15T09:30:45Z",
+  "totalTests": 5,
+  "passed": 3,
+  "failed": 1,
+  "skipped": 1,
+  "duration": 4.78,
+  "testSuites": [
+    {
+      "name": "Authentication",
+      "tests": [
+        {
+          "name": "Valid login",
+          "status": "pass",
+          "duration": 1.23
+        },
+        {
