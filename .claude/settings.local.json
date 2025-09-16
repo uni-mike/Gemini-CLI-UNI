@@ -3,7 +3,15 @@
     "allow": [
       "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a test file called test-output.txt with current date and git status, then read it back to verify\" --non-interactive)",
       "Bash(cat:*)",
-      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Find TODO comments in TypeScript files using grep, then use cat to preview the README.md file\" --non-interactive)"
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Find TODO comments in TypeScript files using grep, then use cat to preview the README.md file\" --non-interactive)",
+      "WebSearch",
+      "Bash(npx tsc:*)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Test mini-agent implementation: Import and validate core types from src/mini-agent/core/types.ts, check all interfaces compile correctly\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-mini-agent-imports.ts)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-trio-integration.ts)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-simple-integration.ts)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-validation.ts)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-refactored-mini-agents.ts)"
     ],
     "deny": [],
     "ask": []

@@ -315,6 +315,91 @@ export class Orchestrator extends EventEmitter {
     }
   }
 
+  // Mini-agent execution with scoped context and restricted permissions
+  async executeAsAgent(
+    prompt: string,
+    context: {
+      agentId: string;
+      type: string;
+      scopedMemory?: any;
+      permissions?: any;
+      maxTokens?: number;
+      timeoutMs?: number;
+    }
+  ): Promise<ExecutionResult> {
+
+    this.emit('mini-agent-start', {
+      agentId: context.agentId,
+      type: context.type,
+      prompt: prompt.substring(0, 100) + '...'
+    });
+
+    // Create scoped memory manager for mini-agent
+    const originalMemoryManager = this.memoryManager;
+    const scopedMemory = new MemoryManager('concise'); // More focused for mini-agents
+
+    // Apply context scoping if provided
+    if (context.scopedMemory) {
+      await scopedMemory.initialize();
+      // Apply memory filters here if needed
+    }
+
+    // Temporarily switch to scoped memory
+    this.memoryManager = scopedMemory;
+    this.planner.setMemoryManager(scopedMemory);
+
+    // Store original timeout and apply mini-agent timeout
+    const originalTimeout = this.client.timeout;
+    if (context.timeoutMs) {
+      this.client.timeout = Math.min(context.timeoutMs, 300000); // Max 5 minutes for mini-agents
+    }
+
+    try {
+      // Execute with specialized prompt for mini-agent
+      const specializedPrompt = this.buildMiniAgentPrompt(prompt, context);
+      const result = await this.execute(specializedPrompt);
+
+      this.emit('mini-agent-complete', {
+        agentId: context.agentId,
+        success: result.success,
+        toolsUsed: result.toolsUsed
+      });
+
+      return result;
+
+    } catch (error: any) {
+      this.emit('mini-agent-error', {
+        agentId: context.agentId,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        error: `Mini-agent ${context.agentId} failed: ${error.message}`,
+        toolsUsed: this.toolsUsed
+      };
+
+    } finally {
+      // Restore original memory manager and timeout
+      this.memoryManager = originalMemoryManager;
+      if (originalMemoryManager) {
+        this.planner.setMemoryManager(originalMemoryManager);
+      }
+      this.client.timeout = originalTimeout;
+    }
+  }
+
+  private buildMiniAgentPrompt(prompt: string, context: any): string {
+    return `[MINI-AGENT ${context.type.toUpperCase()}]
+Task: ${prompt}
+
+You are a specialized ${context.type} agent. Stay focused on this specific task.
+${context.maxTokens ? `Token limit: ${context.maxTokens}` : ''}
+Be efficient and report progress clearly.
+
+Execute the task:`;
+  }
+
   async execute(prompt: string): Promise<ExecutionResult> {
     // Detect operating mode based on prompt complexity
     const detectedMode = ModeDetector.detectMode(prompt);

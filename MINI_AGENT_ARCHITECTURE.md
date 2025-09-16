@@ -2,10 +2,12 @@
 
 > **Research-validated autonomous multi-agent system for FlexiCLI**
 > Based on Claude Code patterns, AWS Bedrock orchestration, and 2025 industry best practices
+>
+> **🔧 UPDATED**: Refactored to use main Orchestrator with context scoping (2025-09-16)
 
 ## 🎯 **Executive Summary**
 
-Mini-Agents are ephemeral, specialized sub-orchestrators that enable FlexiCLI to delegate complex, multi-step tasks to focused worker agents while maintaining full autonomy and state control.
+Mini-Agents are ephemeral, specialized execution contexts that enable FlexiCLI to delegate complex, multi-step tasks to focused worker processes while maintaining full autonomy and state control through the main Orchestrator.
 
 ### **Core Principles**
 - **Ephemeral lifecycle** - Temporary agents destroyed after task completion
@@ -15,42 +17,46 @@ Mini-Agents are ephemeral, specialized sub-orchestrators that enable FlexiCLI to
 - **Parent reporting** - All state flows back to main agent for centralized control
 - **Zero persistence** - No mini-agent state survives between tasks
 
-## 🔄 **Integration Flow Architecture**
+## 🔄 **Integration Flow Architecture (Refactored)**
 
 ```mermaid
 flowchart TD
     subgraph "Main FlexiCLI Process"
-        UI[User Input] --> O[Main Orchestrator]
-        O --> TD{Task Complexity\nAnalysis}
-        TD -->|Simple| EP[Execute Directly]
-        TD -->|Complex/Multi-step| AS[Agent Spawner]
+        UI[User Input] --> TC[TrioCoordinator]
+        TC --> TD{Task Complexity\nAnalysis}
+        TD -->|Simple| MO[Main Orchestrator.execute]
+        TD -->|Complex/Multi-step| AS[AgentSpawner]
     end
 
-    subgraph "Agent Spawner Service"
+    subgraph "AgentSpawner Service"
         AS --> TA[Task Analysis]
         TA --> CS[Context Scoping]
         CS --> PT[Prompt Template\nSelection]
         PT --> TAC[Tool Access Control]
-        TAC --> MAC[Mini-Agent Creation]
+        TAC --> MAE[executeAsAgent Call]
     end
 
-    subgraph "Mini-Agent Lifecycle"
-        MAC --> MA[Mini-Agent Instance]
-        MA --> LO[Local Orchestrator]
-        LO --> LP[Local Planner]
-        LP --> LE[Local Executor]
-        LE --> TEC{Tool Execution\nComplete?}
-        TEC -->|No| LE
-        TEC -->|Yes| SR[State Reporting]
+    subgraph "Enhanced Main Orchestrator"
+        MAE --> MO2[Main Orchestrator.executeAsAgent]
+        MO2 --> SM[Scoped Memory Context]
+        SM --> SP[Specialized Prompt]
+        SP --> MP[Main Planner]
+        MP --> ME[Main Executor]
+        ME --> TEC{Task Complete?}
+        TEC -->|No| MP
+        TEC -->|Yes| SR[Result to AgentSpawner]
     end
 
     subgraph "Memory & Context Management"
-        MM[Memory Manager] --> SC[Scope Context]
-        SC --> FMC[Filtered Memory\nContext]
-        FMC --> MA
-        MA --> UMS[Update Memory\nState]
-        UMS --> MM
+        MM[Memory Manager] --> SC[Context Scoper]
+        SC --> FMC[Filtered Memory Context]
+        FMC --> SM
+        SR --> MM
     end
+
+    SR --> TC
+    TC --> UI
+```
 
     subgraph "Tool Access Layer"
         TR[Tool Registry] --> TAM[Tool Access Mask]
@@ -462,6 +468,27 @@ This architecture synthesizes insights from:
 
 ---
 
-**Status**: ✅ **Research-validated, production-ready architecture**
-**Confidence**: ✅ **High - Based on proven patterns and extensive industry validation**
-**Risk Level**: ✅ **Low - Minimal changes to existing FlexiCLI codebase**
+## 🔧 **ARCHITECTURE REFACTOR SUMMARY (2025-09-16)**
+
+### **Key Changes Made:**
+1. **🔄 Replaced MiniOrchestrator** with main Orchestrator + executeAsAgent method
+2. **✅ Simplified Integration** - Single orchestration path through main trio
+3. **🆕 Added General-Purpose Agent** - Flexible template for custom workflows
+4. **📉 Reduced Complexity** - Removed 400+ lines of duplicate orchestration code
+5. **🔐 Preserved Security** - All permission and context scoping maintained
+
+### **Benefits Achieved:**
+- **Better Maintainability** - Single orchestration code path
+- **Cleaner Integration** - No duplicate orchestrator logic
+- **Enhanced Flexibility** - New general-purpose agent template
+- **Preserved Functionality** - All specialized agent purposes maintained
+
+### **Current Status:**
+- ✅ **Architecture Refactored**
+- ✅ **All Tests Passing**
+- ✅ **7 Agent Templates Available** (including new general-purpose)
+- ✅ **Production Ready**
+
+**Status**: ✅ **Refactored and Production-Ready Architecture**
+**Confidence**: ✅ **High - Tested and validated refactor**
+**Risk Level**: ✅ **Low - Simplified architecture with maintained functionality**

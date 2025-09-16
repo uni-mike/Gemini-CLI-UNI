@@ -60,4 +60,9 @@ export class Config {
   getDebugMode(): boolean {
     return this.debugMode;
   }
+
+  // Generic get method for environment variables
+  get(key: string, defaultValue?: string): string {
+    return process.env[key] || defaultValue || '';
+  }
 }
