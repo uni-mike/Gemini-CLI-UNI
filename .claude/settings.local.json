@@ -35,7 +35,8 @@
       "Bash(git push:*)",
       "Bash(APPROVAL_MODE=yolo DEBUG=true npx tsx src/cli.tsx --prompt \"What do you know about the history of our work?\" --non-interactive)",
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What do you know about the history of our work?\" --non-interactive)",
-      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"List available tools\" --non-interactive)"
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"List available tools\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Simple validation test\" --non-interactive)"
     ],
     "deny": [],
     "ask": []
