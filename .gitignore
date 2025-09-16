@@ -72,3 +72,4 @@ logs/
 *.sqlite
 *.sqlite3
 /src/ax-llm/
+/_OLD/

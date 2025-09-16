@@ -13,7 +13,11 @@
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-validation.ts)",
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-refactored-mini-agents.ts)",
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-complete-integration.ts)",
-      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-actual-execution.ts)"
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-actual-execution.ts)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is the current date and time? Be concise.\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Find all TypeScript files in src/mini-agent directory, analyze their structure, and provide a summary of the mini-agent system architecture\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a simple test file with current timestamp and system info, then read it back to verify\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx test-mini-agent-cli.ts)"
     ],
     "deny": [],
     "ask": []
