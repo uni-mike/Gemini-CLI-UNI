@@ -6,7 +6,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { createWriteStream, WriteStream } from 'fs';
+import { createWriteStream, WriteStream, existsSync } from 'fs';
 import * as crypto from 'crypto';
 import { logRotation } from '../utils/log-rotation.js';
 
@@ -80,7 +80,7 @@ export class FilePersistenceManager {
     // Try to find git root
     let currentDir = process.cwd();
     while (currentDir !== '/') {
-      if (fs.existsSync(path.join(currentDir, '.git'))) {
+      if (existsSync(path.join(currentDir, '.git'))) {
         return currentDir;
       }
       const parentDir = path.dirname(currentDir);

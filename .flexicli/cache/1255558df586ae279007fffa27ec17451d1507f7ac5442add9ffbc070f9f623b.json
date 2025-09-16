@@ -1,0 +1,8 @@
+{
+  "key": "test-key-1",
+  "value": {
+    "value": "test data 1"
+  },
+  "timestamp": 1758003432139,
+  "ttl": 60000
+}

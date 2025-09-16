@@ -7,7 +7,12 @@
       "Bash(git rm:*)",
       "Bash(git commit:*)",
       "Bash(for:*)",
-      "Bash(do echo \"===== $f =====\")"
+      "Bash(do echo \"===== $f =====\")",
+      "Bash(timeout 10 npx tsx tests/unit/system/test-process-cleanup.ts)",
+      "Bash(gtimeout:*)",
+      "Bash(while read test)",
+      "Bash(python tests/unit/api/test-azure-deepseek.py:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
