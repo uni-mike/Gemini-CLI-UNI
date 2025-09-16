@@ -5,7 +5,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { createReadStream, createWriteStream } from 'fs';
+import { createReadStream, createWriteStream, existsSync } from 'fs';
 import { createGzip } from 'zlib';
 import { pipeline } from 'stream/promises';
 
@@ -36,10 +36,9 @@ export class LogRotationManager {
   }
 
   private findProjectRoot(): string {
-    const fs = require('fs');
     let currentDir = process.cwd();
     while (currentDir !== '/') {
-      if (fs.existsSync(path.join(currentDir, '.git'))) {
+      if (existsSync(path.join(currentDir, '.git'))) {
         return currentDir;
       }
       const parentDir = path.dirname(currentDir);

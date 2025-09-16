@@ -6,6 +6,7 @@
 import { Message } from './provider.js';
 import { EventEmitter } from 'events';
 import { StreamProcessor } from './streaming.js';
+import { contextInjector } from '../memory/context-injector.js';
 
 interface DeepSeekConfig {
   apiKey?: string;
@@ -39,7 +40,26 @@ export class DeepSeekClient extends EventEmitter {
     this.emit('start', { messages, tools });
 
     // Clone messages to avoid modifying original
-    const processedMessages = [...messages];
+    let processedMessages = [...messages];
+
+    // Inject MINIMAL memory context (just a summary) if available
+    // The AI can use memory_retrieval tool for detailed access
+    try {
+      const userMessage = messages.find(m => m.role === 'user');
+      if (userMessage && !forceJson) { // Don't inject context for JSON responses
+        // Only inject a brief summary, not the full memory
+        const memorySummary = await contextInjector.getMemorySummary();
+        if (memorySummary) {
+          processedMessages.unshift({
+            role: 'system',
+            content: `Memory Context Available:\n${memorySummary}\n\nIMPORTANT: Use the memory_retrieval tool to access detailed historical information when needed.`
+          });
+        }
+      }
+    } catch (error) {
+      // Continue without context if injection fails
+      console.debug('Context injection skipped:', error);
+    }
 
     // Dynamic token allocation based on prompt complexity
     // DeepSeek-V3.1 supports up to 32K output tokens (verified on Azure)

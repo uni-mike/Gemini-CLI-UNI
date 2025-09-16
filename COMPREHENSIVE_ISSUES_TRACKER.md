@@ -11,6 +11,36 @@
 
 ## 🔴 Critical Issues
 
+### ✅ Issue C-004: Memory System is Write-Only - NO RETRIEVAL!
+**Status**: RESOLVED
+**Impact**: AI had ZERO access to stored memories, history, or context
+**Root Cause**:
+- Memory layers stored data but NEVER retrieved it for AI context
+- No tools existed for AI to query memory/knowledge base
+- AI messages didn't include any historical context
+- The entire memory architecture was effectively useless
+**Evidence**:
+- 39 Knowledge entries stored but never accessed
+- 72 Sessions tracked but AI couldn't see them
+- AI responded "I don't have access to our conversation history"
+**Solution Implemented**:
+1. Created `memory_retrieval` tool for AI to query all data layers
+2. Implemented `ContextInjector` to provide memory summaries
+3. Added 8 different retrieval actions (search, sessions, knowledge, etc.)
+4. Injected memory context into all AI prompts automatically
+**Files Created/Modified**:
+- `src/tools/memory-retrieval.ts` - NEW comprehensive memory access tool
+- `src/memory/context-injector.ts` - NEW context injection system
+- `src/llm/deepseek-client.ts` - Added automatic context injection
+**Result**: AI now has full access to:
+- Session history (conversation tracking)
+- Knowledge base (stored facts and context)
+- Execution logs (tool usage history)
+- Code chunks (indexed code segments)
+- Cache entries (embeddings)
+- Git commits (project history)
+**Test Results**: Successfully tested in both interactive and non-interactive modes
+
 ### ✅ Issue C-001: Database Connection Failures
 **Status**: RESOLVED
 **Impact**: System cannot start without database
@@ -105,6 +135,20 @@
 - Optional compression with gzip
 **Test**: `test-log-rotation.ts` - All tests passing
 
+### ✅ Issue M-003: Yoga-WASM-Web Top-Level Await Error & Ink Dependencies
+**Status**: RESOLVED
+**Impact**: Interactive UI fails to load with "top-level await not supported with cjs" error, then missing ink-spinner
+**Root Cause**:
+1. ink dependency imports yoga-wasm-web which uses top-level await, incompatible with CommonJS
+2. Missing ink-spinner dependency after ESM conversion
+**Solution**:
+1. Converted project to ES modules
+2. Installed missing ink-spinner package
+**Files Modified**:
+- `package.json` - Added `"type": "module"` and ink-spinner dependency
+- `src/utils/log-rotation.ts` - Replaced `require()` with ES imports
+**Result**: Both interactive and non-interactive modes working correctly
+
 
 ### ✅ Issue M-004: Missing Unit Tests
 **Status**: RESOLVED (PARTIAL)
@@ -169,13 +213,13 @@
 
 | Category | Total | Resolved | Optional | Not Started |
 |----------|-------|----------|----------|-------------|
-| Critical | 3     | 3        | 0        | 0           |
+| Critical | 4     | 4        | 0        | 0           |
 | Important| 5     | 5        | 0        | 0           |
-| Minor    | 4     | 3        | 0        | 1           |
+| Minor    | 5     | 4        | 0        | 1           |
 | Enhancement | 8  | 0        | 8        | 0           |
-| **TOTAL**| **20**| **11**   | **8**    | **1**       |
+| **TOTAL**| **22**| **13**   | **8**    | **1**       |
 
-**Completion Rate**: 55% resolved, 40% optional, 5% pending
+**Completion Rate**: 59% resolved, 36% optional, 5% pending
 
 ---
 

@@ -16,7 +16,11 @@
     "allowSyntheticDefaultImports": true,
     "jsx": "react-jsx",
     "types": ["node"],
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "paths": {
+      "yoga-wasm-web": ["./node_modules/yoga-layout-prebuilt"]
+    },
+    "baseUrl": "./"
   },
   "include": [
     "src/**/*"
