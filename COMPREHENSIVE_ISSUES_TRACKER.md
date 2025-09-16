@@ -72,6 +72,81 @@
 
 ---
 
+## 🔴 Critical Issues (NEW - System Breaking)
+
+### ❌ Issue C-005: Cache Database Table NEVER Used
+**Status**: ACTIVE - Critical bug in agent code
+**Problem**: Cache table in database is completely unused (always 0 records)
+**Root Cause**:
+- CacheManager.setProjectId() is NEVER called anywhere in codebase
+- Without projectId, CacheManager cannot write to database
+- All caching falls back to FilePersistenceManager (file-based only)
+**Impact**:
+- Database Cache table is dead code
+- Cannot query cache via SQL
+- Inconsistent with session/snapshot storage (which use DB)
+- Memory/performance implications of file-based only cache
+**Evidence**:
+- `sqlite3 .flexicli/flexicli.db "SELECT COUNT(*) FROM Cache;"` returns 0
+- `grep -r "\.setProjectId\(" src/` finds NO calls
+- Cache files exist in `.flexicli/cache/` instead
+**Solution Required**:
+1. Initialize CacheManager with projectId during startup
+2. OR remove database Cache table entirely and use files only
+3. OR refactor to use database properly
+**This is NOT a test issue - it's a real agent bug!**
+
+## 🟡 Architectural Issues (Needs Refactoring)
+
+### ⚠️ Issue A-001: Broken Hybrid Persistence Architecture
+**Status**: ACTIVE - Real architectural issue
+**Problem**: Inconsistent data storage - some in database, some in files
+**Current Behavior**:
+- Cache table in database is EMPTY (0 records)
+- Cache files in `.flexicli/cache/` have data (3+ files)
+- CacheManager only persists embeddings to DB, not regular cache
+- FilePersistenceManager writes ALL cache to files
+- Sessions and checkpoints also duplicated
+**Impact**:
+- Database Cache table unused (waste)
+- Cannot query cache data via SQL
+- Potential data sync issues
+- Confusing architecture
+**Root Cause**: Incomplete migration from file-based to database storage
+**Solution**:
+- Option 1: Use ONLY database for all structured data
+- Option 2: Use ONLY files for cache (simpler, faster for cache)
+- Recommended: Database for sessions/snapshots, files for cache only
+**Files Affected**:
+- `src/persistence/FilePersistenceManager.ts`
+- `src/cache/CacheManager.ts`
+- `src/memory/session-manager.ts`
+
+## 🔵 Test Infrastructure Issues (Not Agent Code Problems)
+
+### ⚠️ Issue T-001: Session Test Setup Issues
+**Status**: Test code problem - NOT an agent bug
+**Problem**: Tests not creating required Project records before Sessions
+**Impact**: Foreign key constraint violations
+**Solution**: Tests need proper setup with project creation
+**Files**: `tests/unit/session/*.ts`
+
+### ⚠️ Issue T-002: Monitoring Test Import Paths
+**Status**: Test code problem after reorganization
+**Problem**: Import paths broken when tests were moved to subdirectories
+**Impact**: Module not found errors
+**Solution**: Fix import paths in monitoring tests
+**Files**: `tests/unit/monitoring/*.ts`
+
+### ⚠️ Issue T-003: Pipeline Test Timeouts
+**Status**: Test infrastructure issue
+**Problem**: Tests hanging without timeout mechanism
+**Impact**: Cannot complete test runs
+**Solution**: Add timeout wrappers to long-running tests
+**Files**: `test-memory-pipeline.ts`, `test-agent-lock-battle.ts`
+
+---
+
 ## 🟢 Enhancements (Optional - Not Priority)
 
 ### ⏸️ Issue E-001: API Documentation
@@ -102,25 +177,35 @@
 
 ## 📊 Issue Statistics
 
-| Category | Total | Resolved | Partial | Optional | Not Started |
-|----------|-------|----------|---------|----------|-------------|
-| Critical | 4     | 4        | 0       | 0        | 0           |
-| Important| 5     | 5        | 0       | 0        | 0           |
-| Minor    | 5     | 5        | 0       | 0        | 0           |
-| Enhancement | 8  | 0        | 0       | 8        | 0           |
-| **TOTAL**| **22**| **14**   | **0**   | **8**    | **0**       |
+| Category | Total | Resolved | Active Bugs | Test Issues | Optional |
+|----------|-------|----------|-------------|-------------|----------|
+| Critical | 5     | 4        | 1           | 0           | 0        |
+| Important| 5     | 5        | 0           | 0           | 0        |
+| Minor    | 5     | 5        | 0           | 0           | 0        |
+| Architectural | 1 | 0       | 1           | 0           | 0        |
+| Test Infra | 3   | 0        | 0           | 3           | 0        |
+| Enhancement | 8  | 0        | 0           | 0           | 8        |
+| **TOTAL**| **27**| **14**   | **2**       | **3**       | **8**    |
 
-**Completion Rate**: 64% fully resolved, 0% partial, 36% optional
+**Agent Code Health**: 93% - 2 active bugs found (Cache never used, dual persistence)
+**Critical Issues**: 1 new critical bug (C-005: Cache DB never used)
+**Test Infrastructure**: 3 test setup issues (not agent bugs)
+**Optional Enhancements**: 8 nice-to-have features
 
 ---
 
 ## 🎯 Priority Queue (Core Functionality)
 
-### ✅ All Core Issues Resolved!
-- All critical issues fixed
-- All important issues fixed
-- All minor issues fixed
-- Unit test coverage at 100% for memory system
+### 🔴 HIGH PRIORITY - Active Bugs
+1. **Issue C-005**: Cache Database Never Used
+   - CacheManager.setProjectId() never called
+   - Database Cache table always empty
+   - All cache goes to files instead
+
+2. **Issue A-001**: Broken Hybrid Persistence
+   - Duplicate storage in files and DB
+   - Inconsistent architecture
+   - Wasted resources
 
 ### Future Considerations (When Needed)
 1. **Issue E-003**: CI/CD Pipeline - Automate testing
