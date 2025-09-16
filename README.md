@@ -327,6 +327,28 @@ npx tsx src/cli.tsx --non-interactive
 
 ---
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`docs/`](./docs/) directory:
+
+### 🏗️ Architecture
+- **[System Architecture](./docs/architecture/ARCHITECTURE.md)** - Complete system overview with Mermaid diagrams
+- **[Agent Pipeline](./docs/architecture/AGENT_PIPELINE.md)** - Orchestrator→Planner→Executor flow
+- **[Memory Pipeline](./docs/architecture/MEMORY_PIPELINE.md)** - Memory layer coordination and data flow
+- **[Monitoring Integration](./docs/architecture/MONITORING_INTEGRATION_ARCHITECTURE.md)** - Real-time monitoring architecture
+
+### 🧪 Testing & Development
+- **[Testing Guide](./docs/TESTING.md)** - Complete testing documentation and coverage
+- **[Test Execution Report](./docs/TEST_EXECUTION_REPORT.md)** - Latest test results and metrics
+- **[Implementation Summary](./docs/development/IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
+- **[System Autonomy Requirements](./docs/development/SYSTEM_AUTONOMY_REQUIREMENTS.md)** - Autonomous execution capabilities
+
+### 🔬 Research & Analysis
+- **[DeepSeek Models Comparison](./docs/research/DEEPSEEK_MODELS_COMPARISON.md)** - Model selection and optimization
+- **[Token Economics](./docs/research/TOKEN_ECONOMICS.md)** - Token usage analysis and budgeting
+
+---
+
 ## ⚠️ Private Software
 
 This is **PROPRIETARY SOFTWARE** - All rights reserved.
