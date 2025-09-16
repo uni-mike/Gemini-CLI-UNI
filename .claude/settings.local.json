@@ -23,7 +23,9 @@
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"echo hello\" --non-interactive)",
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"search the codebase for any mention of authentication or security patterns and summarize what you find\" --non-interactive)",
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a simple test file called path-test.txt with content ''''Database path fixed!''''\" --non-interactive)",
-      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a test file called all-paths-fixed.txt with content ''''All database paths now consistent!''''\" --non-interactive)"
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a test file called all-paths-fixed.txt with content ''''All database paths now consistent!''''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a simple test file called agent-test.txt with content ''Testing agent execution''\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a simple test file called agent-working.txt with content ''Agent is now working correctly!''\" --non-interactive)"
     ],
     "deny": [],
     "ask": []
