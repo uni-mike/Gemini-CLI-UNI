@@ -748,18 +748,25 @@ Output must be valid JSON only.`;
                     const language = languageMap[ext] || 'text';
                     const chunkType = ['.md', '.txt', '.json', '.yml', '.yaml'].includes(ext) ? 'doc' : 'code';
 
-                    chunksToStore.push({
-                      path: relativePath,
-                      content,
-                      chunkType: chunkType as 'code' | 'doc' | 'diff',
-                      metadata: {
-                        language,
-                        file_extension: ext,
-                        line_count: content.split('\n').length,
-                        char_count: content.length,
-                        indexed_by: 'startup_indexing',
-                        indexed_at: new Date().toISOString()
-                      }
+                    // Split large files into smaller chunks to avoid token limits
+                    const chunks = this.splitTextIntoChunks(content, 6000); // ~6000 chars = ~1500 tokens
+
+                    chunks.forEach((chunk, index) => {
+                      chunksToStore.push({
+                        path: `${relativePath}${chunks.length > 1 ? `#chunk-${index + 1}` : ''}`,
+                        content: chunk,
+                        chunkType: chunkType as 'code' | 'doc' | 'diff',
+                        metadata: {
+                          language,
+                          file_extension: ext,
+                          line_count: chunk.split('\n').length,
+                          char_count: chunk.length,
+                          indexed_by: 'startup_indexing',
+                          indexed_at: new Date().toISOString(),
+                          chunk_index: chunks.length > 1 ? index : undefined,
+                          total_chunks: chunks.length > 1 ? chunks.length : undefined
+                        }
+                      });
                     });
                   }
                 } catch (error) {
@@ -800,6 +807,62 @@ Output must be valid JSON only.`;
     } catch (error: any) {
       console.error('📦 [MEMORY] ❌ Failed to index codebase:', error.message);
     }
+  }
+
+  /**
+   * Split text into chunks that won't exceed token limits
+   */
+  private splitTextIntoChunks(text: string, maxChars: number = 6000): string[] {
+    if (text.length <= maxChars) {
+      return [text];
+    }
+
+    const chunks: string[] = [];
+    const lines = text.split('\n');
+    let currentChunk = '';
+
+    for (const line of lines) {
+      // If adding this line would exceed the limit, start a new chunk
+      if (currentChunk.length + line.length + 1 > maxChars && currentChunk.length > 0) {
+        chunks.push(currentChunk.trim());
+        currentChunk = line;
+      } else {
+        // Add line to current chunk
+        currentChunk += (currentChunk ? '\n' : '') + line;
+      }
+    }
+
+    // Add final chunk if it has content
+    if (currentChunk.trim()) {
+      chunks.push(currentChunk.trim());
+    }
+
+    // If we still have chunks that are too large, split them more aggressively
+    const finalChunks: string[] = [];
+    for (const chunk of chunks) {
+      if (chunk.length <= maxChars) {
+        finalChunks.push(chunk);
+      } else {
+        // Split by sentences/statements for very large blocks
+        const sentences = chunk.split(/([.!?;]\s+|;\s*\n)/);
+        let sentenceChunk = '';
+
+        for (const sentence of sentences) {
+          if (sentenceChunk.length + sentence.length > maxChars && sentenceChunk.length > 0) {
+            finalChunks.push(sentenceChunk.trim());
+            sentenceChunk = sentence;
+          } else {
+            sentenceChunk += sentence;
+          }
+        }
+
+        if (sentenceChunk.trim()) {
+          finalChunks.push(sentenceChunk.trim());
+        }
+      }
+    }
+
+    return finalChunks.length > 0 ? finalChunks : [text.substring(0, maxChars)];
   }
 
   /**
