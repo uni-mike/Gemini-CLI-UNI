@@ -15,7 +15,7 @@ graph TB
     end
     
     subgraph "🔧 Key Features"
-        A --> T[13+ Tools]
+        A --> T[14 Tools]
         M --> API[REST/WebSocket API]
         MP --> E[Embeddings]
         MP --> R[Retrieval System]
