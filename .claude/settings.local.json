@@ -4,7 +4,11 @@
       "Bash(brew install:*)",
       "Bash(git reset:*)",
       "Bash(DEBUG=true npx tsx validate-chunk-system.ts)",
-      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a simple TypeScript utility function file called math-utils.ts with functions for add, subtract, multiply, and divide operations. Include proper TypeScript types and JSDoc comments for each function.\" --non-interactive)"
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a simple TypeScript utility function file called math-utils.ts with functions for add, subtract, multiply, and divide operations. Include proper TypeScript types and JSDoc comments for each function.\" --non-interactive)",
+      "Bash(timeout 30 npx tsx:*)",
+      "Bash(while read f)",
+      "Bash(do echo \"Testing: $f\")",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a final validation file called test-infrastructure-complete.txt with content ''All test infrastructure issues resolved - system at 100% health!''\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

@@ -22,21 +22,29 @@ async function testMemoryPipeline() {
   console.log('✅ Project ID:', metadata.projectId);
   console.log('✅ Root Path:', metadata.rootPath);
   
-  // Check directories
+  // Check directories - only logs needed now (cache/sessions moved to database)
   const dirs = [
     '.flexicli',
-    '.flexicli/cache',
-    '.flexicli/sessions',
-    '.flexicli/logs',
-    '.flexicli/checkpoints'
+    '.flexicli/logs'
   ];
-  
+
   for (const dir of dirs) {
     const path = join(process.cwd(), dir);
     if (existsSync(path)) {
       console.log(`✅ Directory exists: ${dir}`);
     } else {
       console.log(`❌ Missing directory: ${dir}`);
+    }
+  }
+
+  // Verify database-only architecture
+  const deprecatedDirs = ['.flexicli/cache', '.flexicli/sessions', '.flexicli/checkpoints'];
+  for (const dir of deprecatedDirs) {
+    const path = join(process.cwd(), dir);
+    if (!existsSync(path)) {
+      console.log(`✅ Directory cleaned up (now database-only): ${dir}`);
+    } else {
+      console.log(`⚠️ Legacy directory still exists: ${dir}`);
     }
   }
   

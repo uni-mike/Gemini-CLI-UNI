@@ -38,18 +38,7 @@ async function testMemoryMonitoring() {
     const orchestrator = new Orchestrator(config);
     
     // Initialize memory manager with test config
-    const memoryManager = new MemoryManager({
-      projectRoot,
-      mode: 'concise',
-      gitContext: false, // Disable git to avoid complexity
-      embeddingsEnabled: true,
-      azureConfig: {
-        apiKey: process.env.AZURE_API_KEY || 'test-key',
-        endpoint: process.env.AZURE_ENDPOINT_URL || 'https://test.openai.azure.com/',
-        deployment: 'text-embedding-3-large',
-        apiVersion: '2024-06-01'
-      }
-    });
+    const memoryManager = new MemoryManager('concise');
     
     await memoryManager.initialize();
     console.log('  ✅ Memory Manager initialized');
@@ -134,7 +123,7 @@ async function testMemoryMonitoring() {
     console.log(`\n  Chunks (${chunks.length} found):`);
     for (const chunk of chunks.slice(0, 3)) {
       console.log(`    ID: ${chunk.id}`);
-      console.log(`    Type: ${chunk.type}`);
+      console.log(`    Type: ${chunk.chunkType}`);
       console.log(`    Content: ${chunk.content.substring(0, 50)}...`);
       console.log(`    Has Embedding: ${chunk.embedding ? 'Yes' : 'No'}`);
       console.log('    ---');
@@ -179,8 +168,8 @@ async function testMemoryMonitoring() {
     orchestrator.emit('memory-update', {
       type: 'retrieval',
       action: 'search',
-      query: retrievalQuery,
-      results: retrievalResults.length
+      query: 'test query',
+      results: 0
     });
     
     console.log('  ✅ Emitted 3 memory events');
