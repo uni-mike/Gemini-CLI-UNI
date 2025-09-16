@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Orchestrator } from './src/core/orchestrator.js';
+import { Orchestrator } from '../../../src/core/orchestrator.js';
 import { PrismaClient } from '@prisma/client';
 
 async function testTokenTracking() {

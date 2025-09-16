@@ -1,7 +1,7 @@
 #!/usr/bin/env npx tsx
 
 import 'dotenv/config';
-import { DeepSeekClient } from './src/llm/deepseek-client.js';
+import { DeepSeekClient } from '../../../src/llm/deepseek-client.js';
 
 async function testDeepSeekIsolated() {
   console.log('=== Testing DeepSeek Client in Isolation ===\n');

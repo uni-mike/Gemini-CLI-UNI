@@ -5,13 +5,13 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { MemoryManager } from './src/memory/memory-manager.js';
-import { MonitoringBridge } from './src/monitoring/backend/monitoring-bridge.js';
-import { Orchestrator } from './src/core/orchestrator.js';
-import { Config } from './src/config/Config.js';
-import { EmbeddingsManager } from './src/memory/embeddings.js';
-import { RetrievalLayer } from './src/memory/layers/retrieval.js';
-import { TokenBudgetManager } from './src/memory/token-budget.js';
+import { MemoryManager } from '../../../src/memory/memory-manager.js';
+import { MonitoringBridge } from '../../../src/monitoring/backend/monitoring-bridge.js';
+import { Orchestrator } from '../../../src/core/orchestrator.js';
+import { Config } from '../../../src/config/Config.js';
+import { EmbeddingsManager } from '../../../src/memory/embeddings.js';
+import { RetrievalLayer } from '../../../src/memory/layers/retrieval.js';
+import { TokenBudgetManager } from '../../../src/memory/token-budget.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

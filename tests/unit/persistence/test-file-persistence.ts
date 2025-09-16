@@ -4,7 +4,7 @@
  * Verifies that logs, cache, sessions, and checkpoints are being written to disk
  */
 
-import { FilePersistenceManager, SessionState, Checkpoint } from './src/persistence/FilePersistenceManager.js';
+import { FilePersistenceManager, SessionState, Checkpoint } from '../../../src/persistence/FilePersistenceManager.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 

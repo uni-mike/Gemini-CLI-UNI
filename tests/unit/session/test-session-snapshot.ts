@@ -7,9 +7,9 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { SessionManager } from './src/memory/session-manager.js';
-import { ProjectManager } from './src/memory/project-manager.js';
-import { MemoryManager } from './src/memory/memory-manager.js';
+import { SessionManager } from '../../../src/memory/session-manager.js';
+import { ProjectManager } from '../../../src/memory/project-manager.js';
+import { MemoryManager } from '../../../src/memory/memory-manager.js';
 
 async function testSessionSnapshots() {
   const prisma = new PrismaClient();

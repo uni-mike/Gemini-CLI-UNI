@@ -3,8 +3,8 @@
  * Test the memory retrieval tool directly
  */
 
-import { MemoryRetrievalTool } from './src/tools/memory-retrieval.js';
-import { SharedDatabaseManager } from './src/memory/shared-database.js';
+import { MemoryRetrievalTool } from '../../../src/tools/memory-retrieval.js';
+import { SharedDatabaseManager } from '../../../src/memory/shared-database.js';
 
 async function testMemoryTool() {
   console.log('🧪 Testing Memory Retrieval Tool...\n');

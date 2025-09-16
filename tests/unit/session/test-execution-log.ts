@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { PrismaClient } from '@prisma/client';
-import { Executor } from './src/core/executor.js';
-import { globalRegistry } from './src/tools/registry.js';
-import { BashTool } from './src/tools/bash.js';
-import { FileTool } from './src/tools/file.js';
+import { Executor } from '../../../src/core/executor.js';
+import { globalRegistry } from '../../../src/tools/registry.js';
+import { BashTool } from '../../../src/tools/bash.js';
+import { FileTool } from '../../../src/tools/file.js';
 
 async function testExecutionLog() {
   console.log('🧪 Testing ExecutionLog functionality...\n');

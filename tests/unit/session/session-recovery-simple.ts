@@ -5,8 +5,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { MemoryManager } from './src/memory/memory-manager.js';
-import { Config } from './src/config/Config.js';
+import { MemoryManager } from '../../../src/memory/memory-manager.js';
+import { Config } from '../../../src/config/Config.js';
 import { performance } from 'perf_hooks';
 
 console.log('🚀 Testing Session Recovery\n');

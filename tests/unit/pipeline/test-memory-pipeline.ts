@@ -4,8 +4,8 @@
  * Verifies all memory layers are working correctly
  */
 
-import { MemoryManager } from './src/memory/memory-manager.js';
-import { ProjectManager } from './src/memory/project-manager.js';
+import { MemoryManager } from '../../../src/memory/memory-manager.js';
+import { ProjectManager } from '../../../src/memory/project-manager.js';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 

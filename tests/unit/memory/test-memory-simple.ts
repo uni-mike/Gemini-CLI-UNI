@@ -1,8 +1,8 @@
 #!/usr/bin/env npx tsx
 
-import { globalRegistry } from './src/tools/registry.js';
-import { MemoryRetrievalTool } from './src/tools/memory-retrieval.js';
-import { SharedDatabaseManager } from './src/memory/shared-database.js';
+import { globalRegistry } from '../../../src/tools/registry.js';
+import { MemoryRetrievalTool } from '../../../src/tools/memory-retrieval.js';
+import { SharedDatabaseManager } from '../../../src/memory/shared-database.js';
 
 async function test() {
   console.log('🧪 Testing Memory Retrieval Tool Registration...\n');

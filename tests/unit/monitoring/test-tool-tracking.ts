@@ -5,9 +5,9 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { MonitoringBridge } from './src/monitoring/backend/monitoring-bridge.js';
-import { Orchestrator } from './src/core/orchestrator.js';
-import { Config } from './src/config/Config.js';
+import { MonitoringBridge } from '../../../src/monitoring/backend/monitoring-bridge.js';
+import { Orchestrator } from '../../../src/core/orchestrator.js';
+import { Config } from '../../../src/config/Config.js';
 
 console.log('🔧 Testing Tool Execution Tracking\n');
 console.log('=' .repeat(60));
