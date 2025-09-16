@@ -530,6 +530,16 @@ export class Executor extends EventEmitter {
       case 'grep':
         args.pattern = this.extractPattern(description);
         args.path = this.extractPath(description) || '.';
+        // Add file type filtering for TypeScript/JavaScript files
+        if (description.toLowerCase().includes('typescript') || description.toLowerCase().includes('.ts')) {
+          args.flags = '-r --include="*.ts" --include="*.tsx"';
+        } else if (description.toLowerCase().includes('javascript') || description.toLowerCase().includes('.js')) {
+          args.flags = '-r --include="*.js" --include="*.jsx"';
+        } else if (description.toLowerCase().includes('python') || description.toLowerCase().includes('.py')) {
+          args.flags = '-r --include="*.py"';
+        } else {
+          args.flags = '-r';
+        }
         break;
         
       case 'rg':
@@ -549,6 +559,10 @@ export class Executor extends EventEmitter {
         
       case 'ls':
         args.path = this.extractPath(description) || '.';
+        break;
+
+      case 'cat':
+        args.file_path = this.extractFilePathWithContext(description, context);
         break;
         
       case 'web':
@@ -843,13 +857,28 @@ File content only:`;
   }
 
   private extractPattern(description: string): string {
+    const lowerDesc = description.toLowerCase();
+
+    // Handle specific pattern types first
+    if (lowerDesc.includes('todo') || lowerDesc.includes('fixme') || lowerDesc.includes('hack')) {
+      if (lowerDesc.includes('todo')) return 'TODO';
+      if (lowerDesc.includes('fixme')) return 'FIXME';
+      if (lowerDesc.includes('hack')) return 'HACK';
+    }
+
     // Try to find quoted patterns first
     let match = description.match(/(?:for|pattern)\s+['"`]([^'"`]+)['"`]/i);
     if (match) return match[1];
 
-    // Try to find patterns in common search contexts
+    // Try to find patterns in search contexts - but exclude file type references
     match = description.match(/(?:search|find|grep|look)\s+(?:for\s+)?['"`]([^'"`]+)['"`]/i);
     if (match) return match[1];
+
+    // Handle "X comments" pattern
+    match = description.match(/(\w+)\s+comments?/i);
+    if (match && !['typescript', 'javascript', 'python', 'java', 'react'].includes(match[1].toLowerCase())) {
+      return match[1].toUpperCase();
+    }
 
     // Try to find file extensions or common patterns
     match = description.match(/\*\.(\w+)/);
@@ -859,17 +888,13 @@ File content only:`;
     match = description.match(/['"`]([^'"`]+)['"`]/);
     if (match) return match[1];
 
-    // Try to extract key terms as fallback patterns
-    match = description.match(/(?:search|find|grep|look).*?(\w+\.\w+|\w{3,})/i);
-    if (match) return match[1];
-
     // Fallback patterns based on context
-    if (description.toLowerCase().includes('react')) return 'react';
-    if (description.toLowerCase().includes('component')) return 'component';
-    if (description.toLowerCase().includes('function')) return 'function';
-    if (description.toLowerCase().includes('class')) return 'class';
-    if (description.toLowerCase().includes('test')) return 'test';
-    if (description.toLowerCase().includes('error')) return 'error';
+    if (lowerDesc.includes('react')) return 'react';
+    if (lowerDesc.includes('component')) return 'component';
+    if (lowerDesc.includes('function')) return 'function';
+    if (lowerDesc.includes('class')) return 'class';
+    if (lowerDesc.includes('test')) return 'test';
+    if (lowerDesc.includes('error')) return 'error';
 
     // Last resort: return a safe default pattern
     return '.*';

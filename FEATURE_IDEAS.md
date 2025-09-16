@@ -19,6 +19,7 @@
   - Logging
   - History maintenance
   - Session persistence
+  - Users messages notifications to main UI of mini agents activities to show progress
 - ✅ No persistent state in mini-agents
 - ✅ Main FlexiCLI remains the single source of truth
 
@@ -29,4 +30,19 @@
 - Use same tool registry but with restricted access if needed
 - Maintain parent-child relationship for audit trails
 
+
+--------------------------------------------------------------------------------------
+⏺ Now let me update the normalization service using the specialized agent:
+
+  normalization-service(Migrate normalization service sourceId to targetId)
+  ⎿ Search(pattern: "storeArtifacts", path: "packages/shared", output_mode: "content")
+     Found 22 lines (ctrl+o to expand)
+     +48 more tool uses
+--------------------------------------------------------------------------------------
+
 **Status**: Concept phase - needs architecture design
+
+The output of FlexiCLI when working with mini agents should look something like:
+
+
+
