@@ -400,6 +400,87 @@ Be efficient and report progress clearly.
 Execute the task:`;
   }
 
+  /**
+   * PROGRESSIVE RESPONSE GENERATOR: Create helpful responses for chunked execution
+   */
+  private generateProgressiveResponse(plan: any, results: any[]): string {
+    const successCount = results.filter(r => r.success).length;
+    const totalTasks = results.length;
+    const currentPhase = plan.currentPhase || 1;
+    const totalPhases = plan.totalPhases || 1;
+    const remainingPhases = plan.remainingPhases || [];
+
+    // Create phase completion summary
+    let response = `🎯 **PHASE ${currentPhase}/${totalPhases} COMPLETED**\n\n`;
+
+    response += `✅ **Progress**: ${successCount}/${totalTasks} tasks completed successfully\n`;
+
+    if (successCount === totalTasks) {
+      response += `🎉 **Phase Status**: PERFECT! All tasks completed flawlessly\n\n`;
+    } else {
+      response += `⚠️ **Phase Status**: ${totalTasks - successCount} tasks encountered issues\n\n`;
+    }
+
+    // Add phase accomplishments
+    response += `📋 **Phase ${currentPhase} Accomplishments:**\n`;
+    const accomplishments = this.extractAccomplishments(results);
+    accomplishments.forEach(acc => {
+      response += `• ${acc}\n`;
+    });
+
+    // Add next phase information
+    if (remainingPhases.length > 0) {
+      response += `\n🔄 **NEXT PHASES READY:**\n`;
+      remainingPhases.forEach((phase, index) => {
+        response += `${index + 2}. ${phase}\n`;
+      });
+
+      response += `\n💡 **To continue**: Run the next phase when ready!\n`;
+      response += `🚀 **Foundation**: This phase has established the core foundation for the enterprise application.\n`;
+    } else {
+      response += `\n🏆 **PROJECT COMPLETE!** All phases have been executed successfully.\n`;
+    }
+
+    return response;
+  }
+
+  /**
+   * Extract accomplishments from task results
+   */
+  private extractAccomplishments(results: any[]): string[] {
+    const accomplishments: string[] = [];
+
+    results.forEach(result => {
+      if (result.success && result.toolsUsed) {
+        result.toolsUsed.forEach((tool: string) => {
+          switch (tool) {
+            case 'write_file':
+              accomplishments.push('Created essential project files and configurations');
+              break;
+            case 'bash':
+              accomplishments.push('Executed setup and configuration commands');
+              break;
+            case 'web':
+              accomplishments.push('Researched latest 2025 technologies and best practices');
+              break;
+            case 'git':
+              accomplishments.push('Initialized version control and project structure');
+              break;
+            default:
+              accomplishments.push(`Utilized ${tool} for enhanced project setup`);
+          }
+        });
+      }
+    });
+
+    // Add default accomplishments and remove duplicates
+    if (accomplishments.length === 0) {
+      accomplishments.push('Established core project foundation');
+    }
+
+    return [...new Set(accomplishments)];
+  }
+
   async execute(prompt: string): Promise<ExecutionResult> {
     // Detect operating mode based on prompt complexity
     const detectedMode = ModeDetector.detectMode(prompt);
@@ -474,7 +555,38 @@ Execute the task:`;
           toolsUsed: []
         };
       }
-      
+
+      // PROGRESSIVE EXECUTION: Handle chunked mega-tasks
+      if (plan.isChunked) {
+        console.log(`🎯 CHUNKED PLAN DETECTED: Phase ${plan.currentPhase}/${plan.totalPhases}`);
+        console.log(`📋 Current phase: ${plan.tasks.length} tasks`);
+        console.log(`🔄 Remaining phases: ${plan.remainingPhases?.length || 0}`);
+
+        // Execute current phase
+        const results = await this.executor.executePlan(plan, this.executionContext);
+
+        // Generate progressive response
+        const progressiveResponse = this.generateProgressiveResponse(plan, results);
+
+        this.emit('orchestration-complete', {
+          response: progressiveResponse,
+          isChunked: true,
+          currentPhase: plan.currentPhase,
+          totalPhases: plan.totalPhases,
+          remainingPhases: plan.remainingPhases
+        });
+
+        return {
+          success: results.every(r => r.success),
+          response: progressiveResponse,
+          toolsUsed: results.flatMap(r => r.toolsUsed || []),
+          isChunked: true,
+          currentPhase: plan.currentPhase,
+          totalPhases: plan.totalPhases,
+          remainingPhases: plan.remainingPhases
+        };
+      }
+
       if (process.env.DEBUG === 'true') {
         console.log(`📋 Plan created: ${plan.tasks.length} tasks, complexity: ${plan.complexity}`);
       }

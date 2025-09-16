@@ -11,7 +11,8 @@
       "Bash(npx tsx:*)",
       "Bash(DEBUG=true npx tsx tests/integration/test-query-response.ts)",
       "Read(//Users/mike.admon/**)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

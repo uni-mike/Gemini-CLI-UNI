@@ -1,24 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'redis', '@elastic/elasticsearch'],
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+    tsconfigPath: './tsconfig.json',
+  },
+  eslint: {
+    ignoreDuringBuilds: false,
   },
   images: {
-    domains: ['images.unsplash.com', 'via.placeholder.com', 'cdn.shopflow.pro'],
+    domains: ['localhost', 'res.cloudinary.com', 'images.unsplash.com'],
     formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
-  poweredByHeader: false,
   compress: true,
+  poweredByHeader: false,
   reactStrictMode: true,
   swcMinify: true,
-  env: {
-    SITE_URL: process.env.SITE_URL || 'http://localhost:3000',
-  },
   async headers() {
     return [
       {
@@ -36,14 +35,6 @@ const nextConfig = {
             key: 'X-XSS-Protection',
             value: '1; mode=block',
           },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
-          },
         ],
       },
     ];
@@ -58,4 +49,15 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+});
+
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+module.exports = withBundleAnalyzer(withPWA(nextConfig));

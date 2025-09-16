@@ -11,385 +11,320 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId      String
-  expires     DateTime
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Tenant settings
+  currency      String   @default("USD")
+  timezone      String   @default("UTC")
+  locale        String   @default("en-US")
+  isActive      Boolean  @default(true)
+  
+  // Relationships
+  users      User[]
+  products   Product[]
+  categories Category[]
+  orders     Order[]
+  
+  @@map("tenants")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  role          UserRole  @default(CUSTOMER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  addresses     Address[]
-  orders        Order[]
-  cart          Cart?
-  reviews       Review[]
-  wishlist      WishlistItem[]
-
-  @@map("users")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
-}
-
-model Product {
-  id          String    @id @default(cuid())
-  sku        String    @unique
-  name        String
-  slug        String    @unique
-  description String    @db.Text
-  price       Decimal   @db.Decimal(10, 2)
-  comparePrice Decimal?  @db.Decimal(10, 2)
-  costPrice   Decimal?  @db.Decimal(10, 2)
-  stock       Int       @default(0)
-  reserved    Int       @default(0)
-  lowStock    Int       @default(5)
-  weight      Decimal?  @db.Decimal(8, 2)
-  length      Decimal?  @db.Decimal(8, 2)
-  width       Decimal?  @db.Decimal(8, 2)
-  height      Decimal?  @db.Decimal(8, 2)
-  featured    Boolean   @default(false)
-  active      Boolean   @default(true)
-  brand       String?
-  model       String?
-  upc         String?   @unique
-  ean         String?   @unique
-  isbn        String?   @unique
-  metadata    Json?     @default("{}")
-  tags        String[]
-  categories  Category[] @relation("ProductCategories")
-  images      ProductImage[]
-  variants    ProductVariant[]
-  attributes  ProductAttribute[]
-  reviews     Review[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  publishedAt DateTime?
-
-  @@index([slug])
-  @@index([price])
-  @@index([stock])
-  @@index([featured])
-  @@index([active])
-  @@index([createdAt])
-  @@fulltext([name, description, tags])
-  @@map("products")
-}
-
-model ProductImage {
-  id         String   @id @default(cuid())
-  productId  String
-  url        String
-  alt        String?
-  width      Int?
-  height     Int?
-  order      Int      @default(0)
-  isPrimary Boolean  @default(false)
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-
-  @@map("product_images")
-}
-
-model ProductVariant {
-  id          String   @id @default(cuid())
-  productId   String
-  sku         String   @unique
-  name        String
-  price       Decimal  @db.Decimal(10, 2)
-  comparePrice Decimal? @db.Decimal(10, 2)
-  stock       Int      @default(0)
-  reserved    Int      @default(0)
-  weight      Decimal? @db.Decimal(8, 2)
-  attributes  Json     @default("{}")
-  metadata    Json?    @default("{}")
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  tenantId     String
+  email        String   @unique
+  password     String?  // Hashed password
+  firstName    String
+  lastName     String
+  avatar       String?
+  phone        String?
+  
+  // Auth
+  emailVerified Boolean  @default(false)
+  verificationToken String?
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  
+  // Roles and permissions
+  role        UserRole @default(CUSTOMER)
+  permissions Json? // Custom permissions as JSON
+  
+  // Timestamps
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@index([sku])
-  @@index([stock])
-  @@map("product_variants")
+  lastLogin   DateTime?
+  
+  // Relationships
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  addresses   Address[]
+  orders      Order[]
+  reviews     Review[]
+  cartItems   CartItem[]
+  
+  @@map("users")
+  @@unique([tenantId, email])
 }
 
-model ProductAttribute {
-  id        String   @id @default(cuid())
-  productId String
-  name      String
-  value     String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, name])
-  @@map("product_attributes")
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  tenantId    String
+  
+  // Address details
+  type        AddressType @default(SHIPPING)
+  firstName   String
+  lastName    String
+  company     String?
+  street1     String
+  street2     String?
+  city        String
+  state       String
+  postalCode  String
+  country     String @default("US")
+  phone       String?
+  isDefault   Boolean @default(false)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relationships
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@map("addresses")
 }
 
 model Category {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
+  tenantId    String
   name        String
-  slug        String     @unique
-  description String?    @db.Text
+  slug        String
+  description String?
   image       String?
-  parentId    String?
-  order       Int        @default(0)
-  active      Boolean    @default(true)
-  featured    Boolean    @default(false)
-  metadata    Json?      @default("{}")
-  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryHierarchy")
-  products    Product[]  @relation("ProductCategories")
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  @@index([slug])
-  @@index([parentId])
-  @@index([active])
-  @@index([featured])
+  
+  // Hierarchy
+  parentId   String?
+  parent     Category? @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children   Category[] @relation("CategoryToCategory")
+  
+  // Ordering
+  position    Int      @default(0)
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+  
   @@map("categories")
+  @@unique([tenantId, slug])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  tenantId    String
+  
+  // Basic info
+  name        String
+  slug        String
+  description String?
+  
+  // Media
+  images      Json // Array of image URLs
+  
+  // Pricing
+  price       Decimal
+  comparePrice Decimal?
+  costPrice   Decimal?
+  
+  // Inventory
+  sku         String? @unique
+  barcode     String?
+  quantity    Int     @default(0)
+  lowStockThreshold Int @default(5)
+  allowOutOfStockPurchases Boolean @default(false)
+  
+  // Variants
+  hasVariants Boolean @default(false)
+  variants    Json?   // Variant definitions
+  
+  // Organization
+  categoryId  String?
+  
+  // Metadata
+  weight      Decimal? // in grams
+  dimensions  Json?    // { length, width, height }
+  
+  // Status
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  
+  // SEO
+  seoTitle       String?
+  seoDescription String?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  publishedAt DateTime?
+  
+  // Relationships
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category   Category? @relation(fields: [categoryId], references: [id])
+  reviews   Review[]
+  orderItems OrderItem[]
+  
+  // Full-text search
+  @@fulltext([name, description])
+  @@map("products")
+  @@unique([tenantId, slug])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  tenantId    String
+  productId   String
+  userId      String
+  
+  // Review content
+  rating      Int      @db.SmallInt // 1-5
+  title       String
+  comment     String?
+  
+  // Status
+  isApproved Boolean @default(false)
+  isVerifiedPurchase Boolean @default(false)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("reviews")
+}
+
+model CartItem {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  productId   String
+  
+  // Item details
+  quantity    Int      @default(1)
+  variant     Json?    // Selected variant
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@map("cart_items")
+  @@unique([userId, productId, tenantId])
 }
 
 model Order {
-  id         String         @id @default(cuid())
-  orderNumber String        @unique
-  userId     String?
-  email      String
-  status     OrderStatus    @default(PENDING)
-  total      Decimal        @db.Decimal(10, 2)
-  subtotal   Decimal        @db.Decimal(10, 2)
-  tax        Decimal        @db.Decimal(10, 2) @default(0.00)
-  shipping   Decimal        @db.Decimal(10, 2) @default(0.00)
-  discount   Decimal        @db.Decimal(10, 2) @default(0.00)
-  currency   String         @default("USD")
-  exchangeRate Decimal?     @db.Decimal(10, 6)
-  shippingAddressId String?
-  billingAddressId String?
-  paymentIntentId String?   @unique
-  paymentStatus PaymentStatus @default(PENDING)
-  paymentMethod String?
-  shippingMethod String?
-  trackingNumber String?
-  shippingCarrier String?
-  metadata    Json?         @default("{}")
-  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  shippingAddress Address?   @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
-  billingAddress  Address?   @relation("OrderBillingAddress", fields: [billingAddressId], references: [id])
-  items       OrderItem[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  
+  // Order information
+  orderNumber String   @unique
+  status      OrderStatus @default(PENDING)
+  
+  // Pricing
+  subtotal    Decimal
+  taxAmount   Decimal
+  shippingAmount Decimal
+  discountAmount Decimal @default(0)
+  total       Decimal
+  currency    String   @default("USD")
+  
+  // Customer information
+  customerEmail     String
+  customerFirstName String
+  customerLastName  String
+  customerPhone     String?
+  
+  // Addresses
+  shippingAddress Json
+  billingAddress  Json
+  
+  // Payment
+  paymentMethod    PaymentMethod
+  paymentStatus    PaymentStatus @default(PENDING)
+  paymentIntentId  String? // Stripe payment intent ID
+  
+  // Shipping
+  shippingMethod   String?
+  trackingNumber   String?
+  
+  // Metadata
+  notes            String?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   paidAt      DateTime?
   shippedAt   DateTime?
   deliveredAt DateTime?
-  cancelledAt DateTime?
-
-  @@index([orderNumber])
-  @@index([userId])
-  @@index([status])
-  @@index([paymentStatus])
-  @@index([createdAt])
+  
+  // Relationships
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  
   @@map("orders")
 }
 
 model OrderItem {
   id          String   @id @default(cuid())
+  tenantId    String
   orderId     String
-  productId   String?
-  variantId   String?
+  productId   String
+  
+  // Item details
   name        String
-  description String?  @db.Text
-  price       Decimal  @db.Decimal(10, 2)
+  price       Decimal
   quantity    Int
-  tax         Decimal  @db.Decimal(10, 2) @default(0.00)
-  discount    Decimal  @db.Decimal(10, 2) @default(0.00)
-  total       Decimal  @db.Decimal(10, 2)
-  metadata    Json?    @default("{}")
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product     Product? @relation(fields: [productId], references: [id])
-  variant     ProductVariant? @relation(fields: [variantId], references: [id])
-  createdAt   DateTime @default(now())
-
+  variant     Json?    // Selected variant
+  
+  // Relationships
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+  
   @@map("order_items")
 }
 
-model Cart {
-  id        String    @id @default(cuid())
-  userId    String?   @unique
-  sessionId String?   @unique
-  items     CartItem[]
-  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  expiresAt DateTime?
-
-  @@index([sessionId])
-  @@index([expiresAt])
-  @@map("carts")
-}
-
-model CartItem {
-  id        String   @id @default(cuid())
-  cartId    String
-  productId String?
-  variantId String?
-  name      String
-  price     Decimal  @db.Decimal(10, 2)
-  quantity  Int      @default(1)
-  metadata  Json?    @default("{}")
-  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product? @relation(fields: [productId], references: [id])
-  variant   ProductVariant? @relation(fields: [variantId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([cartId, productId, variantId])
-  @@map("cart_items")
-}
-
-model Address {
-  id           String   @id @default(cuid())
-  userId       String?
-  type         AddressType @default(SHIPPING)
-  firstName    String
-  lastName     String
-  company      String?
-  address1     String
-  address2     String?
-  city         String
-  state        String
-  postalCode   String
-  country      String   @default("US")
-  phone        String?
-  isDefault    Boolean  @default(false)
-  metadata     Json?    @default("{}")
-  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shippingOrders Order[] @relation("OrderShippingAddress")
-  billingOrders  Order[] @relation("OrderBillingAddress")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([userId])
-  @@index([type])
-  @@map("addresses")
-}
-
-model Review {
-  id         String   @id @default(cuid())
-  productId  String
-  userId     String
-  rating     Int      @db.SmallInt
-  title      String?
-  comment    String?  @db.Text
-  approved   Boolean  @default(false)
-  helpful    Int      @default(0)
-  notHelpful Int      @default(0)
-  metadata   Json?    @default("{}")
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([productId])
-  @@index([userId])
-  @@index([rating])
-  @@index([approved])
-  @@index([createdAt])
-  @@map("reviews")
-}
-
-model WishlistItem {
-  id        String   @id @default(cuid())
-  userId    String
-  productId String
-  variantId String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant   ProductVariant? @relation(fields: [variantId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, productId, variantId])
-  @@map("wishlist_items")
-}
-
-model InventoryLog {
-  id          String      @id @default(cuid())
-  productId   String?
-  variantId   String?
-  type        InventoryLogType
-  quantity    Int
-  previousStock Int
-  newStock    Int
-  reason      String?
-  referenceId String?
-  referenceType String?
-  metadata    Json?       @default("{}")
-  product     Product?    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  createdAt   DateTime    @default(now())
-
-  @@index([productId])
-  @@index([variantId])
-  @@index([type])
-  @@index([createdAt])
-  @@map("inventory_logs")
-}
-
-model SearchLog {
-  id        String   @id @default(cuid())
-  query     String
-  results   Int
-  userId    String?
-  sessionId String?
-  filters   Json?    @default("{}")
-  metadata  Json?    @default("{}")
-  createdAt DateTime @default(now())
-
-  @@index([query])
-  @@index([userId])
-  @@index([sessionId])
-  @@index([createdAt])
-  @@map("search_logs")
-}
-
+// Enums
 enum UserRole {
-  CUSTOMER
-  STAFF
+  SUPER_ADMIN
   ADMIN
+  MANAGER
+  CUSTOMER
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
 }
 
 enum OrderStatus {
@@ -400,7 +335,14 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   REFUNDED
-  PARTIALLY_REFUNDED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  PAYPAL
+  STRIPE
+  APPLE_PAY
+  GOOGLE_PAY
 }
 
 enum PaymentStatus {
@@ -409,22 +351,4 @@ enum PaymentStatus {
   FAILED
   REFUNDED
   PARTIALLY_REFUNDED
-  CANCELLED
-}
-
-enum AddressType {
-  SHIPPING
-  BILLING
-}
-
-enum InventoryLogType {
-  STOCK_IN
-  STOCK_OUT
-  STOCK_ADJUSTMENT
-  RESERVATION
-  RELEASE
-  SALE
-  RETURN
-  DAMAGED
-  EXPIRED
 }

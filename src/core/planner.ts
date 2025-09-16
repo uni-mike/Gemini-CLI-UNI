@@ -30,6 +30,12 @@ export interface TaskPlan {
   parallelizable: boolean;
   isConversation?: boolean;
   conversationResponse?: string;
+  // INTELLIGENT CHUNKING SUPPORT
+  isChunked?: boolean;
+  totalPhases?: number;
+  currentPhase?: number;
+  remainingPhases?: string[];
+  isEmergencyPlan?: boolean;
 }
 
 export class Planner extends EventEmitter {
@@ -107,31 +113,57 @@ export class Planner extends EventEmitter {
         console.log('🔍 Task decomposition JSON response:', taskPlanResponse);
       }
       
-      // Parse structured JSON response with retry logic
+      // INTELLIGENT RESPONSE CHUNKING: Prevent SUCCESS OVERFLOW
+      console.log(`📏 Response size: ${taskPlanResponse.length} characters`);
+
+      // Check for oversized response that might cause JSON parsing failure
+      if (taskPlanResponse.length > 50000) {
+        console.log('🚨 MEGA-RESPONSE DETECTED! Implementing auto-chunking...');
+        return this.handleMegaTaskChunking(prompt, contextualPrompt);
+      }
+
+      // Parse structured JSON response with enhanced error handling
       let parsedPlan: any;
       try {
         parsedPlan = JSON.parse(taskPlanResponse);
       } catch (parseError) {
         console.error('❌ Failed to parse JSON on first attempt:', parseError);
-        console.log('🔍 Raw response:', taskPlanResponse);
+        console.log(`🔍 Response preview (first 500 chars): ${taskPlanResponse.substring(0, 500)}...`);
 
-        // Try a simpler retry prompt without asking DeepSeek to think about design vs implementation
-        console.log('🔄 Retrying with simplified prompt...');
-        const simplePrompt = `TASK: ${contextualPrompt}\n\nCreate a JSON plan with this exact format:\n{"type":"tasks","plan":[{"id":"step1","description":"action","tool":"write_file","file_path":"exact/path","content":"file content"}]}\n\nReturn ONLY valid JSON, no explanations:`;
+        // Check if response contains JSON markers but is malformed
+        if (taskPlanResponse.includes('{"type"') && taskPlanResponse.length > 10000) {
+          console.log('🔧 Large response with JSON detected - attempting surgical extraction...');
+          const extracted = this.extractValidJSON(taskPlanResponse);
+          if (extracted) {
+            try {
+              parsedPlan = JSON.parse(extracted);
+              console.log('✅ Surgical JSON extraction successful');
+            } catch (surgicalError) {
+              console.log('❌ Surgical extraction failed, falling back to chunking...');
+              return this.handleMegaTaskChunking(prompt, contextualPrompt);
+            }
+          } else {
+            return this.handleMegaTaskChunking(prompt, contextualPrompt);
+          }
+        } else {
+          // Try simplified retry for smaller responses
+          console.log('🔄 Retrying with simplified prompt...');
+          const simplePrompt = `TASK: ${contextualPrompt}\n\nCreate a JSON plan with this exact format:\n{"type":"tasks","plan":[{"id":"step1","description":"action","tool":"write_file","file_path":"exact/path","content":"file content"}]}\n\nReturn ONLY valid JSON, no explanations:`;
 
-        const retryResponse = await this.client.chat(
-          [{ role: 'user', content: simplePrompt }],
-          [],
-          true
-        );
+          const retryResponse = await this.client.chat(
+            [{ role: 'user', content: simplePrompt }],
+            [],
+            true
+          );
 
-        try {
-          parsedPlan = JSON.parse(retryResponse);
-          console.log('✅ Retry successful');
-        } catch (retryError) {
-          console.error('❌ Retry also failed:', retryError);
-          console.log('🔍 Retry response:', retryResponse);
-          throw new Error('DeepSeek returned invalid JSON after retry');
+          try {
+            parsedPlan = JSON.parse(retryResponse);
+            console.log('✅ Retry successful');
+          } catch (retryError) {
+            console.error('❌ Retry also failed:', retryError);
+            console.log('🔍 Retry response preview:', retryResponse.substring(0, 200));
+            throw new Error('DeepSeek returned invalid JSON after retry');
+          }
         }
       }
       
@@ -180,7 +212,240 @@ export class Planner extends EventEmitter {
       throw error; // Orchestrator should handle this with proper AI-based recovery
     }
   }
-  
+
+  /**
+   * INTELLIGENT MEGA-TASK CHUNKING: Handle enterprise-level tasks
+   */
+  private async handleMegaTaskChunking(originalPrompt: string, contextualPrompt: string): Promise<TaskPlan> {
+    console.log('🎯 MEGA-TASK CHUNKING ACTIVATED');
+    console.log('🔧 Breaking down enterprise-level task into manageable phases...');
+
+    // Detect task complexity and break into logical phases
+    const phases = this.detectTaskPhases(originalPrompt);
+    console.log(`📋 Detected ${phases.length} logical phases`);
+
+    // Create Phase 1 plan (most critical foundation)
+    const phase1Prompt = `PHASE 1 of ${phases.length}: ${phases[0]}
+
+CRITICAL: This is PHASE 1 of a larger project. Focus ONLY on:
+- Core foundation and setup
+- Essential configuration files
+- Basic project structure
+- Maximum 8-10 tasks for this phase
+
+Original context: ${originalPrompt.substring(0, 500)}...
+
+Create a focused JSON plan for PHASE 1 ONLY:`;
+
+    try {
+      const phase1Response = await this.client.chat(
+        [{ role: 'user', content: phase1Prompt }],
+        [],
+        true
+      );
+
+      console.log(`📏 Phase 1 response size: ${phase1Response.length} characters`);
+
+      let phase1Plan: any;
+      try {
+        phase1Plan = JSON.parse(phase1Response);
+      } catch (parseError) {
+        console.log('🔧 Phase 1 still too large, applying surgical extraction...');
+        const extracted = this.extractValidJSON(phase1Response);
+        if (extracted) {
+          phase1Plan = JSON.parse(extracted);
+        } else {
+          // Emergency fallback - create minimal foundation plan
+          phase1Plan = this.createEmergencyFoundationPlan(originalPrompt);
+        }
+      }
+
+      // Add metadata about remaining phases
+      const taskPlan: TaskPlan = {
+        id: `chunked_phase1_${Date.now()}`,
+        originalPrompt,
+        tasks: this.convertJsonToTasks(phase1Plan.plan || phase1Plan.tasks || []),
+        complexity: 'complex' as const,
+        parallelizable: false,
+        isChunked: true,
+        totalPhases: phases.length,
+        currentPhase: 1,
+        remainingPhases: phases.slice(1)
+      };
+
+      console.log(`✅ Phase 1 plan created with ${taskPlan.tasks.length} tasks`);
+      console.log(`🔄 ${phases.length - 1} phases remaining for future execution`);
+
+      return taskPlan;
+
+    } catch (error) {
+      console.error('❌ Phase 1 chunking failed:', error);
+      return this.createEmergencyFoundationPlan(originalPrompt);
+    }
+  }
+
+  /**
+   * SURGICAL JSON EXTRACTION: Extract valid JSON from malformed responses
+   */
+  private extractValidJSON(response: string): string | null {
+    console.log('🔬 Performing surgical JSON extraction...');
+
+    try {
+      // Strategy 1: Find first complete JSON object
+      const jsonStart = response.indexOf('{"type"');
+      if (jsonStart === -1) return null;
+
+      let braceCount = 0;
+      let inString = false;
+      let escaped = false;
+      let jsonEnd = -1;
+
+      for (let i = jsonStart; i < response.length; i++) {
+        const char = response[i];
+
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+
+        if (char === '\\') {
+          escaped = true;
+          continue;
+        }
+
+        if (char === '"') {
+          inString = !inString;
+          continue;
+        }
+
+        if (!inString) {
+          if (char === '{') {
+            braceCount++;
+          } else if (char === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              jsonEnd = i;
+              break;
+            }
+          }
+        }
+      }
+
+      if (jsonEnd > jsonStart) {
+        const extracted = response.substring(jsonStart, jsonEnd + 1);
+        console.log(`🔬 Extracted JSON: ${extracted.length} characters`);
+
+        // Validate extracted JSON
+        JSON.parse(extracted);
+        return extracted;
+      }
+
+      return null;
+
+    } catch (error) {
+      console.log('🔬 Surgical extraction failed:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * DETECT TASK PHASES: Break mega-tasks into logical phases
+   */
+  private detectTaskPhases(prompt: string): string[] {
+    const lowerPrompt = prompt.toLowerCase();
+
+    // Enterprise application patterns
+    if (lowerPrompt.includes('e-commerce') || lowerPrompt.includes('marketplace')) {
+      return [
+        'Foundation & Core Setup (Next.js, TypeScript, database)',
+        'Authentication & User Management',
+        'Product Management & Catalog',
+        'Shopping Cart & Checkout',
+        'Payment Integration & Orders',
+        'Admin Dashboard & Analytics',
+        'Performance & Deployment'
+      ];
+    }
+
+    if (lowerPrompt.includes('saas') || lowerPrompt.includes('ai platform')) {
+      return [
+        'Core Platform Setup & Authentication',
+        'Multi-tenant Architecture & Database',
+        'AI/ML Integration & Services',
+        'Workflow Automation Engine',
+        'User Interface & Dashboard',
+        'Billing & Subscription Management',
+        'Monitoring & Deployment'
+      ];
+    }
+
+    if (lowerPrompt.includes('mobile') || lowerPrompt.includes('react native')) {
+      return [
+        'Mobile App Foundation & Navigation',
+        'User Authentication & Profiles',
+        'Core Features & UI Components',
+        'Real-time Features & Notifications',
+        'Testing & Performance',
+        'App Store Deployment'
+      ];
+    }
+
+    // Generic complex project phases
+    return [
+      'Project Foundation & Core Setup',
+      'Core Features Implementation',
+      'Advanced Features & Integration',
+      'Testing & Quality Assurance',
+      'Deployment & Production Setup'
+    ];
+  }
+
+  /**
+   * EMERGENCY FOUNDATION PLAN: Minimal viable plan when all else fails
+   */
+  private createEmergencyFoundationPlan(originalPrompt: string): TaskPlan {
+    console.log('🚨 Creating emergency foundation plan...');
+
+    const emergencyTasks = [
+      {
+        id: 'foundation1',
+        description: 'Create project package.json with essential dependencies',
+        type: 'tool' as const,
+        tools: ['write_file'],
+        arguments: {},
+        dependencies: [],
+        priority: 1
+      },
+      {
+        id: 'foundation2',
+        description: 'Create TypeScript configuration',
+        type: 'tool' as const,
+        tools: ['write_file'],
+        arguments: {},
+        dependencies: ['foundation1'],
+        priority: 2
+      },
+      {
+        id: 'foundation3',
+        description: 'Create basic project structure and directories',
+        type: 'tool' as const,
+        tools: ['bash'],
+        arguments: {},
+        dependencies: ['foundation2'],
+        priority: 3
+      }
+    ];
+
+    return {
+      id: `emergency_${Date.now()}`,
+      originalPrompt,
+      tasks: emergencyTasks,
+      complexity: 'simple' as const,
+      parallelizable: false,
+      isEmergencyPlan: true
+    };
+  }
+
   private parsePlanResponse(response: string): any {
     try {
       // Extract JSON from response - handle code blocks too
