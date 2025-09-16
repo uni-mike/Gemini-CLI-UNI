@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(brew install:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(DEBUG=true npx tsx validate-chunk-system.ts)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Create a simple TypeScript utility function file called math-utils.ts with functions for add, subtract, multiply, and divide operations. Include proper TypeScript types and JSDoc comments for each function.\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

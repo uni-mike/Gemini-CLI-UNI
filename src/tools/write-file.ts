@@ -4,8 +4,14 @@
 
 import { Tool, ToolResult, ParameterSchema } from './base.js';
 import { writeFile, mkdir, access, readFile } from 'fs/promises';
-import { dirname } from 'path';
+import { dirname, extname } from 'path';
 import { constants } from 'fs';
+import { MemoryManager } from '../memory/memory-manager.js';
+
+// Global memory manager access
+declare global {
+  var memoryManager: MemoryManager | undefined;
+}
 
 export class WriteFileTool extends Tool {
   name = 'write_file';
@@ -71,7 +77,10 @@ export class WriteFileTool extends Tool {
       ).join('\n');
       
       const diffOutput = `Created ${filePath} with ${lines.length} lines\n${preview}${lines.length > 10 ? `\n       ... (${lines.length - 10} more lines)` : ''}`;
-      
+
+      // Store chunk for semantic retrieval if memory manager is available
+      await this.storeCodeChunk(filePath, content);
+
       return {
         success: true,
         output: diffOutput
@@ -81,6 +90,68 @@ export class WriteFileTool extends Tool {
         success: false,
         error: error.message
       };
+    }
+  }
+
+  /**
+   * Store code chunk for semantic retrieval
+   * @param filePath File path
+   * @param content File content
+   */
+  private async storeCodeChunk(filePath: string, content: string): Promise<void> {
+    try {
+      if (global.memoryManager && content.trim().length > 50) {
+        const fileExt = extname(filePath).toLowerCase();
+
+        // Determine language from file extension
+        const languageMap: Record<string, string> = {
+          '.ts': 'typescript',
+          '.tsx': 'typescript',
+          '.js': 'javascript',
+          '.jsx': 'javascript',
+          '.py': 'python',
+          '.java': 'java',
+          '.cpp': 'cpp',
+          '.c': 'c',
+          '.cs': 'csharp',
+          '.php': 'php',
+          '.rb': 'ruby',
+          '.go': 'go',
+          '.rs': 'rust',
+          '.kt': 'kotlin',
+          '.swift': 'swift',
+          '.html': 'html',
+          '.css': 'css',
+          '.scss': 'scss',
+          '.md': 'markdown',
+          '.json': 'json',
+          '.yml': 'yaml',
+          '.yaml': 'yaml',
+          '.xml': 'xml',
+          '.sql': 'sql'
+        };
+
+        const language = languageMap[fileExt] || 'text';
+        const chunkType = ['.md', '.txt', '.json', '.yml', '.yaml'].includes(fileExt) ? 'doc' : 'code';
+
+        // Store the chunk with metadata
+        await global.memoryManager.storeChunk(
+          filePath,
+          content,
+          chunkType as 'code' | 'doc' | 'diff',
+          {
+            language,
+            file_extension: fileExt,
+            line_count: content.split('\n').length,
+            char_count: content.length,
+            created_by: 'write_file_tool',
+            created_at: new Date().toISOString()
+          }
+        );
+      }
+    } catch (error: any) {
+      // Don't fail the file write if chunk storage fails
+      console.warn(`📦 [WRITE_FILE] Warning: Failed to store chunk for ${filePath}:`, error.message);
     }
   }
 }

@@ -448,8 +448,18 @@ export class Orchestrator extends EventEmitter {
 
           // Store semantic chunks via memory manager
           try {
-            // TODO: Add public method to MemoryManager for storing chunks
-            // For now, knowledge storage captures the semantic context
+            await this.memoryManager.storeChunk(
+              `execution_success_${Date.now()}`, // path
+              semanticContent,                    // content
+              'doc',                             // chunkType
+              {                                  // metadata
+                prompt_hash: this.hashPrompt(prompt),
+                tools_used: successfulTasks.flatMap(r => r.toolsUsed || []).filter(tool => tool !== undefined),
+                success_rate: successfulTasks.length / results.length,
+                task_count: results.length,
+                timestamp: new Date().toISOString()
+              }
+            );
           } catch (error: any) {
             console.error('Failed to store embedding chunk:', error.message);
           }

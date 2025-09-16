@@ -96,6 +96,13 @@ export class MemoryManager extends EventEmitter {
       );
     }, 100);
 
+    // Index codebase in background for semantic search
+    setTimeout(() => {
+      this.indexCodebase().catch(err =>
+        console.warn('Failed to index codebase:', err)
+      );
+    }, 200);
+
     // Clean old data
     this.projectManager.cleanCache();
     this.projectManager.rotateLogs();
@@ -541,6 +548,224 @@ Output must be valid JSON only.`;
       console.log(`📊 [MEMORY] ✅ Updated session ${sessionId} with turnCount: ${turnCount} and snapshot metadata`);
     } catch (error) {
       console.error('📊 [MEMORY] ❌ Failed to update conversation turn:', error);
+    }
+  }
+
+  /**
+   * Store a code chunk for semantic retrieval
+   * @param path File path
+   * @param content Code content
+   * @param chunkType Type of chunk (code, doc, diff)
+   * @param metadata Optional metadata (language, line numbers, etc.)
+   * @returns Chunk ID
+   */
+  async storeChunk(
+    path: string,
+    content: string,
+    chunkType: 'code' | 'doc' | 'diff' = 'code',
+    metadata?: {
+      language?: string;
+      commitHash?: string;
+      lineStart?: number;
+      lineEnd?: number;
+      [key: string]: any;
+    }
+  ): Promise<string> {
+    try {
+      const chunkId = await this.retrieval.storeChunk(path, content, chunkType, metadata);
+
+      // Emit chunk storage event for monitoring
+      this.emit('chunk-stored', {
+        chunkId,
+        path,
+        contentLength: content.length,
+        chunkType,
+        metadata
+      });
+
+      console.log(`📦 [MEMORY] Stored chunk: ${path} (${content.length} chars, type: ${chunkType})`);
+      return chunkId;
+    } catch (error: any) {
+      console.error(`📦 [MEMORY] ❌ Failed to store chunk for ${path}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Store multiple chunks in batch
+   * @param chunks Array of chunk data
+   * @returns Array of chunk IDs
+   */
+  async storeChunks(
+    chunks: Array<{
+      path: string;
+      content: string;
+      chunkType: 'code' | 'doc' | 'diff';
+      metadata?: any;
+    }>
+  ): Promise<string[]> {
+    try {
+      const chunkIds = await this.retrieval.storeChunks(chunks);
+
+      // Emit batch storage event
+      this.emit('chunks-stored', {
+        count: chunks.length,
+        totalSize: chunks.reduce((sum, c) => sum + c.content.length, 0),
+        paths: chunks.map(c => c.path)
+      });
+
+      console.log(`📦 [MEMORY] Stored ${chunks.length} chunks (${chunks.reduce((sum, c) => sum + c.content.length, 0)} total chars)`);
+      return chunkIds;
+    } catch (error: any) {
+      console.error(`📦 [MEMORY] ❌ Failed to store batch chunks:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Index existing codebase for semantic search
+   * This runs in background during initialization
+   */
+  private async indexCodebase(): Promise<void> {
+    try {
+      const { readdir, readFile, stat } = await import('fs/promises');
+      const { join, extname } = await import('path');
+
+      console.log('📦 [MEMORY] Starting codebase indexing...');
+
+      // Check if we already have recent chunks to avoid re-indexing
+      const existingChunks = await this.prisma.chunk.count({
+        where: {
+          projectId: this.projectManager.getProjectId(),
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+          }
+        }
+      });
+
+      if (existingChunks > 10) {
+        console.log(`📦 [MEMORY] Skipping indexing - ${existingChunks} recent chunks already exist`);
+        return;
+      }
+
+      // Get project root
+      const projectRoot = this.projectManager.getProjectRoot();
+
+      // Directories to index
+      const dirsToIndex = ['src', 'lib', 'components', 'pages', 'api', 'utils', 'tests'];
+
+      // Extensions to index
+      const extensionsToIndex = [
+        '.ts', '.tsx', '.js', '.jsx', '.py', '.java', '.cpp', '.c',
+        '.cs', '.php', '.rb', '.go', '.rs', '.kt', '.swift',
+        '.html', '.css', '.scss', '.md', '.json', '.yml', '.yaml'
+      ];
+
+      const chunksToStore: Array<{
+        path: string;
+        content: string;
+        chunkType: 'code' | 'doc' | 'diff';
+        metadata?: any;
+      }> = [];
+
+      // Recursively scan directories
+      const scanDirectory = async (dirPath: string, maxDepth: number = 3): Promise<void> => {
+        if (maxDepth <= 0) return;
+
+        try {
+          const entries = await readdir(dirPath);
+
+          for (const entry of entries) {
+            // Skip hidden files, node_modules, build dirs, etc.
+            if (entry.startsWith('.') ||
+                entry === 'node_modules' ||
+                entry === 'dist' ||
+                entry === 'build' ||
+                entry === 'coverage' ||
+                entry === '__pycache__') {
+              continue;
+            }
+
+            const fullPath = join(dirPath, entry);
+            const stats = await stat(fullPath);
+
+            if (stats.isDirectory()) {
+              await scanDirectory(fullPath, maxDepth - 1);
+            } else if (stats.isFile()) {
+              const ext = extname(entry).toLowerCase();
+
+              if (extensionsToIndex.includes(ext) && stats.size < 50000) { // Skip files > 50KB
+                try {
+                  const content = await readFile(fullPath, 'utf8');
+
+                  if (content.trim().length > 100) { // Only meaningful files
+                    const relativePath = fullPath.replace(projectRoot, '').replace(/^\//, '');
+
+                    // Determine language and chunk type
+                    const languageMap: Record<string, string> = {
+                      '.ts': 'typescript', '.tsx': 'typescript',
+                      '.js': 'javascript', '.jsx': 'javascript',
+                      '.py': 'python', '.java': 'java', '.cpp': 'cpp',
+                      '.c': 'c', '.cs': 'csharp', '.php': 'php',
+                      '.rb': 'ruby', '.go': 'go', '.rs': 'rust',
+                      '.kt': 'kotlin', '.swift': 'swift',
+                      '.html': 'html', '.css': 'css', '.scss': 'scss'
+                    };
+
+                    const language = languageMap[ext] || 'text';
+                    const chunkType = ['.md', '.txt', '.json', '.yml', '.yaml'].includes(ext) ? 'doc' : 'code';
+
+                    chunksToStore.push({
+                      path: relativePath,
+                      content,
+                      chunkType: chunkType as 'code' | 'doc' | 'diff',
+                      metadata: {
+                        language,
+                        file_extension: ext,
+                        line_count: content.split('\n').length,
+                        char_count: content.length,
+                        indexed_by: 'startup_indexing',
+                        indexed_at: new Date().toISOString()
+                      }
+                    });
+                  }
+                } catch (error) {
+                  // Skip files that can't be read
+                }
+              }
+            }
+          }
+        } catch (error) {
+          // Skip directories that can't be read
+        }
+      };
+
+      // Scan each target directory
+      for (const dir of dirsToIndex) {
+        const dirPath = join(projectRoot, dir);
+        try {
+          await stat(dirPath);
+          await scanDirectory(dirPath);
+        } catch {
+          // Directory doesn't exist, skip
+        }
+      }
+
+      // Store chunks in batches
+      if (chunksToStore.length > 0) {
+        const BATCH_SIZE = 20;
+        for (let i = 0; i < chunksToStore.length; i += BATCH_SIZE) {
+          const batch = chunksToStore.slice(i, i + BATCH_SIZE);
+          await this.storeChunks(batch);
+        }
+
+        console.log(`📦 [MEMORY] ✅ Indexed ${chunksToStore.length} code files for semantic search`);
+      } else {
+        console.log('📦 [MEMORY] No code files found to index');
+      }
+
+    } catch (error: any) {
+      console.error('📦 [MEMORY] ❌ Failed to index codebase:', error.message);
     }
   }
 
