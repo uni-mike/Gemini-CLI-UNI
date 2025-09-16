@@ -31,18 +31,15 @@
 - Maintain parent-child relationship for audit trails
 
 
---------------------------------------------------------------------------------------
+```
 ⏺ Now let me update the normalization service using the specialized agent:
 
   normalization-service(Migrate normalization service sourceId to targetId)
   ⎿ Search(pattern: "storeArtifacts", path: "packages/shared", output_mode: "content")
      Found 22 lines (ctrl+o to expand)
      +48 more tool uses
---------------------------------------------------------------------------------------
+```
 
 **Status**: Concept phase - needs architecture design
 
 The output of FlexiCLI when working with mini agents should look something like:
-
-
-
