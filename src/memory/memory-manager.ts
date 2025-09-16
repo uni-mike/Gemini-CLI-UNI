@@ -80,6 +80,10 @@ export class MemoryManager extends EventEmitter {
     // Run database migrations if needed
     await this.ensureDatabase();
 
+    // IMPORTANT: Ensure project exists in database before creating session
+    // This prevents foreign key constraints on new installations
+    await this.ensureProjectExists();
+
     // Start or recover session
     const sessionState = await this.sessionManager.startSession(this.mode);
 
@@ -181,6 +185,35 @@ export class MemoryManager extends EventEmitter {
     }
   }
   
+  /**
+   * Ensure project exists in database (prevents foreign key constraints)
+   */
+  private async ensureProjectExists(): Promise<void> {
+    try {
+      const projectId = this.projectManager.getProjectId();
+      const metadata = this.projectManager.getMetadata();
+
+      // Upsert project to ensure it exists
+      await this.prisma.project.upsert({
+        where: { id: projectId },
+        create: {
+          id: projectId,
+          rootPath: metadata.rootPath,
+          name: metadata.name
+        },
+        update: {
+          name: metadata.name,
+          updatedAt: new Date()
+        }
+      });
+
+      console.log(`✅ Project ${metadata.name} (${projectId}) ensured in database`);
+    } catch (error) {
+      console.error('Failed to ensure project exists:', error);
+      // Don't throw - allow system to continue even if project creation fails
+    }
+  }
+
   /**
    * Build prompt with all memory layers
    */

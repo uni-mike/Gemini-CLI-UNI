@@ -24,7 +24,9 @@
       "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Find the MemoryManager class and explain its key methods\" --non-interactive)",
       "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"List all TypeScript files in src/tools, count them, and show the first 3 lines of registry.ts\" --non-interactive)",
       "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 10 + 10?\" --non-interactive)",
-      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is the capital of France?\" --non-interactive)"
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is the capital of France?\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 2 + 2?\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 5 + 5?\" --non-interactive)"
     ],
     "deny": [],
     "ask": []
