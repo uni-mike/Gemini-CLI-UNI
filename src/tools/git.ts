@@ -14,16 +14,23 @@ export class GitTool extends Tool {
   description = 'Execute git version control commands';
   
   parameterSchema: ParameterSchema[] = [
-    { name: 'action', type: 'string', required: true, enum: ['status', 'add', 'commit', 'push', 'pull', 'branch', 'checkout', 'log', 'diff'], description: 'Git command to execute' },
+    { name: 'action', type: 'string', required: false, enum: ['status', 'add', 'commit', 'push', 'pull', 'branch', 'checkout', 'log', 'diff'], description: 'Git command to execute' },
+    { name: 'description', type: 'string', required: false, description: 'Task description to parse for safe git action' },
     { name: 'message', type: 'string', required: false, description: 'Commit message (required for commit)' },
     { name: 'branch', type: 'string', required: false, description: 'Branch name (for push/pull/checkout)' },
     { name: 'files', type: 'string', required: false, description: 'Files to add (for add command)' }
   ];
   
   async execute(params: ToolParams): Promise<ToolResult> {
-    const { action, message, branch, files } = params;
-    
-    if (!action) {
+    const { action, description, message, branch, files } = params;
+
+    // If no action provided, parse from description with safety-first approach
+    let gitAction = action;
+    if (!gitAction && description) {
+      gitAction = this.parseGitAction(description);
+    }
+
+    if (!gitAction) {
       return {
         success: false,
         error: 'Action is required (status, add, commit, push, pull, branch, etc.)'
@@ -33,7 +40,7 @@ export class GitTool extends Tool {
     try {
       let command = 'git ';
       
-      switch (action) {
+      switch (gitAction) {
         case 'status':
           command += 'status --short';
           break;
@@ -74,7 +81,7 @@ export class GitTool extends Tool {
           
         default:
           // Allow raw git commands
-          command += action;
+          command += gitAction;
       }
       
       const { stdout, stderr } = await execAsync(command, {
@@ -96,6 +103,50 @@ export class GitTool extends Tool {
   }
   
   validate(params: ToolParams): boolean {
-    return typeof params.action === 'string';
+    return typeof params.action === 'string' || typeof params.description === 'string';
+  }
+
+  /**
+   * Parse git action from description with safety-first approach
+   * Prioritizes read-only operations over dangerous write operations
+   */
+  private parseGitAction(description: string): string {
+    const desc = description.toLowerCase();
+
+    // CRITICAL: Prioritize safe read-only actions over dangerous write actions
+    // Check for history/log queries FIRST
+    if (desc.includes('history') || desc.includes('timeline') ||
+        (desc.includes('commit') && (desc.includes('history') || desc.includes('log') || desc.includes('show') || desc.includes('check')))) {
+      return 'log';
+    }
+    if (desc.includes('log')) {
+      return 'log';
+    }
+    if (desc.includes('diff') || desc.includes('changes')) {
+      return 'diff';
+    }
+    if (desc.includes('status') || desc.includes('state')) {
+      return 'status';
+    }
+    if (desc.includes('branch')) {
+      return 'branch';
+    }
+
+    // Only match dangerous actions with very explicit intent
+    if (desc.includes('add') && (desc.includes('file') || desc.includes('stage'))) {
+      return 'add';
+    }
+    if (desc.includes('commit') && desc.includes('message') && !desc.includes('history')) {
+      return 'commit';
+    }
+    if (desc.includes('push') && desc.includes('origin')) {
+      return 'push';
+    }
+    if (desc.includes('pull') && desc.includes('origin')) {
+      return 'pull';
+    }
+
+    // Safe default
+    return 'status';
   }
 }

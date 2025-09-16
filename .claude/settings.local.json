@@ -31,7 +31,10 @@
       "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Test embedding fix\" --non-interactive)",
       "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Simple test\" --non-interactive)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(APPROVAL_MODE=yolo DEBUG=true npx tsx src/cli.tsx --prompt \"What do you know about the history of our work?\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What do you know about the history of our work?\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

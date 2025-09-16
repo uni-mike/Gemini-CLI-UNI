@@ -566,10 +566,8 @@ export class Executor extends EventEmitter {
         break;
         
       case 'git':
-        args.action = this.extractGitAction(description);
-        if (args.action === 'commit') {
-          args.message = this.extractCommitMessage(description);
-        }
+        // Let git tool handle action parsing to avoid dangerous defaults
+        args.description = description;
         break;
     }
     
@@ -923,15 +921,6 @@ File content only:`;
     return match ? match[1] : '';
   }
 
-  private extractGitAction(description: string): string {
-    const actions = ['status', 'add', 'commit', 'push', 'pull', 'branch', 'log', 'diff'];
-    for (const action of actions) {
-      if (description.toLowerCase().includes(action)) {
-        return action;
-      }
-    }
-    return 'status';
-  }
 
   private extractCommitMessage(description: string): string {
     const match = description.match(/(?:message|with)\s+['"`]([^'"`]+)['"`]/i);
