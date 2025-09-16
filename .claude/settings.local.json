@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"List all available tools and demonstrate each one works correctly with a simple test. Show tool registry, test each tool''''s functionality, and confirm all 14 tools are operational.\" --non-interactive)"
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"List all available tools and demonstrate each one works correctly with a simple test. Show tool registry, test each tool''''s functionality, and confirm all 14 tools are operational.\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a simple validation file called post-cleanup-test.txt with content ''''System working perfectly after cleanup!''''\" --non-interactive)"
     ],
     "deny": [],
     "ask": []

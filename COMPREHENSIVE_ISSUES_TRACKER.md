@@ -74,7 +74,6 @@
 - API Documentation
 - Performance Dashboard
 - Web UI Interface
-- Multi-language Support
 
 ---
 
