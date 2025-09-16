@@ -5,7 +5,12 @@
       "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"create a simple validation file called post-cleanup-test.txt with content ''''System working perfectly after cleanup!''''\" --non-interactive)",
       "Bash(find:*)",
       "Bash(xargs rm:*)",
-      "Bash(gh repo create:*)"
+      "Bash(gh repo create:*)",
+      "Bash(git remote add:*)",
+      "Bash(git remote rename:*)",
+      "Bash(git branch:*)",
+      "Bash(gh repo edit:*)",
+      "Bash(gh repo view:*)"
     ],
     "deny": [],
     "ask": []

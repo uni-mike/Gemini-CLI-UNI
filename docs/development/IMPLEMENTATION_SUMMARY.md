@@ -206,7 +206,7 @@ graph TB
 ## File Structure (Cleaned)
 
 ```
-gemini-cli/
+FlexiCLI/
 ├── agent.sh                 # Agent control
 ├── monitoring.sh            # Monitoring control
 ├── test-complete.sh         # Test suite
