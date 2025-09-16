@@ -150,10 +150,10 @@ export class GitContextLayer implements MemoryLayer {
    */
   private async loadRecentCommits(): Promise<void> {
     try {
-      // Get last 10 commits with stats and patches
-      const gitOutput = execSync('git log --stat --patch -10', {
+      // Get last 10 commits with just metadata and file stats (no patches)
+      const gitOutput = execSync('git log --stat --no-patch -10', {
         encoding: 'utf8',
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+        maxBuffer: 2 * 1024 * 1024, // 2MB buffer should be plenty
         stdio: 'pipe'
       });
       

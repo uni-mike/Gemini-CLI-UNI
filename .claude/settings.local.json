@@ -13,7 +13,18 @@
       "Bash(gh repo view:*)",
       "Bash(gh pr merge:*)",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma:*)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 2+2? Be concise.\" --non-interactive)",
+      "Bash(DEBUG=true APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Search for the TokenBudget class in the codebase and explain its main purpose\" --non-interactive)",
+      "Bash(sqlite3:*)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Calculate the sum of 15 and 27\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"Find the MemoryManager class and explain its key methods\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"List all TypeScript files in src/tools, count them, and show the first 3 lines of registry.ts\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is 10 + 10?\" --non-interactive)",
+      "Bash(APPROVAL_MODE=yolo npx tsx src/cli.tsx --prompt \"What is the capital of France?\" --non-interactive)"
     ],
     "deny": [],
     "ask": []
