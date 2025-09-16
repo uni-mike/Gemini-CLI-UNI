@@ -4,7 +4,7 @@
  * Verifies that log files are rotated automatically based on size
  */
 
-import { logRotation } from './src/utils/log-rotation.js';
+import { logRotation } from '../../../src/utils/log-rotation.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 

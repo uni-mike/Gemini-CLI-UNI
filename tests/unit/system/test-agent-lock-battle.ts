@@ -7,8 +7,8 @@
  * and ensures only one agent instance can run per project at a time.
  */
 
-import { AgentLockManager } from './src/memory/agent-lock.js';
-import { SharedDatabaseManager } from './src/memory/shared-database.js';
+import { AgentLockManager } from '../../../src/memory/agent-lock.js';
+import { SharedDatabaseManager } from '../../../src/memory/shared-database.js';
 import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 
@@ -115,7 +115,7 @@ async function testConcurrentAgents() {
     console.log(`🚀 Spawning agent process ${i + 1}...`);
 
     const child = spawn('npx', ['tsx', '-e', `
-      import { AgentLockManager } from './src/memory/agent-lock.js';
+      import { AgentLockManager } from '../../../src/memory/agent-lock.js';
       import { randomUUID } from 'crypto';
 
       const lock = AgentLockManager.getInstance('${process.cwd()}');

@@ -5,7 +5,7 @@
  */
 
 import { spawn } from 'child_process';
-import { processCleanup } from './src/utils/process-cleanup.js';
+import { processCleanup } from '../../../src/utils/process-cleanup.js';
 
 async function testProcessCleanup() {
   console.log('🧪 Testing Process Cleanup Manager\n');
