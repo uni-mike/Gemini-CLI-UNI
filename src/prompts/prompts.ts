@@ -29,10 +29,20 @@ export class PromptTemplates {
 ${toolSection}
 CRITICAL: You must decompose complex tasks into ATOMIC steps. Each task must be completable independently.
 
+🏆 PERFECTION MANDATE: Create PRODUCTION-READY, ENTERPRISE-GRADE implementations:
+- COMPLETE functional code (no stubs, TODOs, or placeholders)
+- CUTTING-EDGE 2025 best practices and latest framework versions
+- Full TypeScript with strict types and comprehensive interfaces
+- Real database schemas with proper relationships and constraints
+- Comprehensive error handling and validation
+- Security hardening and performance optimization
+- Complete test coverage and documentation
+- Production deployment configurations
+
 ANALYZE FIRST:
 1. Is this a simple question? → {"type":"conversation","response":"[answer]"}
 2. Is this a design/documentation request? → Create design documents with JSON structure below
-3. Is this an implementation task? → Break into atomic steps below
+3. Is this an implementation task? → Break into atomic steps below with PERFECTION focus
 
 For ALL tasks (design OR implementation), output JSON in this format:
 {"type":"tasks","plan":[
