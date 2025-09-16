@@ -47,6 +47,14 @@ export class ProjectManager {
     if (process.env.DATABASE_URL) {
       // Extract the project root from DATABASE_URL path for consistency
       const dbPath = process.env.DATABASE_URL.replace('file:', '');
+
+      // Handle relative paths correctly
+      if (dbPath.startsWith('../')) {
+        // Relative path from prisma/ directory, so use current working directory
+        return process.cwd();
+      }
+
+      // Absolute path - extract project root
       const projectRoot = dbPath.replace('/.flexicli/flexicli.db', '');
       return projectRoot;
     }
